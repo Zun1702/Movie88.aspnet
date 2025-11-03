@@ -93,13 +93,16 @@ CreateDatabase(app);
 app.UseCors();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Enable Swagger in all environments for Railway deployment
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Movie88 API v1");
+    c.RoutePrefix = string.Empty; // Set Swagger UI at root
+});
 
-app.UseHttpsRedirection();
+// Disable HTTPS redirection for Railway (Railway handles HTTPS at edge)
+// app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
