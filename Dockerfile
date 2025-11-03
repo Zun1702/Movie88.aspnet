@@ -2,15 +2,17 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy solution and project files
-COPY Movie88.sln ./
+# Copy project files only (skip solution to avoid docker-compose.dcproj issue)
 COPY Movie88.Domain/Movie88.Domain.csproj ./Movie88.Domain/
 COPY Movie88.Application/Movie88.Application.csproj ./Movie88.Application/
 COPY Movie88.Infrastructure/Movie88.Infrastructure.csproj ./Movie88.Infrastructure/
 COPY Movie88.WebApi/Movie88.WebApi.csproj ./Movie88.WebApi/
 
-# Restore dependencies
-RUN dotnet restore Movie88.sln
+# Restore dependencies for each project
+RUN dotnet restore Movie88.Domain/Movie88.Domain.csproj
+RUN dotnet restore Movie88.Application/Movie88.Application.csproj
+RUN dotnet restore Movie88.Infrastructure/Movie88.Infrastructure.csproj
+RUN dotnet restore Movie88.WebApi/Movie88.WebApi.csproj
 
 # Copy all source code
 COPY . .
