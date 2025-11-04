@@ -39,8 +39,20 @@ public partial class User
     [Column("updatedat", TypeName = "timestamp without time zone")]
     public DateTime? Updatedat { get; set; }
 
+    [Column("isverified")]
+    public bool Isverified { get; set; } = false;
+
+    [Column("isactive")]
+    public bool Isactive { get; set; } = true;
+
+    [Column("verifiedat", TypeName = "timestamp without time zone")]
+    public DateTime? Verifiedat { get; set; }
+
     [InverseProperty("User")]
     public virtual Customer? Customer { get; set; }
+
+    [InverseProperty("User")]
+    public virtual ICollection<OtpToken> OtpTokens { get; set; } = new List<OtpToken>();
 
     [ForeignKey("Roleid")]
     [InverseProperty("Users")]
