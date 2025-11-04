@@ -1,6 +1,6 @@
-# 👤 Screen 6: Profile & History (7 Endpoints)
+# 👤 Screen 6: Profile & History (6 Endpoints)
 
-**Status**: 🔄 **PENDING** (0/7 endpoints - 0%)
+**Status**: 🔄 **PENDING** (0/6 endpoints - 0%)
 
 ---
 
@@ -12,10 +12,9 @@
 | 2 | GET | `/api/customers/profile` | ProfileFragment | ✅ | ✅ DONE (Screen 2) |
 | 3 | PUT | `/api/users/{id}` | EditProfileActivity | ✅ | ❌ TODO |
 | 4 | PUT | `/api/customers/profile` | EditProfileActivity | ✅ | ❌ TODO |
-| 5 | POST | `/api/users/avatar` | EditProfileActivity | ✅ | ❌ TODO |
-| 6 | GET | `/api/bookings/my-bookings` | BookingsFragment | ✅ | ✅ DONE (Screen 2) |
-| 7 | POST | `/api/auth/change-password` | ProfileFragment | ✅ | ✅ DONE (Screen 1) |
-| 8 | POST | `/api/auth/logout` | ProfileFragment | ✅ | ✅ DONE (Screen 1) |
+| 5 | GET | `/api/bookings/my-bookings` | BookingsFragment | ✅ | ✅ DONE (Screen 2) |
+| 6 | POST | `/api/auth/change-password` | ProfileFragment | ✅ | ✅ DONE (Screen 1) |
+| 7 | POST | `/api/auth/logout` | ProfileFragment | ✅ | ✅ DONE (Screen 1) |
 
 ---
 
@@ -185,7 +184,6 @@ Returns customer profile with user information including fullname, email, phone,
 - ✅ `address` (string, max 255, nullable)
 - ✅ `dateofbirth` (DateOnly, nullable)
 - ✅ `gender` (string, max 10, nullable)
-- ❌ KHÔNG có: `avatarurl`, `loyaltypoints`, `membershiptier`
 
 ### Business Logic
 1. **Find Customer**:
@@ -216,107 +214,7 @@ Returns customer profile with user information including fullname, email, phone,
 
 ---
 
-## 🎯 5. POST /api/users/avatar
-
-**Screen**: EditProfileActivity  
-**Auth Required**: ✅ Yes
-
-### Request Body (Multipart Form Data)
-```
-Content-Type: multipart/form-data
-
-avatar: [binary file data]
-```
-
-### Validation Rules
-- File must be image (jpg, jpeg, png, gif)
-- Max file size: 5MB
-- Required field
-
-### Response 200 OK
-```json
-{
-  "success": true,
-  "statusCode": 200,
-  "message": "Avatar uploaded successfully",
-  "data": {
-    "avatarurl": "https://your-storage.com/avatars/user_6_20251103163000.jpg"
-  }
-}
-```
-
-### Implementation Notes
-
-**⚠️ Database Limitation**:
-- Customer table does NOT have `avatarurl` field
-- Options:
-  1. **Add avatarurl to Customer table** (requires migration)
-  2. **Store in User table** (requires adding field)
-  3. **Create separate UserProfile table**
-  4. **Skip avatar feature** until database updated
-
-### Business Logic (if avatarurl field added)
-
-1. **Validate File**:
-   ```csharp
-   var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-   var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-   
-   if (!allowedExtensions.Contains(extension))
-       return BadRequest("Invalid file type");
-   
-   if (file.Length > 5 * 1024 * 1024) // 5MB
-       return BadRequest("File size exceeds 5MB");
-   ```
-
-2. **Save File**:
-   ```csharp
-   // Option 1: Local storage
-   var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "avatars");
-   Directory.CreateDirectory(uploadsFolder);
-   
-   var fileName = $"user_{userId}_{DateTime.Now:yyyyMMddHHmmss}{extension}";
-   var filePath = Path.Combine(uploadsFolder, fileName);
-   
-   using (var stream = new FileStream(filePath, FileMode.Create))
-   {
-       await file.CopyToAsync(stream);
-   }
-   
-   var avatarUrl = $"{Request.Scheme}://{Request.Host}/uploads/avatars/{fileName}";
-   
-   // Option 2: Cloud storage (Azure Blob, AWS S3)
-   // var avatarUrl = await _cloudStorageService.UploadAsync(file);
-   ```
-
-3. **Update Customer**:
-   ```csharp
-   customer.Avatarurl = avatarUrl;
-   await _context.SaveChangesAsync();
-   ```
-
-4. **Delete Old Avatar** (optional):
-   ```csharp
-   if (!string.IsNullOrEmpty(customer.Avatarurl))
-   {
-       var oldFilePath = GetFilePathFromUrl(customer.Avatarurl);
-       if (File.Exists(oldFilePath))
-           File.Delete(oldFilePath);
-   }
-   ```
-
-### Error Cases
-- 400 Bad Request - Invalid file type or size
-- 500 Internal Server Error - File upload failed
-
-**⚠️ RECOMMENDATION**:
-- Skip this endpoint for now
-- Add `avatarurl` field to Customer table in future migration
-- Or use placeholder/gravatar URLs based on email
-
----
-
-## 🎯 6. GET /api/bookings/my-bookings
+## 🎯 5. GET /api/bookings/my-bookings
 
 **Screen**: BookingsFragment  
 **Auth Required**: ✅ Yes
@@ -329,7 +227,7 @@ Returns paginated list of user's bookings with movie, cinema, showtime, seats, c
 
 ---
 
-## 🎯 7. POST /api/auth/change-password
+## 🎯 6. POST /api/auth/change-password
 
 **Screen**: ProfileFragment  
 **Auth Required**: ✅ Yes
@@ -348,7 +246,7 @@ Returns paginated list of user's bookings with movie, cinema, showtime, seats, c
 
 ---
 
-## 🎯 8. POST /api/auth/logout
+## 🎯 7. POST /api/auth/logout
 
 **Screen**: ProfileFragment  
 **Auth Required**: ✅ Yes
@@ -383,12 +281,10 @@ Returns paginated list of user's bookings with movie, cinema, showtime, seats, c
 
 ❌ DTOs/Customers/
    - UpdateCustomerProfileRequestDTO.cs
-   - UploadAvatarResponseDTO.cs
 
 ❌ Services/
    - IUserService.cs / UserService.cs
    - (CustomerService - extend existing)
-   - IFileUploadService.cs / FileUploadService.cs (for avatar)
 ```
 
 #### Infrastructure Layer (Movie88.Infrastructure/)
@@ -401,10 +297,8 @@ Returns paginated list of user's bookings with movie, cinema, showtime, seats, c
 #### WebApi Layer (Movie88.WebApi/)
 ```
 ❌ Controllers/
-   - UsersController.cs (3 endpoints)
+   - UsersController.cs (2 endpoints)
    - CustomersController.cs (1 endpoint - extend)
-   
-❌ wwwroot/uploads/avatars/ (for local file storage)
 ```
 
 ---
@@ -423,7 +317,6 @@ Returns paginated list of user's bookings with movie, cinema, showtime, seats, c
 - ✅ `address` (string, max 255, nullable)
 - ✅ `dateofbirth` (DateOnly, nullable)
 - ✅ `gender` (string, max 10, nullable)
-- ❌ NO `avatarurl`, `loyaltypoints`, `membershiptier` fields in current database
 
 ### Business Logic Notes
 
@@ -474,24 +367,6 @@ customer.Gender = request.Gender ?? customer.Gender;
 await _context.SaveChangesAsync();
 ```
 
-**File Upload Validation**:
-```csharp
-private bool IsValidImage(IFormFile file)
-{
-    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-    var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-    
-    if (!allowedExtensions.Contains(extension))
-        return false;
-    
-    if (file.Length > 5 * 1024 * 1024) // 5MB
-        return false;
-    
-    // Optional: Check actual file content (magic numbers)
-    return true;
-}
-```
-
 ### PostgreSQL Specific
 - DateOnly for dateofbirth
 - timestamp without time zone for updatedat
@@ -524,59 +399,8 @@ private bool IsValidImage(IFormFile file)
 - [ ] Validate dateofbirth format
 - [ ] Return 404 if customer profile not found
 
-### POST /api/users/avatar
-- [ ] Require authentication
-- [ ] Validate file type (jpg, jpeg, png, gif)
-- [ ] Validate file size (max 5MB)
-- [ ] Save file correctly
-- [ ] Update customer avatarurl (if field exists)
-- [ ] Delete old avatar file
-- [ ] Return correct avatarurl
-
----
-
-## ⚠️ Database Migration Needed
-
-To fully implement avatar feature and match frontend expectations, consider adding these fields to Customer table:
-
-```sql
-ALTER TABLE customers
-ADD COLUMN avatarurl VARCHAR(255),
-ADD COLUMN loyaltypoints INT DEFAULT 0,
-ADD COLUMN membershiptier VARCHAR(20) DEFAULT 'Bronze';
-```
-
-Or create migration in EF Core:
-
-```csharp
-protected override void Up(MigrationBuilder migrationBuilder)
-{
-    migrationBuilder.AddColumn<string>(
-        name: "avatarurl",
-        table: "customers",
-        type: "character varying(255)",
-        maxLength: 255,
-        nullable: true);
-
-    migrationBuilder.AddColumn<int>(
-        name: "loyaltypoints",
-        table: "customers",
-        type: "integer",
-        nullable: false,
-        defaultValue: 0);
-
-    migrationBuilder.AddColumn<string>(
-        name: "membershiptier",
-        table: "customers",
-        type: "character varying(20)",
-        maxLength: 20,
-        nullable: true,
-        defaultValue: "Bronze");
-}
-```
-
 ---
 
 **Created**: November 3, 2025  
-**Last Updated**: November 3, 2025  
-**Progress**: ✅ 3/7 endpoints (43%) - 3 already implemented in previous screens
+**Last Updated**: November 4, 2025  
+**Progress**: ✅ 3/6 endpoints (50%) - 3 already implemented in previous screens
