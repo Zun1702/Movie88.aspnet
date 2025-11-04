@@ -235,11 +235,11 @@ GET {{baseUrl}}/movies/1
 Content-Type: application/json
 
 ### Step 2: Get showtimes for the movie
-GET {{baseUrl}}/movies/1/showtimes?date=2019-03-26
+GET {{baseUrl}}/movies/1/showtimes?date=2025-11-05
 Content-Type: application/json
 
 ### Step 3: Get existing reviews
-GET {{baseUrl}}/reviews/movie/4?sort=latest
+GET {{baseUrl}}/reviews/movie/1?sort=latest
 Content-Type: application/json
 
 ### Step 4: Create a new review
@@ -248,15 +248,15 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "movieid": 4,
+  "movieid": 1,
   "rating": 5,
   "comment": "Excellent movie experience! Worth watching."
 }
 
 ### Step 5: Verify the review was added (should see new review)
-GET {{baseUrl}}/reviews/movie/4?sort=latest
+GET {{baseUrl}}/reviews/movie/1?sort=latest
 Content-Type: application/json
 
 ### Step 6: Verify averageRating updated in movie details
-GET {{baseUrl}}/movies/4
+GET {{baseUrl}}/movies/1
 Content-Type: application/json

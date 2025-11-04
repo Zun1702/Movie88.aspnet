@@ -1,0 +1,447 @@
+### OTP Authentication Testing
+@baseUrl = https://localhost:7238/api
+@email = noshibi123@gmail.com
+@password = 123111
+
+###############################################
+# 1. REGISTER NEW USER (AUTO SENDS OTP)
+###############################################
+
+### 1.1 Register with OTP auto-send
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "ZunZun",
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "confirmPassword": "{{password}}",
+  "phoneNumber": "0909888777"
+}
+
+###############################################
+# 2. SEND OTP - EMAIL VERIFICATION
+###############################################
+
+### 2.1 Send OTP for email verification
+POST {{baseUrl}}/auth/send-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpType": "EmailVerification"
+}
+
+### 2.2 Send OTP for password reset
+POST {{baseUrl}}/auth/send-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpType": "PasswordReset"
+}
+
+### 2.3 Rate limit test (send 4th time, should fail)
+POST {{baseUrl}}/auth/send-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpType": "EmailVerification"
+}
+
+###############################################
+# 3. VERIFY OTP
+###############################################
+
+### 3.1 Verify OTP (check email for code)
+# REPLACE 123456 with actual OTP from email
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "612951",
+  "otpType": "EmailVerification"
+}
+
+### 3.2 Verify invalid OTP (should fail)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "999999",
+  "otpType": "EmailVerification"
+}
+
+### 3.3 Verify expired OTP (wait 11 minutes, should fail)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "511599",
+  "otpType": "EmailVerification"
+}
+
+### 3.4 Verify already used OTP (run twice, 2nd should fail)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "511599",
+  "otpType": "EmailVerification"
+}
+
+###############################################
+# 4. RESEND OTP
+###############################################
+
+### 4.1 Resend OTP
+POST {{baseUrl}}/auth/resend-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpType": "EmailVerification"
+}
+
+### 4.2 Resend to already verified user (should fail)
+POST {{baseUrl}}/auth/resend-otp
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "otpType": "EmailVerification"
+}
+
+###############################################
+# 5. FORGOT PASSWORD WITH OTP FLOW
+###############################################
+
+### 5.1 Request password reset (sends OTP via email)
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### 5.2 Reset password with OTP (verifies and resets in one call)
+# NOTE: No need to call verify-otp first, reset-password will verify it automatically
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "747315",
+  "newPassword": "123111",
+  "confirmPassword": "123111"
+}
+
+### 5.3 (Optional) Verify OTP before reset - for validation only
+# WARNING: This will mark OTP as used, so you need a new OTP for reset-password
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "NEW_OTP_HERE",
+  "otpType": "PasswordReset"
+}
+
+### 5.4 Login with new password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "123321"
+}
+
+### 5.5 Forgot password - non-existent email (should still return success for security)
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "notexist@example.com"
+}
+
+### 5.6 Reset password with invalid OTP (should fail)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "999999",
+  "newPassword": "NewPassword@456",
+  "confirmPassword": "NewPassword@456"
+}
+
+### 5.7 Reset password with expired OTP (wait 11 minutes, should fail)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "123456",
+  "newPassword": "NewPassword@789",
+  "confirmPassword": "NewPassword@789"
+}
+
+### 5.8 Reset password with mismatched passwords (should fail validation)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "123456",
+  "newPassword": "NewPassword@123",
+  "confirmPassword": "DifferentPassword@456"
+}
+
+###############################################
+# 6. LOGIN AFTER VERIFICATION
+###############################################
+
+### 6.1 Try login before verification (should work but isVerified=false)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### 6.2 Login after verification (isVerified=true)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###############################################
+# 7. COMPLETE REGISTRATION + VERIFICATION FLOW
+###############################################
+
+### Step 1: Register new user (OTP sent automatically)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Complete Flow Test",
+  "email": "complete.test@example.com",
+  "password": "Test@123",
+  "confirmPassword": "Test@123",
+  "phoneNumber": "0901234567"
+}
+
+### Step 2: Check console logs for OTP code or check email
+
+### Step 3: Verify OTP (get code from email/logs)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "complete.test@example.com",
+  "otpCode": "PASTE_OTP_HERE",
+  "otpType": "EmailVerification"
+}
+
+### Step 4: Check email for welcome message
+
+### Step 5: Login with verified account
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "complete.test@example.com",
+  "password": "Test@123"
+}
+
+###############################################
+# 8. COMPLETE PASSWORD RESET FLOW
+###############################################
+
+### Step 1: Request forgot password (OTP sent to email)
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### Step 2: Check email for OTP code (6 digits)
+
+### Step 3: Reset password with OTP (verifies automatically)
+# NOTE: reset-password will verify OTP internally, so no need to call verify-otp first
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "PASTE_OTP_HERE",
+  "newPassword": "MyNewPassword@123",
+  "confirmPassword": "MyNewPassword@123"
+}
+
+### Step 5: Check email for password reset confirmation
+
+### Step 6: Login with new password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "MyNewPassword@123"
+}
+
+### Step 7 (Optional): Change back to original password
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "NEW_OTP_HERE",
+  "newPassword": "{{password}}",
+  "confirmPassword": "{{password}}"
+}
+
+###############################################
+# 9. ERROR SCENARIOS
+###############################################
+
+### 9.1 Send OTP to non-existent email
+POST {{baseUrl}}/auth/send-otp
+Content-Type: application/json
+
+{
+  "email": "notexist@example.com",
+  "otpType": "EmailVerification"
+}
+
+### 9.2 Verify OTP with wrong email
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "wrong@example.com",
+  "otpCode": "123456",
+  "otpType": "EmailVerification"
+}
+
+### 9.3 Send OTP with invalid type
+POST {{baseUrl}}/auth/send-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpType": "InvalidType"
+}
+
+### 9.4 Reset password without verifying OTP first
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "000000",
+  "newPassword": "NewPassword@123",
+  "confirmPassword": "NewPassword@123"
+}
+
+### 9.5 Reset password with weak password (should fail validation)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "123456",
+  "newPassword": "123",
+  "confirmPassword": "123"
+}
+
+### 9.6 Reset password with already used OTP
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otpCode": "123456",
+  "newPassword": "AnotherPassword@123",
+  "confirmPassword": "AnotherPassword@123"
+}
+
+###############################################
+# NOTES FOR TESTING
+###############################################
+
+# 1. Check console logs for OTP codes:
+#    [INFO] Email sent successfully to test@example.com
+#    [MOCK EMAIL] Sending OTP to test@example.com: 123456
+
+# 2. Check your email inbox (if Resend is configured):
+#    From: Movie88 <movie88@ezyfix.site>
+#    
+#    Email Verification:
+#    Subject: 🔐 Verify Your Email - Movie88
+#    
+#    Password Reset:
+#    Subject: 🔒 Password Reset Request - Movie88
+#    
+#    Password Reset Confirmation:
+#    Subject: ✅ Password Reset Successful - Movie88
+
+# 3. OTP expires in 10 minutes
+
+# 4. Rate limiting: Max 3 OTPs per 10 minutes
+
+# 5. After email verification:
+#    - isverified = true (one-time only)
+#    - Welcome email sent
+#    - Cannot verify again
+
+# 6. Password Reset Flow:
+#    a) Forgot Password → OTP sent to email
+#    b) Reset Password (with OTP) → Verifies OTP + Updates password (ONE STEP!)
+#    c) Confirmation email sent
+#    d) Can login with new password
+#    
+#    IMPORTANT: Do NOT call verify-otp before reset-password!
+#    The reset-password endpoint will verify OTP internally.
+#    If you call verify-otp first, OTP will be marked as used and reset will fail.
+
+# 7. Database tables to check:
+#    - public."User" (isverified, verifiedat, passwordhash columns)
+#    - public.otp_tokens (all OTP records with isused, usedat)
+
+# 8. OTP Types supported:
+#    - EmailVerification: For new user registration
+#    - PasswordReset: For forgot password flow
+#    - Login: For 2FA (future feature)
+
+# 9. Security Features:
+#    - OTP is one-time use only (isused flag)
+#    - OTP expires after 10 minutes
+#    - Rate limiting: Max 3 OTPs per 10 minutes per user
+#    - Forgot password doesn't reveal if email exists
+#    - Password must be at least 6 characters
+#    - IP address and User-Agent tracked for audit
+
+# 10. Test Sequence:
+#     Registration Flow:
+#     1.1 → 3.1 → 6.2 (Register → Verify OTP → Login)
+#     
+#     Password Reset Flow (Simple):
+#     5.1 → 5.2 → 5.4 (Forgot → Reset with OTP → Login)
+#     
+#     Password Reset Flow (with Optional Verify):
+#     5.1 → 5.3 → Request New OTP → 5.2 → 5.4
+#     (Not recommended - just use simple flow)
+#     
+#     Complete Flow:
+#     Section 7 (Registration) → Section 8 (Password Reset)

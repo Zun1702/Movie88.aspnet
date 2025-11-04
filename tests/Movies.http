@@ -1,11 +1,12 @@
 ### Movie88 API Testing - All Endpoints
 ### Base URL
-@baseUrl = https://localhost:7238/api
+@baseUrl = https://movie88aspnet-app.up.railway.app/api
+# https://localhost:7238/api
 # hoặc http://localhost:5203/api nếu dùng HTTP
 
 ### Variables
 @movieId = 1
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiMmIzMDNlN2UtYTdlNC00Y2NhLTk5ZDItMjU3ZWJlMWYxYmRlIiwibmJmIjoxNzYyMTgyMTY2LCJleHAiOjE3NjIxODU3NjYsImlhdCI6MTc2MjE4MjE2NiwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.X_GevN_Zoa4w1aBLMORUUCvkc8Jnmn78IqEya-WdTok
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiM2NmNzhlODktY2QyOS00OTZkLWIyYzctZjUxZGUxMTlkNzJiIiwibmJmIjoxNzYyMjQwNjU3LCJleHAiOjE3NjIyNDQyNTcsImlhdCI6MTc2MjI0MDY1NywiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.6knKEfUZ6JY-sER8q3fsHmBCpX4mrrMFqHKQl1ANck0
 
 ###############################################
 # 0. AUTHENTICATION - Login & Register
