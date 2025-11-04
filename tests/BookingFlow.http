@@ -28,21 +28,16 @@ Content-Type: application/json
 
 ###
 
-### 2. GET Showtimes by Movie
+### 2. GET Showtimes by Movie (grouped by date & cinema)
 GET {{baseUrl}}/showtimes/by-movie/{{movieId}}
 Content-Type: application/json
 
-### 2.1 GET Showtimes by Movie and Cinema
-GET {{baseUrl}}/showtimes/by-movie/{{movieId}}?cinemaid={{cinemaId}}
+### 2.1 Alternative: GET Showtimes via Movies endpoint
+GET {{baseUrl}}/movies/{{movieId}}/showtimes
 Content-Type: application/json
 
-### 2.2 GET Showtimes by Movie and Date
-GET {{baseUrl}}/showtimes/by-movie/{{movieId}}?date=2025-11-05
-Content-Type: application/json
-
-### 2.3 GET Showtimes by Movie, Cinema and Date
-GET {{baseUrl}}/showtimes/by-movie/{{movieId}}?date=2025-11-05&cinemaid={{cinemaId}}
-Content-Type: application/json
+### Note: by-movie endpoint returns ALL showtimes grouped by date & cinema
+### For filtering by date/cinema, use the by-date endpoint below
 
 ###
 
