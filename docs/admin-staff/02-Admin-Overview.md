@@ -1,61 +1,86 @@
-# 👑 Admin Guide: Quản trị Hệ thống Movie88
+# 👑 Admin: Quản trị Hệ thống Movie88 (20+ Endpoints)
 
-## 📋 Mục lục
-1. [Giới thiệu](#giới-thiệu)
-2. [Dashboard Overview](#dashboard-overview)
-3. [Quản lý Phim](#quản-lý-phim)
-4. [Quản lý Rạp & Suất chiếu](#quản-lý-rạp--suất-chiếu)
-5. [Quản lý Users](#quản-lý-users)
-6. [Báo cáo & Thống kê](#báo-cáo--thống-kê)
-7. [Xử lý vấn đề](#xử-lý-vấn-đề)
+**Status**: ⚠️ **PENDING IMPLEMENTATION** (0/20+ endpoints - 0%)
 
 ---
 
-## 🎯 Giới thiệu
+## 📋 Endpoints Overview
 
-### Vai trò của Admin
-Bạn là **quản trị viên hệ thống** Movie88 với toàn quyền quản lý:
+### A. Movie Management (4 endpoints)
+| # | Method | Endpoint | Description | Auth | Status |
+|---|--------|----------|-------------|------|--------|
+| 1 | POST | `/api/movies` | Thêm phim mới | ✅ Admin | ⏳ TODO |
+| 2 | PUT | `/api/movies/{id}` | Cập nhật phim | ✅ Admin | ⏳ TODO |
+| 3 | DELETE | `/api/movies/{id}` | Xóa phim | ✅ Admin | ⏳ TODO |
+| 4 | GET | `/api/admin/movies` | Danh sách phim (admin view) | ✅ Admin | ⏳ TODO |
 
-- ✅ **TẤT CẢ** quyền của Staff (verify booking, check-in)
-- ✅ Quản lý Movies (thêm/sửa/xóa)
-- ✅ Quản lý Cinemas & Auditoriums
-- ✅ Quản lý Showtimes (lịch chiếu phim)
-- ✅ Quản lý Users (customers, staff, admins)
-- ✅ Xem báo cáo doanh thu & thống kê
-- ✅ Quản lý Promotions & Vouchers
-- ✅ Xử lý khiếu nại & hoàn tiền
+### B. Cinema & Showtime Management (6 endpoints)
+| # | Method | Endpoint | Description | Auth | Status |
+|---|--------|----------|-------------|------|--------|
+| 5 | POST | `/api/admin/cinemas` | Thêm rạp mới | ✅ Admin | ⏳ TODO |
+| 6 | PUT | `/api/admin/cinemas/{id}` | Cập nhật rạp | ✅ Admin | ⏳ TODO |
+| 7 | DELETE | `/api/admin/cinemas/{id}` | Xóa rạp | ✅ Admin | ⏳ TODO |
+| 8 | POST | `/api/admin/showtimes` | Tạo suất chiếu | ✅ Admin | ⏳ TODO |
+| 9 | POST | `/api/admin/showtimes/bulk` | Tạo nhiều suất cùng lúc | ✅ Admin | ⏳ TODO |
+| 10 | DELETE | `/api/admin/showtimes/{id}` | Hủy suất chiếu | ✅ Admin | ⏳ TODO |
+
+### C. User Management (4 endpoints)
+| # | Method | Endpoint | Description | Auth | Status |
+|---|--------|----------|-------------|------|--------|
+| 11 | GET | `/api/admin/users` | Danh sách users | ✅ Admin | ⏳ TODO |
+| 12 | POST | `/api/admin/users` | Thêm staff/admin | ✅ Admin | ⏳ TODO |
+| 13 | PUT | `/api/admin/users/{id}/role` | Cập nhật role | ✅ Admin | ⏳ TODO |
+| 14 | PUT | `/api/admin/users/{id}/ban` | Ban/unban user | ✅ Admin | ⏳ TODO |
+
+### D. Reports & Analytics (6 endpoints)
+| # | Method | Endpoint | Description | Auth | Status |
+|---|--------|----------|-------------|------|--------|
+| 15 | GET | `/api/admin/dashboard/stats` | Dashboard overview | ✅ Admin | ⏳ TODO |
+| 16 | GET | `/api/admin/reports/revenue/daily` | Báo cáo doanh thu ngày | ✅ Admin | ⏳ TODO |
+| 17 | GET | `/api/admin/reports/revenue/monthly` | Báo cáo doanh thu tháng | ✅ Admin | ⏳ TODO |
+| 18 | GET | `/api/admin/reports/bookings/statistics` | Thống kê booking | ✅ Admin | ⏳ TODO |
+| 19 | GET | `/api/admin/reports/popular-movies` | Phim phổ biến | ✅ Admin | ⏳ TODO |
+| 20 | GET | `/api/admin/reports/customers/analytics` | Phân tích khách hàng | ✅ Admin | ⏳ TODO |
+
+---
+
+## 🎯 Vai trò của Admin
+
+**Bạn là quản trị viên hệ thống** Movie88 với toàn quyền quản lý.
+
+### ✅ Quyền hạn đầy đủ
+- ✅ **TẤT CẢ** quyền của Staff
+- ✅ Quản lý Movies (CRUD)
+- ✅ Quản lý Cinemas & Auditoriums (CRUD)
+- ✅ Quản lý Showtimes (CRUD)
+- ✅ Quản lý Users (CRUD, ban/unban)
+- ✅ Xem báo cáo & thống kê
+- ✅ Xử lý hoàn tiền & khiếu nại
 - ✅ Cấu hình hệ thống
 
-### Trách nhiệm chính
+### 📅 Trách nhiệm chính
 
-**Daily Tasks:**
-- Kiểm tra dashboard mỗi sáng
-- Giải quyết tickets/complaints
-- Monitor system health
-
-**Weekly Tasks:**
-- Review doanh thu tuần
-- Cập nhật lịch chiếu phim mới
-- Kiểm tra inventory ghế/rạp
-
-**Monthly Tasks:**
-- Báo cáo doanh thu tháng
-- Phân tích xu hướng khách hàng
-- Planning cho tháng tiếp theo
+**Daily**: Check dashboard, resolve tickets, monitor health  
+**Weekly**: Review revenue, update schedules  
+**Monthly**: Generate reports, analyze trends, planning
 
 ---
 
-## 📊 Dashboard Overview
+## 🎯 A. DASHBOARD & REPORTS
 
-### ⚠️ CHƯA IMPLEMENT - CẦN TRIỂN KHAI
+## 🎯 1. GET /api/admin/dashboard/stats
 
-**Endpoint cần implement:**
+**Description**: Dashboard overview với real-time stats  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
 GET /api/admin/dashboard/stats
 Authorization: Bearer {admin_token}
 ```
 
-### Response mong muốn
+### Response 200 OK
 
 ```json
 {
@@ -140,33 +165,43 @@ Authorization: Bearer {admin_token}
 }
 ```
 
-### Dashboard UI Elements
+### Related Entities
+**Dashboard aggregates data from:**
+- ✅ Bookings table (revenue, counts)
+- ✅ Movies table (popular movies)
+- ✅ Customers table (active users)
+- ✅ Showtimes table (occupancy rates)
 
-**Widgets cần có:**
+### Implementation Plan
+- ⏳ Application: DashboardStatsQuery.cs, DashboardStatsDTO.cs
+- ⏳ Infrastructure: Complex aggregation queries
+- ⏳ WebApi: AdminController.GetDashboardStats()
+
+### UI Widgets cần có
 1. 📈 Revenue Chart (line chart)
 2. 🎬 Top Movies (bar chart)
 3. 👥 Customer Growth (area chart)
 4. 🏢 Cinema Occupancy (pie chart)
 5. 📅 Upcoming Showtimes (table)
-6. 🔔 Recent Bookings (live feed)
-7. ⚠️ System Alerts (notifications)
 
 ---
 
-## 🎬 Quản lý Phim
+## � B. MOVIE MANAGEMENT
 
-### ⚠️ CHƯA IMPLEMENT - CẦN TRIỂN KHAI
+## 🎯 2. POST /api/movies
 
-### 1. Thêm Phim Mới
+**Description**: Thêm phim mới vào hệ thống  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
 
-**Endpoint:**
+### Request
 ```http
 POST /api/movies
 Authorization: Bearer {admin_token}
 Content-Type: application/json
 ```
 
-**Request Body:**
+### Request Body
 ```json
 {
   "title": "Avatar: The Way of Water",
@@ -193,7 +228,25 @@ Content-Type: application/json
 }
 ```
 
-**Response (201 Created):**
+### Request Body Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| title | string | ✅ | Movie title (max 200) |
+| description | text | ❌ | Movie description |
+| durationMinutes | int | ✅ | Duration in minutes |
+| director | string | ❌ | Director name (max 100) |
+| releaseDate | DateOnly | ❌ | Release date |
+| country | string | ❌ | Country of origin |
+| rating | string | ✅ | Age rating (G, PG, PG-13, R) |
+| genre | string | ❌ | Genres (comma-separated) |
+| posterUrl | string | ❌ | Poster image URL |
+| trailerUrl | string | ❌ | YouTube trailer URL |
+| cast | array | ❌ | Cast members |
+| producer | string | ❌ | Producer name |
+| language | string | ❌ | Original language |
+| subtitle | string | ❌ | Subtitle language |
+
+### Response 201 Created
 ```json
 {
   "success": true,
@@ -209,39 +262,73 @@ Content-Type: application/json
 }
 ```
 
+### Related Entities
+**Movie** (movies table):
+- ✅ `movieid` (int, PK, auto-increment)
+- ✅ `title`, `description`, `durationminutes`
+- ✅ `director`, `releasedate`, `posterurl`, `trailerurl`
+- ✅ `country`, `rating`, `genre`
+
+### Implementation Plan
+- ⏳ Application: CreateMovieCommand.cs, CreateMovieDTO.cs
+- ⏳ Infrastructure: MovieRepository.Add()
+- ⏳ WebApi: MoviesController.CreateMovie() - [Authorize(Roles="Admin")]
+
 ---
 
-### 2. Cập nhật Phim
+## 🎯 3. PUT /api/movies/{id}
 
-**Endpoint:**
+**Description**: Cập nhật thông tin phim  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
-PUT /api/movies/{id}
+PUT /api/movies/123
 Authorization: Bearer {admin_token}
 Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "posterUrl": "https://new-poster-url.jpg",
+  "status": "NowShowing"
+}
 ```
 
-**Use Cases:**
-- Sửa thông tin phim (typo, thời lượng, v.v.)
+### Use Cases
+- Sửa thông tin phim (typo, duration)
 - Cập nhật poster/trailer
-- Thay đổi trạng thái (Coming Soon → Now Showing → End of Showing)
-- Thêm/bớt diễn viên
+- Thay đổi trạng thái (ComingSoon → NowShowing → Ended)
+
+### Response 200 OK
+```json
+{
+  "success": true,
+  "message": "Movie updated successfully"
+}
+```
 
 ---
 
-### 3. Xóa Phim
+## 🎯 4. DELETE /api/movies/{id}
 
-**Endpoint:**
+**Description**: Xóa phim (soft delete)  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
-DELETE /api/movies/{id}
+DELETE /api/movies/123
 Authorization: Bearer {admin_token}
 ```
 
-**⚠️ Lưu ý:**
-- Chỉ xóa được phim KHÔNG có booking
-- Nếu có booking: Phải cancel tất cả booking trước
-- Soft delete (đánh dấu IsDeleted=true, không xóa vật lý)
+### Business Rules
+⚠️ **Chỉ xóa được nếu:**
+- Phim KHÔNG có booking nào
+- Nếu có booking: Phải cancel tất cả trước
+- Soft delete (IsDeleted=true, không xóa DB)
 
-**Response (200 OK):**
+### Response 200 OK
 ```json
 {
   "success": true,
@@ -255,23 +342,40 @@ Authorization: Bearer {admin_token}
 }
 ```
 
+### Response 400 Bad Request
+```json
+{
+  "success": false,
+  "message": "Cannot delete movie with existing bookings",
+  "errors": ["Movie has 45 active bookings"]
+}
+```
+
 ---
 
-### 4. Danh sách Phim (Admin View)
+## 🎯 5. GET /api/admin/movies
 
-**Endpoint:**
+**Description**: Danh sách phim (Admin view với revenue/bookings)  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
-GET /api/admin/movies?page=1&pageSize=20&status=all
+GET /api/admin/movies?page=1&pageSize=20&status=all&sortBy=revenue
 Authorization: Bearer {admin_token}
 ```
 
-**Query Parameters:**
-- `status`: all | now-showing | coming-soon | ended
-- `search`: Tìm theo tên
-- `sortBy`: title | releaseDate | revenue | bookings
-- `sortOrder`: asc | desc
+### Query Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| page | int | ❌ | Page number (default: 1) |
+| pageSize | int | ❌ | Items per page (default: 20) |
+| status | string | ❌ | all, now-showing, coming-soon, ended |
+| search | string | ❌ | Tìm theo tên phim |
+| sortBy | string | ❌ | title, releaseDate, revenue, bookings |
+| sortOrder | string | ❌ | asc, desc |
 
-**Response:**
+### Response 200 OK
 ```json
 {
   "success": true,
@@ -299,18 +403,29 @@ Authorization: Bearer {admin_token}
 }
 ```
 
+### Related Entities
+**Admin view includes aggregated data:**
+- ✅ Movie basic info
+- ✅ Total bookings count
+- ✅ Total revenue
+- ✅ Occupancy rate
+- ✅ Average rating
+
 ---
 
-## 🏢 Quản lý Rạp & Suất chiếu
+## 🎯 C. CINEMA & SHOWTIME MANAGEMENT
 
-### ⚠️ CHƯA IMPLEMENT - CẦN TRIỂN KHAI
+## 🎯 6. POST /api/admin/cinemas
 
-### A. Quản lý Rạp (Cinemas)
+**Description**: Thêm rạp chiếu phim mới  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
 
-#### 1. Thêm rạp mới
+### Request
 ```http
 POST /api/admin/cinemas
 Authorization: Bearer {admin_token}
+Content-Type: application/json
 
 {
   "name": "CGV Landmark 81",
@@ -327,56 +442,55 @@ Authorization: Bearer {admin_token}
 }
 ```
 
-#### 2. Cập nhật rạp
-```http
-PUT /api/admin/cinemas/{id}
-```
+### Request Body Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| name | string | ✅ | Cinema name |
+| address | string | ✅ | Full address |
+| city | string | ✅ | City |
+| district | string | ❌ | District |
+| phone | string | ❌ | Contact phone |
+| email | string | ❌ | Contact email |
+| facilities | array | ❌ | ["3D", "IMAX", "4DX"] |
 
-#### 3. Xóa rạp
-```http
-DELETE /api/admin/cinemas/{id}
-```
-
-**⚠️ Lưu ý:** Chỉ xóa được rạp KHÔNG có showtime đang hoạt động
-
----
-
-### B. Quản lý Phòng chiếu (Auditoriums)
-
-#### 1. Thêm phòng chiếu
-```http
-POST /api/admin/auditoriums
-Authorization: Bearer {admin_token}
-
+### Response 201 Created
+```json
 {
-  "cinemaId": 1,
-  "name": "Cinema 1",
-  "totalSeats": 150,
-  "totalRows": 10,
-  "seatsPerRow": 15,
-  "screenType": "IMAX",
-  "soundSystem": "Dolby Atmos",
-  "seatLayout": [
-    {
-      "row": "A",
-      "seats": [
-        { "number": 1, "type": "Standard", "price": 90000 },
-        { "number": 2, "type": "Standard", "price": 90000 },
-        { "number": 3, "type": "VIP", "price": 150000 }
-      ]
-    }
-  ]
+  "success": true,
+  "message": "Cinema created successfully",
+  "data": {
+    "cinemaId": 2,
+    "name": "CGV Landmark 81"
+  }
 }
 ```
 
 ---
 
-### C. Quản lý Suất chiếu (Showtimes)
+## 🎯 7-8. Cinema Management (PUT, DELETE)
 
-#### 1. Tạo suất chiếu mới
+**Status**: ⏳ TODO
+
+```http
+PUT /api/admin/cinemas/{id}    # Update cinema
+DELETE /api/admin/cinemas/{id}  # Delete cinema (soft delete)
+```
+
+**Business Rule**: Chỉ xóa được rạp KHÔNG có showtime đang hoạt động
+
+---
+
+## 🎯 9. POST /api/admin/showtimes
+
+**Description**: Tạo suất chiếu mới  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
 POST /api/admin/showtimes
 Authorization: Bearer {admin_token}
+Content-Type: application/json
 
 {
   "movieId": 1,
@@ -394,25 +508,40 @@ Authorization: Bearer {admin_token}
 }
 ```
 
-**Response (201 Created):**
+### Request Body Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| movieId | int | ✅ | Movie ID |
+| auditoriumId | int | ✅ | Auditorium ID |
+| startTime | DateTime | ✅ | Showtime start |
+| format | string | ✅ | 2D, 3D, IMAX |
+| language | string | ❌ | Audio language |
+| subtitle | string | ❌ | Subtitle language |
+| basePrice | decimal | ✅ | Base ticket price |
+
+### Response 201 Created
 ```json
 {
   "success": true,
-  "statusCode": 201,
   "message": "Showtime created successfully",
   "data": {
     "showtimeId": 456,
     "movieTitle": "Avengers",
     "startTime": "2025-11-05T19:30:00",
-    "endTime": "2025-11-05T22:31:00",
-    "availableSeats": 150,
-    "totalSeats": 150,
-    "status": "Available"
+    "availableSeats": 150
   }
 }
 ```
 
-#### 2. Bulk create showtimes (hàng loạt)
+---
+
+## 🎯 10. POST /api/admin/showtimes/bulk
+
+**Description**: Tạo nhiều suất chiếu cùng lúc (weekly scheduling)  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
 POST /api/admin/showtimes/bulk
 Authorization: Bearer {admin_token}
@@ -437,7 +566,7 @@ Authorization: Bearer {admin_token}
 }
 ```
 
-**Response:**
+### Response 201 Created
 ```json
 {
   "success": true,
@@ -445,42 +574,24 @@ Authorization: Bearer {admin_token}
   "data": {
     "created": 35,
     "skipped": 0,
-    "failed": 0,
-    "details": [
-      { "date": "2025-11-05", "time": "10:00", "showtimeId": 101 },
-      { "date": "2025-11-05", "time": "13:00", "showtimeId": 102 }
-    ]
+    "failed": 0
   }
 }
 ```
 
-#### 3. Cập nhật suất chiếu
-```http
-PUT /api/admin/showtimes/{id}
-```
-
-**Use Cases:**
-- Đổi giờ chiếu
-- Thay đổi giá vé
-- Cancel suất chiếu
-
-#### 4. Xóa/Hủy suất chiếu
-```http
-DELETE /api/admin/showtimes/{id}
-```
-
-**⚠️ Lưu ý:**
-- Nếu có booking: Phải hoàn tiền trước khi xóa
-- Thông báo cho khách hàng qua email/SMS
-- Log lý do hủy suất
+**Use Case**: Tạo lịch chiếu cho cả tuần trong 1 lần thay vì tạo từng suất
 
 ---
 
-## 👥 Quản lý Users
+## 🎯 D. USER MANAGEMENT
 
-### ⚠️ CHƯA IMPLEMENT - CẦN TRIỂN KHAI
+## 🎯 11. GET /api/admin/users
 
-### 1. Danh sách Users
+**Description**: Danh sách users (Customer/Staff/Admin)  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
 GET /api/admin/users?role=all&page=1&pageSize=50
 Authorization: Bearer {admin_token}
@@ -517,13 +628,24 @@ Authorization: Bearer {admin_token}
 }
 ```
 
+### Query Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| role | string | ❌ | all, customer, staff, admin |
+| status | string | ❌ | all, active, inactive, banned |
+| search | string | ❌ | Tìm theo email/tên |
+| page | int | ❌ | Page number |
+| pageSize | int | ❌ | Items per page |
+
 ---
 
-### 2. Thêm Staff/Admin
-```http
-POST /api/admin/users
-Authorization: Bearer {admin_token}
+## 🎯 12. POST /api/admin/users
 
+**Description**: Thêm Staff/Admin mới  
+**Status**: ⏳ TODO
+
+### Request Body
+```json
 {
   "email": "staff01@movie88.com",
   "password": "Staff@123",
@@ -536,43 +658,26 @@ Authorization: Bearer {admin_token}
 
 ---
 
-### 3. Cập nhật Role
+## 🎯 13-14. User Management (Role, Ban/Unban)
+
+**Status**: ⏳ TODO
+
 ```http
-PUT /api/admin/users/{id}/role
-Authorization: Bearer {admin_token}
-
-{
-  "newRole": "Staff"
-}
-```
-
-**Use Cases:**
-- Promote customer → staff
-- Promote staff → admin
-- Demote admin → staff
-
----
-
-### 4. Ban/Unban User
-```http
-PUT /api/admin/users/{id}/ban
-Authorization: Bearer {admin_token}
-
-{
-  "reason": "Spam reviews",
-  "duration": "30 days" // or "permanent"
-}
+PUT /api/admin/users/{id}/role    # Change role (customer→staff, staff→admin)
+PUT /api/admin/users/{id}/ban      # Ban/unban user with reason
 ```
 
 ---
 
-## 📊 Báo cáo & Thống kê
+## 🎯 E. REPORTS & ANALYTICS
 
-### ⚠️ CHƯA IMPLEMENT - CẦN TRIỂN KHAI
+## 🎯 15. GET /api/admin/reports/revenue/daily
 
-### 1. Báo cáo Doanh thu
+**Description**: Báo cáo doanh thu theo ngày  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
 
-#### Daily Revenue
+### Request
 ```http
 GET /api/admin/reports/revenue/daily?date=2025-11-04
 Authorization: Bearer {admin_token}
@@ -613,18 +718,31 @@ Authorization: Bearer {admin_token}
 }
 ```
 
+### Response includes
+- Total revenue, bookings, average ticket price
+- Breakdown by movie, cinema, hour
+- Growth comparison
+
 ---
 
-#### Monthly Revenue
+## 🎯 16. GET /api/admin/reports/revenue/monthly
+
+**Description**: Báo cáo doanh thu theo tháng  
+**Status**: ⏳ TODO
+
 ```http
 GET /api/admin/reports/revenue/monthly?month=11&year=2025
 ```
 
 ---
 
-### 2. Báo cáo Booking
+## 🎯 17. GET /api/admin/reports/bookings/statistics
 
-#### Booking Statistics
+**Description**: Thống kê booking (completion rate, peak hours, etc.)  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
 GET /api/admin/reports/bookings/statistics?startDate=2025-11-01&endDate=2025-11-30
 ```
@@ -646,15 +764,26 @@ GET /api/admin/reports/bookings/statistics?startDate=2025-11-01&endDate=2025-11-
 }
 ```
 
+### Response includes
+- Total/completed/cancelled bookings
+- Cancellation rate
+- Peak hours/days
+- Conversion rate
+
 ---
 
-### 3. Báo cáo Phim Phổ biến
+## 🎯 18. GET /api/admin/reports/popular-movies
 
+**Description**: Báo cáo phim phổ biến (top 10)  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
 GET /api/admin/reports/popular-movies?period=month&limit=10
 ```
 
-**Response:**
+### Response 200 OK
 ```json
 {
   "success": true,
@@ -673,15 +802,25 @@ GET /api/admin/reports/popular-movies?period=month&limit=10
 }
 ```
 
+### Response includes
+- Movie ranking by revenue/bookings
+- Occupancy rate
+- Trend (up/down/stable)
+
 ---
 
-### 4. Báo cáo Khách hàng
+## 🎯 19. GET /api/admin/reports/customers/analytics
 
+**Description**: Phân tích khách hàng (retention, churn, demographics)  
+**Auth Required**: ✅ Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
 GET /api/admin/reports/customers/analytics?period=month
 ```
 
-**Response:**
+### Response 200 OK
 ```json
 {
   "success": true,
@@ -717,140 +856,11 @@ GET /api/admin/reports/customers/analytics?period=month
 }
 ```
 
----
-
-## 🔧 Xử lý Vấn đề
-
-### 1. Hoàn tiền (Refund)
-
-**⚠️ CHƯA IMPLEMENT**
-
-```http
-POST /api/admin/bookings/{id}/refund
-Authorization: Bearer {admin_token}
-
-{
-  "reason": "Showtime canceled",
-  "refundAmount": 180000,
-  "refundMethod": "BankTransfer",
-  "notes": "Full refund due to technical issues"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Refund processed successfully",
-  "data": {
-    "bookingCode": "BK20251104001",
-    "refundAmount": 180000,
-    "refundedAt": "2025-11-04T16:30:00",
-    "refundMethod": "BankTransfer",
-    "transactionId": "REF123456"
-  }
-}
-```
-
----
-
-### 2. Chuyển suất chiếu (Reschedule)
-
-**⚠️ CHƯA IMPLEMENT**
-
-```http
-PUT /api/admin/bookings/{id}/reschedule
-Authorization: Bearer {admin_token}
-
-{
-  "newShowtimeId": 789,
-  "reason": "Customer request",
-  "notifyCustomer": true
-}
-```
-
----
-
-### 3. Xử lý Complaints
-
-**Process:**
-1. Nhận complaint từ customer (email/hotline)
-2. Log vào hệ thống
-3. Assign to staff/admin
-4. Investigate
-5. Resolve (refund/reschedule/compensation)
-6. Follow up với customer
-
-**⚠️ API chưa có, cần implement Ticketing System**
-
----
-
-## 🔒 Security & Permissions
-
-### Admin Privileges
-
-**Full Access:**
-- ✅ All CRUD operations
-- ✅ View all data
-- ✅ Export reports
-- ✅ System configuration
-- ✅ User management
-
-**Audit Log:**
-- Tất cả actions của Admin được log
-- Ai làm gì, khi nào, với data nào
-- Không thể xóa audit log
-
-**⚠️ Audit Log API chưa có**
-
-```http
-GET /api/admin/audit-logs?userId=42&action=all&startDate=2025-11-01
-```
-
----
-
-## 📈 KPIs cho Admin
-
-### Business Metrics
-
-| Metric | Target | Thực tế | Status |
-|--------|--------|---------|--------|
-| **Monthly Revenue** | 1,000M | 1,250M | ✅ +25% |
-| **Occupancy Rate** | > 65% | 72% | ✅ +7% |
-| **Customer Retention** | > 70% | 78% | ✅ +8% |
-| **Avg Ticket Price** | 95K | 100K | ✅ +5% |
-| **Cancellation Rate** | < 8% | 5.6% | ✅ -30% |
-
-### System Health
-
-| Metric | Target | Thực tế | Status |
-|--------|--------|---------|--------|
-| **API Uptime** | > 99.9% | 99.95% | ✅ |
-| **Response Time** | < 200ms | 150ms | ✅ |
-| **Error Rate** | < 0.1% | 0.05% | ✅ |
-| **Peak Load Handling** | 1000 req/s | 850 req/s | ✅ |
-
----
-
-## 🚀 Roadmap
-
-### Phase 1: Core Admin Features (Sprint hiện tại)
-- [ ] Dashboard với real-time stats
-- [ ] Movie management (CRUD)
-- [ ] Showtime management (CRUD)
-- [ ] Basic reports (revenue, bookings)
-
-### Phase 2: Advanced Features (Sprint tiếp)
-- [ ] Cinema/Auditorium management
-- [ ] User management (ban/unban, role changes)
-- [ ] Refund/Reschedule workflows
-- [ ] Advanced analytics & charts
-
-### Phase 3: Automation (Future)
-- [ ] Auto-pricing based on demand
-- [ ] Predictive analytics (forecast revenue)
-- [ ] Auto-recommendations (which movies to add)
-- [ ] AI-powered customer segmentation
+### Response includes
+- Total/new/active customers
+- Retention & churn rate
+- Top customers (lifetime value)
+- Demographics (age, gender)
 
 ---
 

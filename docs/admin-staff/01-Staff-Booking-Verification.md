@@ -1,94 +1,65 @@
-# 🎟️ Staff Guide: Xác thực Booking tại Quầy
+# 🎟️ Staff: Xác thực Booking tại Quầy (3 Endpoints)
 
-## 📋 Mục lục
-1. [Giới thiệu](#giới-thiệu)
-2. [Quy trình làm việc](#quy-trình-làm-việc)
-3. [API Endpoints](#api-endpoints)
-4. [Use Cases](#use-cases)
-5. [Xử lý lỗi](#xử-lý-lỗi)
-6. [Best Practices](#best-practices)
+**Status**: ⚠️ **PENDING IMPLEMENTATION** (0/3 endpoints - 0%)
 
 ---
 
-## 🎯 Giới thiệu
+## 📋 Endpoints Overview
 
-### Vai trò của Staff
-Bạn là nhân viên tại quầy check-in rạp chiếu phim Movie88. Nhiệm vụ chính:
+| # | Method | Endpoint | Use Case | Auth | Status |
+|---|--------|----------|----------|------|--------|
+| 1 | GET | `/api/bookings/verify/{bookingCode}` | Verify booking at counter | ✅ Staff | ⏳ TODO |
+| 2 | PUT | `/api/bookings/{id}/check-in` | Check-in customer | ✅ Staff | ⏳ TODO |
+| 3 | GET | `/api/bookings/today` | View today's bookings | ✅ Staff | ⏳ TODO |
 
-1. ✅ **Xác thực Booking Code** từ khách hàng
-2. ✅ **Kiểm tra thông tin** booking (phim, suất chiếu, ghế)
-3. ✅ **Check-in** khách hàng vào xem phim
-4. ✅ **Xử lý các vấn đề** (booking không hợp lệ, đến muộn, v.v.)
+---
 
-### Quyền hạn
+## 🎯 Vai trò của Staff
+
+**Bạn là nhân viên tại quầy check-in** rạp chiếu phim Movie88. Nhiệm vụ chính:
+
+### ✅ Quyền hạn
 - ✅ Xem thông tin booking
 - ✅ Verify booking code
 - ✅ Check-in khách hàng
-- ❌ **KHÔNG** được sửa/xóa booking
-- ❌ **KHÔNG** được hoàn tiền (cần Admin)
+
+### ❌ Không có quyền
+- ❌ Sửa/xóa booking
+- ❌ Hoàn tiền (cần Admin)
+- ❌ Quản lý phim/rạp/suất chiếu
 
 ---
 
-## 🔄 Quy trình làm việc
+## 🎯 1. GET /api/bookings/verify/{bookingCode}
 
-### Workflow Chuẩn
+**Use Case**: Verify booking at counter  
+**Auth Required**: ✅ Staff/Admin  
+**Status**: ⏳ TODO
 
-```mermaid
-graph TD
-    A[Khách đến quầy] --> B{Có Booking Code?}
-    B -->|Có| C[Nhập Booking Code vào hệ thống]
-    B -->|Không| D[Hướng dẫn khách đặt vé]
-    
-    C --> E{Booking Code hợp lệ?}
-    E -->|Không| F[Thông báo lỗi]
-    E -->|Có| G[Hiển thị thông tin booking]
-    
-    G --> H{Kiểm tra thông tin}
-    H --> I{Đúng suất chiếu?}
-    I -->|Không| J[Khách đến sai suất]
-    I -->|Có| K{Đã thanh toán?}
-    
-    K -->|Chưa| L[Yêu cầu thanh toán]
-    K -->|Rồi| M[Check-in thành công]
-    
-    M --> N[In vé/Scan QR vào]
-    
-    F --> O[Hướng dẫn khách]
-    J --> P[Liên hệ Admin]
-    L --> P
-```
+### Workflow Timeline
 
-### Timeline Thực tế
+| Step | Action | Duration |
+|------|--------|----------|
+| 1 | Customer arrives with booking code | 5s |
+| 2 | Staff enters code into system | 10s |
+| 3 | System verifies & displays info | 2s |
+| 4 | Staff checks information | 15s |
+| 5 | Confirm & check-in | 5s |
+| 6 | Print ticket/Scan QR | 10s |
+| **Total** | **Complete workflow** | **~45s** |
 
-| Thời gian | Action | Thời lượng |
-|-----------|--------|------------|
-| **T-0** | Khách đưa booking code | 5s |
-| **T+5s** | Staff nhập code vào hệ thống | 10s |
-| **T+15s** | Hệ thống verify & hiển thị info | 2s |
-| **T+17s** | Staff kiểm tra thông tin | 15s |
-| **T+32s** | Confirm & check-in | 5s |
-| **T+37s** | In vé/Scan QR vào rạp | 10s |
-| **TOTAL** | **~45 giây** | |
-
----
-
-## 🔌 API Endpoints
-
-### 1. Verify Booking Code
-**⚠️ CHƯA IMPLEMENT - CẦN TRIỂN KHAI**
-
+### Request
 ```http
-GET /api/bookings/verify/{bookingCode}
+GET /api/bookings/verify/BK20251104001
 Authorization: Bearer {staff_token}
 ```
 
-#### Request Example
-```http
-GET https://movie88aspnet-app.up.railway.app/api/bookings/verify/BK20251104001
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+### Path Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| bookingCode | string | ✅ | Unique booking code (e.g., BK20251104001) |
 
-#### Response Success (200 OK)
+### Response 200 OK
 ```json
 {
   "success": true,
@@ -161,7 +132,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-#### Response Error (404 Not Found)
+### Response 404 Not Found
 ```json
 {
   "success": false,
@@ -173,7 +144,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-#### Response Error (400 Bad Request - Đã check-in)
+### Response 400 Bad Request (Already Checked In)
 ```json
 {
   "success": false,
@@ -185,13 +156,49 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
+### Related Entities
+**Booking** (bookings table):
+- ✅ `bookingid` (int, PK)
+- ✅ `bookingcode` (string, unique)
+- ✅ `customerid` (int, FK)
+- ✅ `showtimeid` (int, FK)
+- ✅ `totalamount` (decimal)
+- ✅ `status` (string) - Pending, Confirmed, Cancelled
+- ✅ `paymentstatus` (string) - Pending, Completed, Failed
+- ✅ `bookingdate` (DateTime)
+- ✅ `checkedinstatus` (string) - NotCheckedIn, CheckedIn
+- ✅ `checkedintime` (DateTime, nullable)
+
+**Showtime** (showtimes table):
+- ✅ `showtimeid` (int, PK)
+- ✅ `movieid` (int, FK)
+- ✅ `auditoriumid` (int, FK)
+- ✅ `starttime` (DateTime)
+- ✅ `endtime` (DateTime)
+
+**Movie** (movies table):
+- ✅ `movieid` (int, PK)
+- ✅ `title` (string)
+- ✅ `posterurl` (string)
+- ✅ `durationminutes` (int)
+
+### Implementation Plan
+- ⏳ Domain: BookingVerifyDTO.cs
+- ⏳ Application: IBookingVerificationService.cs
+- ⏳ Infrastructure: Booking verification queries
+- ⏳ WebApi: BookingsController.VerifyBookingCode()
+
 ---
 
-### 2. Check-in Customer
-**⚠️ CHƯA IMPLEMENT - CẦN TRIỂN KHAI**
+## 🎯 2. PUT /api/bookings/{id}/check-in
 
+**Use Case**: Check-in customer at counter  
+**Auth Required**: ✅ Staff/Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
-PUT /api/bookings/{bookingId}/check-in
+PUT /api/bookings/12345/check-in
 Authorization: Bearer {staff_token}
 Content-Type: application/json
 
@@ -201,7 +208,18 @@ Content-Type: application/json
 }
 ```
 
-#### Response Success (200 OK)
+### Path Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | int | ✅ | Booking ID |
+
+### Request Body
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| checkinTime | DateTime | ✅ | Check-in timestamp |
+| notes | string | ❌ | Optional notes (e.g., "Late arrival") |
+
+### Response 200 OK
 ```json
 {
   "success": true,
@@ -220,17 +238,52 @@ Content-Type: application/json
 }
 ```
 
+### Response 400 Bad Request
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Booking already checked in",
+  "errors": ["Cannot check-in twice"]
+}
+```
+
+### Related Entities
+**Booking** (bookings table):
+- ✅ Update `checkedinstatus` = "CheckedIn"
+- ✅ Update `checkedintime` = provided timestamp
+- ✅ Log staff who performed check-in
+
+### Implementation Plan
+- ⏳ Domain: Update Booking entity
+- ⏳ Application: CheckInCommand.cs, CheckInCommandHandler.cs
+- ⏳ Infrastructure: BookingRepository.UpdateCheckInStatus()
+- ⏳ WebApi: BookingsController.CheckIn()
+
 ---
 
-### 3. Get Today's Bookings
-**⚠️ CHƯA IMPLEMENT - CẦN TRIỂN KHAI**
+## 🎯 3. GET /api/bookings/today
 
+**Use Case**: View today's bookings (for staff planning)  
+**Auth Required**: ✅ Staff/Admin  
+**Status**: ⏳ TODO
+
+### Request
 ```http
-GET /api/bookings/today?cinema={cinemaId}&page=1&pageSize=50
+GET /api/bookings/today?cinemaId=1&page=1&pageSize=50
 Authorization: Bearer {staff_token}
 ```
 
-#### Response Success (200 OK)
+### Query Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| cinemaId | int | ❌ | Filter by cinema (optional) |
+| page | int | ❌ | Page number (default: 1) |
+| pageSize | int | ❌ | Items per page (default: 50) |
+| status | string | ❌ | Filter: all, pending, confirmed, cancelled |
+| checkinStatus | string | ❌ | Filter: all, not-checked-in, checked-in |
+
+### Response 200 OK
 ```json
 {
   "success": true,
@@ -257,9 +310,21 @@ Authorization: Bearer {staff_token}
 }
 ```
 
+### Related Entities
+**Booking** (bookings table):
+- ✅ Filter by `bookingdate` = today
+- ✅ Join with Customer, Movie, Showtime
+- ✅ Show `checkedinstatus`
+
+### Implementation Plan
+- ⏳ Domain: TodayBookingDTO.cs
+- ⏳ Application: GetTodayBookingsQuery.cs
+- ⏳ Infrastructure: BookingRepository.GetTodayBookings()
+- ⏳ WebApi: BookingsController.GetTodayBookings()
+
 ---
 
-## 📱 Use Cases
+## � Use Cases & Scenarios
 
 ### Use Case 1: Khách hàng đến đúng giờ
 
