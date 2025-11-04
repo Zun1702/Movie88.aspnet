@@ -13,6 +13,8 @@ namespace Movie88.Application.Services
         private readonly Application.Interfaces.IUnitOfWork _unitOfWork;
         private readonly IJwtService _jwtService;
         private readonly IPasswordHashingService _passwordHashingService;
+        private readonly IOtpService _otpService;
+        private readonly IEmailService _emailService;
 
         public AuthService(
             IUserRepository userRepository,
@@ -20,7 +22,9 @@ namespace Movie88.Application.Services
             ICustomerRepository customerRepository,
             Application.Interfaces.IUnitOfWork unitOfWork,
             IJwtService jwtService,
-            IPasswordHashingService passwordHashingService)
+            IPasswordHashingService passwordHashingService,
+            IOtpService otpService,
+            IEmailService emailService)
         {
             _userRepository = userRepository;
             _refreshTokenRepository = refreshTokenRepository;
@@ -28,6 +32,8 @@ namespace Movie88.Application.Services
             _unitOfWork = unitOfWork;
             _jwtService = jwtService;
             _passwordHashingService = passwordHashingService;
+            _otpService = otpService;
+            _emailService = emailService;
         }
 
         private static DateTime GetCurrentTimestamp()
@@ -97,7 +103,7 @@ namespace Movie88.Application.Services
             };
         }
 
-        public async Task<LoginResponseDTO> RegisterAsync(RegisterRequestDTO request, CancellationToken cancellationToken = default)
+        public async Task<RegisterResponseDTO> RegisterAsync(RegisterRequestDTO request, CancellationToken cancellationToken = default)
         {
             // Check if email already exists
             if (await _userRepository.EmailExistsAsync(request.Email, cancellationToken))
@@ -108,7 +114,7 @@ namespace Movie88.Application.Services
             // Hash password
             var passwordHash = _passwordHashingService.HashPassword(request.Password);
 
-            // Create new user (default role: Customer = 3)
+            // Create new user (default role: Customer = 3, IsVerified = false)
             var user = new UserModel
             {
                 Fullname = request.FullName,
@@ -116,6 +122,8 @@ namespace Movie88.Application.Services
                 Passwordhash = passwordHash,
                 Phone = request.PhoneNumber,
                 Roleid = 3, // Customer role
+                IsVerified = false, // New users are not verified
+                IsActive = true,
                 Createdat = GetCurrentTimestamp()
             };
 
@@ -147,14 +155,36 @@ namespace Movie88.Application.Services
             await _customerRepository.AddAsync(customer);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // Auto login after registration
-            var loginRequest = new LoginRequestDTO
+            // Send OTP for email verification
+            bool otpSent = false;
+            DateTime? otpExpiresAt = null;
+            try
+            {
+                var otpResponse = await _otpService.SendOtpAsync(new SendOtpRequestDTO
+                {
+                    Email = request.Email,
+                    OtpType = OtpTypeConstants.EmailVerification
+                });
+                otpSent = true;
+                otpExpiresAt = otpResponse.ExpiresAt;
+            }
+            catch (Exception)
+            {
+                // Log error but don't fail registration
+                // User can request OTP resend later
+            }
+
+            // Return registration response WITHOUT tokens
+            return new RegisterResponseDTO
             {
                 Email = request.Email,
-                Password = request.Password
+                FullName = request.FullName,
+                Message = otpSent 
+                    ? "Registration successful! Please check your email to verify your account. OTP expires in 10 minutes."
+                    : "Registration successful! Please request OTP to verify your account.",
+                OtpSent = otpSent,
+                OtpExpiresAt = otpExpiresAt
             };
-
-            return await LoginAsync(loginRequest, cancellationToken);
         }
 
         public async Task<LoginResponseDTO> RefreshTokenAsync(RefreshTokenRequestDTO request, CancellationToken cancellationToken = default)
@@ -264,11 +294,82 @@ namespace Movie88.Application.Services
                 return true;
             }
 
-            // TODO: Generate password reset token and send email
-            // For now, just return true
-            // In production: Generate token, save to DB, send email with reset link
+            // Send OTP for password reset
+            try
+            {
+                await _otpService.SendOtpAsync(new SendOtpRequestDTO
+                {
+                    Email = request.Email,
+                    OtpType = OtpTypeConstants.PasswordReset
+                });
+            }
+            catch (Exception)
+            {
+                // Log error but don't fail - for security don't reveal if email exists
+                // User can try again or use resend OTP
+            }
 
             return true;
+        }
+
+        public async Task<ResetPasswordResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default)
+        {
+            // 1. Verify OTP first
+            try
+            {
+                await _otpService.VerifyOtpAsync(new VerifyOtpRequestDTO
+                {
+                    Email = request.Email,
+                    OtpCode = request.OtpCode,
+                    OtpType = OtpTypeConstants.PasswordReset
+                }, ipAddress, userAgent);
+            }
+            catch (Exception ex)
+            {
+                return new ResetPasswordResponseDTO
+                {
+                    Email = request.Email,
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
+
+            // 2. Get user
+            var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (user == null)
+            {
+                return new ResetPasswordResponseDTO
+                {
+                    Email = request.Email,
+                    Success = false,
+                    Message = "User not found"
+                };
+            }
+
+            // 3. Hash new password
+            var newPasswordHash = _passwordHashingService.HashPassword(request.NewPassword);
+
+            // 4. Update password
+            user.Passwordhash = newPasswordHash;
+            _userRepository.Update(user);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // 5. Send confirmation email
+            try
+            {
+                await _emailService.SendPasswordResetConfirmationAsync(user.Email, user.Fullname);
+            }
+            catch (Exception)
+            {
+                // Log error but don't fail password reset
+            }
+
+            return new ResetPasswordResponseDTO
+            {
+                Email = request.Email,
+                Success = true,
+                Message = "Password has been reset successfully. You can now login with your new password."
+            };
         }
 
         public async Task<bool> LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)

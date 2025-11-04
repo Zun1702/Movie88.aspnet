@@ -5,6 +5,7 @@ using Movie88.Application.Interfaces;
 using Movie88.Application.Services;
 using Movie88.Application.Shared;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Movie88.Application.Configuration
 {
@@ -22,6 +23,8 @@ namespace Movie88.Application.Configuration
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<IPasswordHashingService, PasswordHashingService>();
+            services.AddScoped<IOtpService, OtpService>();
+            services.AddScoped<IEmailService, ResendEmailService>();
             services.AddSingleton<IBookingCodeGenerator, BookingCodeGenerator>();
             
             // Movie Service
