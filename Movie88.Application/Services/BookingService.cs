@@ -10,11 +10,16 @@ public class BookingService : IBookingService
 {
     private readonly IBookingRepository _bookingRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly IBookingCodeGenerator _bookingCodeGenerator;
 
-    public BookingService(IBookingRepository bookingRepository, ICustomerRepository customerRepository)
+    public BookingService(
+        IBookingRepository bookingRepository, 
+        ICustomerRepository customerRepository,
+        IBookingCodeGenerator bookingCodeGenerator)
     {
         _bookingRepository = bookingRepository;
         _customerRepository = customerRepository;
+        _bookingCodeGenerator = bookingCodeGenerator;
     }
 
     public async Task<Result<PagedResultDTO<BookingListDTO>>> GetMyBookingsAsync(int userId, int page, int pageSize, string? status)
@@ -85,5 +90,68 @@ public class BookingService : IBookingService
         };
 
         return Result<PagedResultDTO<BookingListDTO>>.Success(pagedResult, "Bookings retrieved successfully");
+    }
+
+    public async Task<BookingResponseDTO?> CreateBookingAsync(
+        int customerid, 
+        CreateBookingRequestDTO request, 
+        CancellationToken cancellationToken = default)
+    {
+        // Validate showtime exists and not started
+        var showtime = await _bookingRepository.GetShowtimeWithAuditoriumAsync(request.Showtimeid, cancellationToken);
+        if (showtime == null)
+            return null; // Showtime not found
+
+        if (showtime.Starttime.HasValue && showtime.Starttime.Value <= DateTime.UtcNow)
+            return null; // Showtime already started
+
+        // Validate seats exist in auditorium
+        var seats = await _bookingRepository.GetSeatsByIdsAsync(request.Seatids, cancellationToken);
+        if (seats.Count != request.Seatids.Count)
+            return null; // Some seats not found
+
+        // Check all seats belong to correct auditorium
+        if (seats.Any(s => s.Auditoriumid != showtime.Auditoriumid))
+            return null; // Seats not in correct auditorium
+
+        // Check seats not already booked
+        var bookedSeatIds = await _bookingRepository.GetBookedSeatIdsForShowtimeAsync(request.Showtimeid, cancellationToken);
+        if (request.Seatids.Any(seatId => bookedSeatIds.Contains(seatId)))
+            return null; // Some seats already booked
+
+        // Generate booking code
+        var bookingCode = _bookingCodeGenerator.GenerateBookingCode(DateTime.UtcNow);
+
+        // Calculate total amount (seat price based on showtime price)
+        var seatPrice = showtime.Price ?? 0;
+        var totalAmount = seatPrice * request.Seatids.Count;
+        var seatsWithPrices = request.Seatids.Select(seatId => (seatId, seatPrice)).ToList();
+
+        // Create booking
+        var booking = await _bookingRepository.CreateBookingAsync(
+            customerid, 
+            request.Showtimeid, 
+            bookingCode, 
+            totalAmount, 
+            seatsWithPrices, 
+            cancellationToken);
+
+        // Map to response DTO
+        return new BookingResponseDTO
+        {
+            Bookingid = booking.Bookingid,
+            Bookingcode = booking.Bookingcode ?? bookingCode,
+            Showtimeid = booking.Showtimeid,
+            Seats = seats.Select(s => new BookedSeatDTO
+            {
+                Seatid = s.Seatid,
+                Row = s.Row ?? "",
+                Number = s.Number ?? 0,
+                Seatprice = seatPrice
+            }).ToList(),
+            Totalamount = totalAmount,
+            Status = booking.Status ?? "pending",
+            Createdat = booking.Bookingtime ?? DateTime.UtcNow
+        };
     }
 }

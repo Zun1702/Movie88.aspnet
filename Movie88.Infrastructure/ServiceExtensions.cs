@@ -44,6 +44,9 @@ namespace Movie88.Infrastructure
             
             // Cinema Repository
             services.AddScoped<Domain.Interfaces.ICinemaRepository, CinemaRepository>();
+            
+            // Auditorium Repository
+            services.AddScoped<Domain.Interfaces.IAuditoriumRepository, AuditoriumRepository>();
         }
     }
 }

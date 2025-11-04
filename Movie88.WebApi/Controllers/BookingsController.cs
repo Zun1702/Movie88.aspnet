@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Movie88.Application.DTOs.Bookings;
 using Movie88.Application.Interfaces;
 using System.Security.Claims;
 
@@ -11,10 +12,12 @@ namespace Movie88.WebApi.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookingService;
+    private readonly ICustomerService _customerService;
 
-    public BookingsController(IBookingService bookingService)
+    public BookingsController(IBookingService bookingService, ICustomerService customerService)
     {
         _bookingService = bookingService;
+        _customerService = customerService;
     }
 
     /// <summary>
@@ -70,5 +73,65 @@ public class BookingsController : ControllerBase
             message = result.Message,
             data = result.Data
         });
+    }
+
+    [HttpPost("create")]
+    public async Task<IActionResult> CreateBooking(
+        [FromBody] CreateBookingRequestDTO request,
+        CancellationToken cancellationToken)
+    {
+        // Extract userid from JWT token
+        var useridClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(useridClaim) || !int.TryParse(useridClaim, out int userid))
+        {
+            return Unauthorized(new
+            {
+                success = false,
+                statusCode = 401,
+                message = "User not authenticated",
+                data = (object?)null
+            });
+        }
+
+        // Get customerid from userid
+        var customerResult = await _customerService.GetProfileByUserIdAsync(userid);
+        if (!customerResult.IsSuccess || customerResult.Data == null)
+        {
+            return NotFound(new
+            {
+                success = false,
+                statusCode = 404,
+                message = "Customer profile not found",
+                data = (object?)null
+            });
+        }
+
+        // Create booking
+        var booking = await _bookingService.CreateBookingAsync(
+            customerResult.Data.Customerid, 
+            request, 
+            cancellationToken);
+
+        if (booking == null)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                statusCode = 400,
+                message = "Failed to create booking. Showtime not found, already started, or seats unavailable",
+                data = (object?)null
+            });
+        }
+
+        return CreatedAtAction(
+            nameof(CreateBooking),
+            new { id = booking.Bookingid },
+            new
+            {
+                success = true,
+                statusCode = 201,
+                message = "Booking created successfully",
+                data = booking
+            });
     }
 }

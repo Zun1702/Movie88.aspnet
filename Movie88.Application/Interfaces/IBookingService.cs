@@ -7,4 +7,5 @@ namespace Movie88.Application.Interfaces;
 public interface IBookingService
 {
     Task<Result<PagedResultDTO<BookingListDTO>>> GetMyBookingsAsync(int userId, int page, int pageSize, string? status);
+    Task<BookingResponseDTO?> CreateBookingAsync(int customerid, CreateBookingRequestDTO request, CancellationToken cancellationToken = default);
 }

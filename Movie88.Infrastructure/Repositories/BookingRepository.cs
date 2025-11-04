@@ -77,4 +77,111 @@ public class BookingRepository : IBookingRepository
 
         return booking == null ? null : _mapper.Map<BookingModel>(booking);
     }
+
+    public async Task<ShowtimeModel?> GetShowtimeWithAuditoriumAsync(int showtimeId, CancellationToken cancellationToken = default)
+    {
+        var entity = await _context.Showtimes
+            .Include(s => s.Auditorium)
+            .FirstOrDefaultAsync(s => s.Showtimeid == showtimeId, cancellationToken);
+
+        if (entity == null)
+            return null;
+
+        return new ShowtimeModel
+        {
+            Showtimeid = entity.Showtimeid,
+            Movieid = entity.Movieid,
+            Auditoriumid = entity.Auditoriumid,
+            Starttime = entity.Starttime,
+            Price = entity.Price
+        };
+    }
+
+    public async Task<List<SeatModel>> GetSeatsByIdsAsync(List<int> seatIds, CancellationToken cancellationToken = default)
+    {
+        var entities = await _context.Seats
+            .Where(s => seatIds.Contains(s.Seatid))
+            .ToListAsync(cancellationToken);
+
+        return entities.Select(e => new SeatModel
+        {
+            Seatid = e.Seatid,
+            Auditoriumid = e.Auditoriumid,
+            Row = e.Row,
+            Number = e.Number,
+            Type = e.Type
+        }).ToList();
+    }
+
+    public async Task<List<int>> GetBookedSeatIdsForShowtimeAsync(int showtimeId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Bookingseats
+            .Include(bs => bs.Booking)
+            .Where(bs => bs.Showtimeid == showtimeId 
+                && bs.Booking != null 
+                && bs.Booking.Status != null
+                && bs.Booking.Status.ToLower() != "cancelled")
+            .Select(bs => bs.Seatid)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<BookingModel> CreateBookingAsync(
+        int customerid, 
+        int showtimeid, 
+        string bookingcode, 
+        decimal totalamount, 
+        List<(int seatid, decimal seatprice)> seats, 
+        CancellationToken cancellationToken = default)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // Create booking entity
+            var bookingEntity = new Booking
+            {
+                Customerid = customerid,
+                Showtimeid = showtimeid,
+                Bookingcode = bookingcode,
+                Bookingtime = DateTime.UtcNow,
+                Totalamount = totalamount,
+                Status = "pending"
+            };
+
+            _context.Bookings.Add(bookingEntity);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Create bookingseat entities
+            foreach (var (seatid, seatprice) in seats)
+            {
+                var bookingSeat = new Bookingseat
+                {
+                    Bookingid = bookingEntity.Bookingid,
+                    Seatid = seatid,
+                    Showtimeid = showtimeid,
+                    Seatprice = seatprice
+                };
+                _context.Bookingseats.Add(bookingSeat);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            // Return booking model
+            return new BookingModel
+            {
+                Bookingid = bookingEntity.Bookingid,
+                Customerid = bookingEntity.Customerid,
+                Showtimeid = bookingEntity.Showtimeid,
+                Bookingcode = bookingEntity.Bookingcode,
+                Bookingtime = bookingEntity.Bookingtime,
+                Totalamount = bookingEntity.Totalamount,
+                Status = bookingEntity.Status
+            };
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
 }
