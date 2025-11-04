@@ -4,7 +4,9 @@ namespace Movie88.Domain.Interfaces;
 
 public interface IShowtimeRepository
 {
-    Task<IEnumerable<ShowtimeModel>> GetByMovieIdAsync(int movieId, DateTime? date, int? cinemaId);
-    Task<int> GetActiveShowtimesCountByMovieIdAsync(int movieId);
-    Task<int> GetAvailableSeatsAsync(int showtimeId);
+    Task<List<ShowtimeModel>> GetByMovieIdAsync(int movieId, CancellationToken cancellationToken = default);
+    Task<ShowtimeModel?> GetByIdAsync(int showtimeId, CancellationToken cancellationToken = default);
+    Task<List<ShowtimeModel>> GetByDateAsync(DateTime date, int? cinemaId = null, int? movieId = null, CancellationToken cancellationToken = default);
+    Task<int> GetAvailableSeatsCountAsync(int showtimeId, CancellationToken cancellationToken = default);
+    Task<int> GetActiveShowtimesCountByMovieIdAsync(int movieId, CancellationToken cancellationToken = default);
 }

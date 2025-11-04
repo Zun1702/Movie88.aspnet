@@ -1,6 +1,4 @@
-using AutoMapper;
 using Movie88.Application.DTOs.Showtimes;
-using Movie88.Application.HandlerResponse;
 using Movie88.Application.Interfaces;
 using Movie88.Domain.Interfaces;
 
@@ -9,77 +7,155 @@ namespace Movie88.Application.Services;
 public class ShowtimeService : IShowtimeService
 {
     private readonly IShowtimeRepository _showtimeRepository;
-    private readonly IMovieRepository _movieRepository;
-    private readonly IMapper _mapper;
 
-    public ShowtimeService(
-        IShowtimeRepository showtimeRepository,
-        IMovieRepository movieRepository,
-        IMapper mapper)
+    public ShowtimeService(IShowtimeRepository showtimeRepository)
     {
         _showtimeRepository = showtimeRepository;
-        _movieRepository = movieRepository;
-        _mapper = mapper;
     }
 
-    public async Task<Result<List<ShowtimesByDateDTO>>> GetShowtimesByMovieIdAsync(int movieId, DateTime? date, int? cinemaId)
+    public async Task<ShowtimesByMovieResponseDTO?> GetShowtimesByMovieAsync(int movieId, CancellationToken cancellationToken = default)
     {
-        // Check if movie exists
-        var movie = await _movieRepository.GetByIdAsync(movieId);
-        if (movie == null)
-        {
-            return Result<List<ShowtimesByDateDTO>>.NotFound("Movie not found");
-        }
+        var showtimes = await _showtimeRepository.GetByMovieIdAsync(movieId, cancellationToken);
 
-        // Get showtimes
-        var showtimes = await _showtimeRepository.GetByMovieIdAsync(movieId, date, cinemaId);
-        var showtimesList = showtimes.ToList();
+        if (showtimes == null || !showtimes.Any())
+            return null;
 
-        if (!showtimesList.Any())
-        {
-            return Result<List<ShowtimesByDateDTO>>.Success(new List<ShowtimesByDateDTO>());
-        }
-
-        // Group by date, then by cinema
-        var groupedByDate = showtimesList
+        // Group by date first
+        var dateGroups = showtimes
+            .Where(s => s.Starttime.HasValue)
             .GroupBy(s => s.Starttime!.Value.Date)
             .OrderBy(g => g.Key)
-            .Select(dateGroup => new ShowtimesByDateDTO
+            .Select(dateGroup => new ShowtimesByDateGroupDTO
             {
                 Date = dateGroup.Key.ToString("yyyy-MM-dd"),
                 Cinemas = dateGroup
-                    .GroupBy(s => new 
-                    { 
-                        Cinemaid = s.Auditorium!.Cinema!.Cinemaid,
-                        Name = s.Auditorium.Cinema.Name,
-                        Address = s.Auditorium.Cinema.Address,
-                        City = s.Auditorium.Cinema.City
-                    })
-                    .OrderBy(cinemaGroup => cinemaGroup.Key.Name)
-                    .Select(cinemaGroup => new ShowtimesByCinemaDTO
+                    .Where(s => s.Auditorium?.Cinema != null)
+                    .GroupBy(s => new
                     {
-                        Cinema = new CinemaInfoDTO
-                        {
-                            Cinemaid = cinemaGroup.Key.Cinemaid,
-                            Name = cinemaGroup.Key.Name,
-                            Address = cinemaGroup.Key.Address,
-                            City = cinemaGroup.Key.City
-                        },
-                        Showtimes = cinemaGroup
-                            .OrderBy(s => s.Starttime)
-                            .Select(s => 
-                            {
-                                var showtimeDto = _mapper.Map<ShowtimeItemDTO>(s);
-                                // Get available seats synchronously (blocking - not ideal but acceptable for this scenario)
-                                showtimeDto.AvailableSeats = _showtimeRepository.GetAvailableSeatsAsync(s.Showtimeid).Result;
-                                return showtimeDto;
-                            })
-                            .ToList()
+                        s.Auditorium!.Cinema!.Cinemaid,
+                        s.Auditorium.Cinema.Name,
+                        s.Auditorium.Cinema.Address
                     })
-                    .ToList()
-            })
-            .ToList();
+                    .Select(cinemaGroup => new ShowtimesByCinemaGroupDTO
+                    {
+                        Cinemaid = cinemaGroup.Key.Cinemaid,
+                        Name = cinemaGroup.Key.Name ?? "",
+                        Address = cinemaGroup.Key.Address ?? "",
+                        Showtimes = cinemaGroup.Select(s => new ShowtimeItemDTO
+                        {
+                            Showtimeid = s.Showtimeid,
+                            Starttime = s.Starttime,
+                            Price = s.Price,
+                            Format = s.Format,
+                            Languagetype = s.Languagetype,
+                            AuditoriumName = s.Auditorium?.Name,
+                            AvailableSeats = 0 // TODO: Calculate from GetAvailableSeatsCountAsync
+                        }).OrderBy(s => s.Starttime).ToList()
+                    }).ToList()
+            }).ToList();
 
-        return Result<List<ShowtimesByDateDTO>>.Success(groupedByDate);
+        // Get movie info from first showtime
+        var firstShowtime = showtimes.First();
+        var movie = firstShowtime.Movie;
+
+        return new ShowtimesByMovieResponseDTO
+        {
+            Movie = movie != null ? new MovieInfoDTO
+            {
+                Movieid = movie.Movieid,
+                Title = movie.Title,
+                Posterurl = movie.Posterurl,
+                Durationminutes = movie.Durationminutes,
+                Rating = movie.Rating
+            } : null!,
+            ShowtimesByDate = dateGroups
+        };
+    }
+
+    public async Task<ShowtimeDetailDTO?> GetShowtimeByIdAsync(int showtimeId, CancellationToken cancellationToken = default)
+    {
+        var showtime = await _showtimeRepository.GetByIdAsync(showtimeId, cancellationToken);
+
+        if (showtime == null)
+            return null;
+
+        var availableSeats = await _showtimeRepository.GetAvailableSeatsCountAsync(showtimeId, cancellationToken);
+
+        return new ShowtimeDetailDTO
+        {
+            Showtimeid = showtime.Showtimeid,
+            Movieid = showtime.Movieid,
+            Auditoriumid = showtime.Auditoriumid,
+            Starttime = showtime.Starttime!.Value,
+            Endtime = showtime.Endtime,
+            Price = showtime.Price ?? 0,
+            Format = showtime.Format ?? "",
+            Languagetype = showtime.Languagetype ?? "",
+            AvailableSeats = availableSeats,
+            Movie = showtime.Movie != null ? new MovieInfoDTO
+            {
+                Movieid = showtime.Movie.Movieid,
+                Title = showtime.Movie.Title,
+                Posterurl = showtime.Movie.Posterurl,
+                Durationminutes = showtime.Movie.Durationminutes,
+                Rating = showtime.Movie.Rating
+            } : null,
+            Cinema = showtime.Auditorium?.Cinema != null ? new CinemaInfoDTO
+            {
+                Cinemaid = showtime.Auditorium.Cinema.Cinemaid,
+                Name = showtime.Auditorium.Cinema.Name,
+                Address = showtime.Auditorium.Cinema.Address,
+                City = showtime.Auditorium.Cinema.City
+            } : null,
+            Auditorium = showtime.Auditorium != null ? new AuditoriumInfoDTO
+            {
+                Auditoriumid = showtime.Auditorium.Auditoriumid,
+                Name = showtime.Auditorium.Name,
+                Seatscount = showtime.Auditorium.Seatscount ?? 0
+            } : null
+        };
+    }
+
+    public async Task<List<ShowtimesByDateGroupDTO>> GetShowtimesByDateAsync(DateTime date, int? cinemaId = null, int? movieId = null, CancellationToken cancellationToken = default)
+    {
+        var showtimes = await _showtimeRepository.GetByDateAsync(date, cinemaId, movieId, cancellationToken);
+
+        if (showtimes == null || !showtimes.Any())
+            return new List<ShowtimesByDateGroupDTO>();
+
+        // Group by date (should be single date, but keeping structure consistent)
+        var dateGroups = showtimes
+            .Where(s => s.Starttime.HasValue && s.Auditorium?.Cinema != null)
+            .GroupBy(s => s.Starttime!.Value.Date)
+            .OrderBy(g => g.Key)
+            .Select(dateGroup => new ShowtimesByDateGroupDTO
+            {
+                Date = dateGroup.Key.ToString("yyyy-MM-dd"),
+                Cinemas = dateGroup
+                    .GroupBy(s => new
+                    {
+                        s.Auditorium!.Cinema!.Cinemaid,
+                        s.Auditorium.Cinema.Name,
+                        s.Auditorium.Cinema.Address
+                    })
+                    .Select(cinemaGroup => new ShowtimesByCinemaGroupDTO
+                    {
+                        Cinemaid = cinemaGroup.Key.Cinemaid,
+                        Name = cinemaGroup.Key.Name ?? "",
+                        Address = cinemaGroup.Key.Address ?? "",
+                        Showtimes = cinemaGroup.Select(s => new ShowtimeItemDTO
+                        {
+                            Showtimeid = s.Showtimeid,
+                            Starttime = s.Starttime,
+                            Price = s.Price,
+                            Format = s.Format,
+                            Languagetype = s.Languagetype,
+                            AuditoriumName = s.Auditorium?.Name,
+                            AvailableSeats = 0 // TODO: Calculate from GetAvailableSeatsCountAsync
+                        }).OrderBy(s => s.Starttime).ToList()
+                    }).ToList()
+            }).ToList();
+
+        return dateGroups;
     }
 }
