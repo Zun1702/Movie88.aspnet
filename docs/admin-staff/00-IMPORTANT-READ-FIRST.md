@@ -27,11 +27,13 @@
    - **Thực tế**: Không tồn tại!
    - **Replacement**: Use `Booking.Status = "CheckedIn"`
 
-3. **`Booking.checkedinTime`** ❌
-   - Docs cũ claim: Booking có field này
-   - **Thực tế**: Không tồn tại!
-   - **Option 1**: Track in DTO only (no DB persistence)
-   - **Option 2**: Add migration to add this column
+3. **`Booking.checkedinTime` và `Booking.checkedinBy`** ✅ **NOW AVAILABLE**
+   - Docs cũ claim: Booking không có fields này
+   - **Update**: ✅ **ĐÃ THÊM VÀO DATABASE** (Migration: 2025-11-05)
+   - **New fields**:
+     - `checkedintime` (timestamp) - Thời gian check-in
+     - `checkedinby` (int, FK → User) - Staff user ID
+   - **Navigation**: `CheckedInByUser` → User entity
 
 ---
 
@@ -63,12 +65,21 @@ public partial class Booking
     [StringLength(50)]
     public string? Status { get; set; } // ✅ Use this for check-in status
     
+    [Column("checkedintime", TypeName = "timestamp without time zone")]
+    public DateTime? Checkedintime { get; set; } // ✅ NEW: When customer checked in
+    
+    [Column("checkedinby")]
+    public int? Checkedinby { get; set; } // ✅ NEW: Staff user ID who performed check-in
+    
     // ❌ NO: paymentstatus
-    // ❌ NO: checkedinstatus
-    // ❌ NO: checkedintime
+    // ❌ NO: checkedinstatus (use Status field instead)
     
     // Navigation properties
     public virtual ICollection<Payment> Payments { get; set; } // ✅ Check payment via this
+    
+    [ForeignKey("Checkedinby")]
+    [InverseProperty("BookingsCheckedInBy")]
+    public virtual User? CheckedInByUser { get; set; } // ✅ NEW: Staff who checked in
 }
 ```
 
@@ -141,26 +152,31 @@ booking.CheckedinTime = DateTime.Now;
 
 **✅ CORRECT (updated docs):**
 ```csharp
-// Use existing Booking.Status field
+// ✅ NEW: Use database fields for check-in tracking (Added 2025-11-05)
 booking.Status = nameof(BookingStatus.CheckedIn); // "CheckedIn"
+booking.Checkedintime = DateTime.UtcNow; // ✅ NEW FIELD
+booking.Checkedinby = currentStaffUserId; // ✅ NEW FIELD - from JWT token
 await _context.SaveChangesAsync();
 
-// If you need checkedinTime, include in DTO response only
+// Include in response DTO
 var dto = new BookingVerifyDTO
 {
     BookingId = booking.Bookingid,
     Status = booking.Status,
-    CheckedInAt = DateTime.Now // ← DTO field only, not in DB
+    CheckedInAt = booking.Checkedintime, // ✅ From DB now
+    CheckedInBy = new StaffInfoDTO
+    {
+        UserId = booking.Checkedinby,
+        StaffName = booking.CheckedInByUser?.Fullname // ✅ Via navigation
+    }
 };
 ```
 
-**If you need DB persistence for check-in audit:**
-```sql
--- Option: Add migration to add columns
-ALTER TABLE bookings 
-ADD COLUMN checkedintime TIMESTAMP WITHOUT TIME ZONE,
-ADD COLUMN checkedinby INT REFERENCES users(userid);
-```
+**Migration Already Applied** ✅:
+- Migration script: `docs/migrations/add-checkin-tracking.sql`
+- Columns added: `checkedintime`, `checkedinby`
+- Foreign key: `checkedinby` → `User.userid`
+- Database ready for check-in tracking!
 
 ### 3. Booking Status Enum Values (CORRECT)
 
@@ -186,21 +202,29 @@ booking.Status = nameof(BookingStatus.CheckedIn);
 
 ## 📊 Correct Relationships
 
-### Booking → Payment (1:N)
+### Booking → Payment (1:N) & Booking → User (Check-in Tracking)
 
 ```
-┌─────────────┐         ┌─────────────┐
-│   Booking   │────────▶│   Payment   │
-│             │ 1     N │             │
-│ bookingid   │         │ paymentid   │
-│ bookingcode │         │ bookingid   │
-│ status      │         │ status ─────┼─┐ "Completed"
-│ totalamount │         │ amount      │ │
-└─────────────┘         └─────────────┘ │
-       │                                 │
-       │ ❌ NO paymentstatus here        │
-       │ ✅ Check via Payments ──────────┘
-       └─────────────────────────────────
+┌──────────────┐         ┌──────────────┐
+│   Booking    │────────▶│   Payment    │
+│              │ 1     N │              │
+│ bookingid    │         │ paymentid    │
+│ bookingcode  │         │ bookingid    │
+│ status       │         │ status ──────┼─┐ "Completed"
+│ totalamount  │         │ amount       │ │
+│              │         └──────────────┘ │
+│ ✅ NEW:      │                          │
+│ checkedintime│         ┌──────────────┐ │
+│ checkedinby ─┼────────▶│     User     │ │
+│              │    N:1  │              │ │
+└──────────────┘         │ userid       │ │
+       │                 │ fullname     │ │
+       │                 │ roleid       │ │
+       │                 └──────────────┘ │
+       │ ❌ NO paymentstatus here         │
+       │ ✅ Check via Payments ───────────┘
+       │ ✅ Check-in tracked via checkedintime, checkedinby
+       └──────────────────────────────────
 ```
 
 ---
@@ -220,8 +244,9 @@ Before you start coding, check these:
 ### For PUT /api/bookings/{id}/check-in
 
 - [ ] Update `booking.Status = nameof(BookingStatus.CheckedIn)`
-- [ ] Don't try to update `booking.CheckedinStatus` (doesn't exist)
-- [ ] Include check-in timestamp in DTO response only
+- [ ] ✅ **NEW**: Set `booking.Checkedintime = DateTime.UtcNow`
+- [ ] ✅ **NEW**: Set `booking.Checkedinby = currentStaffUserId` (from JWT)
+- [ ] Include `.Include(b => b.CheckedInByUser)` to load staff details
 - [ ] Validate `booking.Status != "CheckedIn"` (prevent double check-in)
 - [ ] Verify payment completed via `Payments` collection
 
@@ -229,7 +254,9 @@ Before you start coding, check these:
 
 - [ ] Filter by `bookingtime` date (not `bookingdate` - doesn't exist)
 - [ ] Join with `Payments` to show payment status
-- [ ] Calculate `canCheckIn` flag in DTO
+- [ ] ✅ **NEW**: Include `checkedintime` and `checkedinby` in response
+- [ ] ✅ **NEW**: Load `.Include(b => b.CheckedInByUser)` for staff name
+- [ ] Calculate `canCheckIn` flag based on `checkedintime == null`
 - [ ] Use `booking.Status` for filter (not `checkedinstatus`)
 
 ---

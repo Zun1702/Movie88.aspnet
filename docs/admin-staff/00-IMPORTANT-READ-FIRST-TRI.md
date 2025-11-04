@@ -190,6 +190,68 @@ showtime.Endtime = showtime.Starttime.AddMinutes(movie.Durationminutes);
 
 ---
 
+### 4. Booking Entity Updates (For Reports)
+
+#### ✅ NEW: Check-in Tracking Fields Added
+
+**Update**: Database migration executed on **November 5, 2025** to add check-in tracking.
+
+**Updated Booking Entity**:
+```csharp
+[Table("bookings")]
+public partial class Booking
+{
+    // ... existing fields ...
+    
+    [Column("status")]
+    [StringLength(50)]
+    public string? Status { get; set; } // "Pending", "Confirmed", "CheckedIn", etc.
+    
+    // ✅ NEW: Check-in tracking (Added 2025-11-05)
+    [Column("checkedintime", TypeName = "timestamp without time zone")]
+    public DateTime? Checkedintime { get; set; } // When customer checked in
+    
+    [Column("checkedinby")]
+    public int? Checkedinby { get; set; } // Staff user ID who performed check-in
+    
+    // Navigation
+    [ForeignKey("Checkedinby")]
+    [InverseProperty("BookingsCheckedInBy")]
+    public virtual User? CheckedInByUser { get; set; } // Staff details
+}
+```
+
+**Impact on Admin Reports**:
+
+When implementing booking statistics and reports, you can now:
+
+```csharp
+// GET /api/admin/reports/bookings/statistics
+var stats = new BookingStatisticsDTO
+{
+    TotalBookings = bookings.Count(),
+    CompletedBookings = bookings.Count(b => b.Status == "Confirmed"),
+    CheckedInBookings = bookings.Count(b => b.Checkedintime != null), // ✅ NEW
+    CheckInRate = (checkedInCount / confirmedCount) * 100, // ✅ NEW metric
+    
+    // Staff performance
+    TopCheckInStaff = bookings
+        .Where(b => b.Checkedinby != null)
+        .GroupBy(b => b.CheckedInByUser.Fullname)
+        .Select(g => new { StaffName = g.Key, Count = g.Count() })
+        .OrderByDescending(x => x.Count)
+        .Take(5)
+        .ToList() // ✅ NEW: Staff leaderboard
+};
+```
+
+**Migration Details**:
+- Script: `docs/migrations/add-checkin-tracking.sql`
+- Foreign Key: `bookings.checkedinby` → `User.userid` (ON DELETE SET NULL)
+- Indexes: Created on `checkedintime` and `checkedinby` for performance
+
+---
+
 ## 🎯 Implementation Checklist
 
 ### For Movie Management (Tri)
@@ -382,6 +444,26 @@ var showtime = new Showtime
 };
 ```
 
+### ❌ Mistake #4: Not including check-in data in booking reports
+```csharp
+// ❌ WRONG - Missing check-in metrics
+var stats = new BookingStatisticsDTO
+{
+    TotalBookings = bookings.Count(),
+    CompletedBookings = bookings.Count(b => b.Status == "Confirmed")
+    // Missing: CheckedInBookings, CheckInRate
+};
+
+// ✅ CORRECT - Include new check-in tracking
+var stats = new BookingStatisticsDTO
+{
+    TotalBookings = bookings.Count(),
+    CompletedBookings = bookings.Count(b => b.Status == "Confirmed"),
+    CheckedInBookings = bookings.Count(b => b.Checkedintime != null), // ✅ NEW
+    CheckInRate = (checkedInCount / confirmedCount) * 100 // ✅ NEW
+};
+```
+
 ### ✅ Correct Implementations
 
 ```csharp
@@ -421,6 +503,28 @@ var showtime = new Showtime
     Price = request.BasePrice,
     Format = request.Format,
     Languagetype = $"{request.Language} - {request.Subtitle}"
+};
+
+// ✅ Booking Reports: Include check-in tracking
+var bookingStats = await _context.Bookings
+    .Where(b => b.Bookingtime >= startDate && b.Bookingtime <= endDate)
+    .Select(b => new
+    {
+        b.Bookingid,
+        b.Status,
+        b.Checkedintime,      // ✅ NEW: Check-in timestamp
+        b.Checkedinby,        // ✅ NEW: Staff ID
+        StaffName = b.CheckedInByUser.Fullname  // ✅ NEW: Staff name
+    })
+    .ToListAsync();
+
+var statistics = new BookingStatisticsDTO
+{
+    TotalBookings = bookingStats.Count,
+    CheckedInBookings = bookingStats.Count(b => b.Checkedintime != null),
+    CheckInRate = bookingStats.Count > 0 
+        ? (double)bookingStats.Count(b => b.Checkedintime != null) / bookingStats.Count * 100 
+        : 0
 };
 ```
 
