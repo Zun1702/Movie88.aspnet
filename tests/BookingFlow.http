@@ -1,15 +1,25 @@
 ### 🎫 Booking Flow API Testing
 ### Complete booking journey from cinema selection to combo addition
 
-@baseUrl = https://movie88aspnet-app.up.railway.app/api
+@baseUrl = https://localhost:7238/api
 # @baseUrl = https://localhost:7238/api
 
 ### Variables
+
+### Login to get JWT token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "ngoctrungtsn111@gmail.com",
+  "password": "123321"
+}
+
 @token = YOUR_JWT_TOKEN_HERE
 @movieId = 1
 @cinemaId = 1
-@showtimeId = 42
-@auditoriumId = 5
+@showtimeId = 1
+@auditoriumId = 1
 @bookingId = 156
 @seatId1 = 125
 @seatId2 = 126
@@ -23,7 +33,7 @@ GET {{baseUrl}}/cinemas
 Content-Type: application/json
 
 ### 1.1 GET Cinemas by City
-GET {{baseUrl}}/cinemas?city=Ho Chi Minh City
+GET {{baseUrl}}/cinemas?city=TP.HCM
 Content-Type: application/json
 
 ###

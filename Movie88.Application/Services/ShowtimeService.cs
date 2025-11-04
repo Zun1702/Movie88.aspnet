@@ -20,6 +20,16 @@ public class ShowtimeService : IShowtimeService
         if (showtimes == null || !showtimes.Any())
             return null;
 
+        // Pre-calculate available seats for all showtimes (batch operation)
+        var showtimeIds = showtimes.Select(s => s.Showtimeid).ToList();
+        var availableSeatsDict = new Dictionary<int, int>();
+        
+        foreach (var showtimeId in showtimeIds)
+        {
+            var availableSeats = await _showtimeRepository.GetAvailableSeatsCountAsync(showtimeId, cancellationToken);
+            availableSeatsDict[showtimeId] = availableSeats;
+        }
+
         // Group by date first
         var dateGroups = showtimes
             .Where(s => s.Starttime.HasValue)
@@ -49,7 +59,7 @@ public class ShowtimeService : IShowtimeService
                             Format = s.Format,
                             Languagetype = s.Languagetype,
                             AuditoriumName = s.Auditorium?.Name,
-                            AvailableSeats = 0 // TODO: Calculate from GetAvailableSeatsCountAsync
+                            AvailableSeats = availableSeatsDict.GetValueOrDefault(s.Showtimeid, 0)
                         }).OrderBy(s => s.Starttime).ToList()
                     }).ToList()
             }).ToList();
@@ -123,6 +133,16 @@ public class ShowtimeService : IShowtimeService
         if (showtimes == null || !showtimes.Any())
             return new List<ShowtimesByDateGroupDTO>();
 
+        // Pre-calculate available seats for all showtimes (batch operation)
+        var showtimeIds = showtimes.Select(s => s.Showtimeid).ToList();
+        var availableSeatsDict = new Dictionary<int, int>();
+        
+        foreach (var showtimeId in showtimeIds)
+        {
+            var availableSeats = await _showtimeRepository.GetAvailableSeatsCountAsync(showtimeId, cancellationToken);
+            availableSeatsDict[showtimeId] = availableSeats;
+        }
+
         // Group by date (should be single date, but keeping structure consistent)
         var dateGroups = showtimes
             .Where(s => s.Starttime.HasValue && s.Auditorium?.Cinema != null)
@@ -151,7 +171,7 @@ public class ShowtimeService : IShowtimeService
                             Format = s.Format,
                             Languagetype = s.Languagetype,
                             AuditoriumName = s.Auditorium?.Name,
-                            AvailableSeats = 0 // TODO: Calculate from GetAvailableSeatsCountAsync
+                            AvailableSeats = availableSeatsDict.GetValueOrDefault(s.Showtimeid, 0)
                         }).OrderBy(s => s.Starttime).ToList()
                     }).ToList()
             }).ToList();
