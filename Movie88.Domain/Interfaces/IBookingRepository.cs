@@ -12,5 +12,8 @@ public interface IBookingRepository
     Task<ShowtimeModel?> GetShowtimeWithAuditoriumAsync(int showtimeId, CancellationToken cancellationToken = default);
     Task<List<SeatModel>> GetSeatsByIdsAsync(List<int> seatIds, CancellationToken cancellationToken = default);
     Task<List<int>> GetBookedSeatIdsForShowtimeAsync(int showtimeId, CancellationToken cancellationToken = default);
-    Task<BookingModel> CreateBookingAsync(int customerid, int showtimeid, string bookingcode, decimal totalamount, List<(int seatid, decimal seatprice)> seats, CancellationToken cancellationToken = default);
+    Task<BookingModel> CreateBookingAsync(int customerid, int showtimeid, string? bookingcode, decimal totalamount, List<(int seatid, decimal seatprice)> seats, CancellationToken cancellationToken = default);
+    
+    // Add combos methods
+    Task AddCombosAsync(int bookingId, List<(int comboid, int quantity, decimal price)> combos, decimal newTotalAmount, CancellationToken cancellationToken = default);
 }

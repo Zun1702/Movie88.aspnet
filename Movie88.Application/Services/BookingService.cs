@@ -1,4 +1,5 @@
 using Movie88.Application.DTOs.Bookings;
+using Movie88.Application.DTOs.Combos;
 using Movie88.Application.DTOs.Common;
 using Movie88.Application.HandlerResponse;
 using Movie88.Application.Interfaces;
@@ -11,15 +12,18 @@ public class BookingService : IBookingService
     private readonly IBookingRepository _bookingRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IBookingCodeGenerator _bookingCodeGenerator;
+    private readonly IComboRepository _comboRepository;
 
     public BookingService(
         IBookingRepository bookingRepository, 
         ICustomerRepository customerRepository,
-        IBookingCodeGenerator bookingCodeGenerator)
+        IBookingCodeGenerator bookingCodeGenerator,
+        IComboRepository comboRepository)
     {
         _bookingRepository = bookingRepository;
         _customerRepository = customerRepository;
         _bookingCodeGenerator = bookingCodeGenerator;
+        _comboRepository = comboRepository;
     }
 
     public async Task<Result<PagedResultDTO<BookingListDTO>>> GetMyBookingsAsync(int userId, int page, int pageSize, string? status)
@@ -100,38 +104,45 @@ public class BookingService : IBookingService
         // Validate showtime exists and not started
         var showtime = await _bookingRepository.GetShowtimeWithAuditoriumAsync(request.Showtimeid, cancellationToken);
         if (showtime == null)
-            return null; // Showtime not found
+            throw new InvalidOperationException("Showtime not found");
 
-        if (showtime.Starttime.HasValue && showtime.Starttime.Value <= DateTime.UtcNow)
-            return null; // Showtime already started
+        if (showtime.Starttime.HasValue && showtime.Starttime.Value <= DateTime.Now)
+            throw new InvalidOperationException("Showtime has already started");
 
         // Validate seats exist in auditorium
         var seats = await _bookingRepository.GetSeatsByIdsAsync(request.Seatids, cancellationToken);
         if (seats.Count != request.Seatids.Count)
-            return null; // Some seats not found
+            throw new InvalidOperationException("One or more seats not found");
 
         // Check all seats belong to correct auditorium
         if (seats.Any(s => s.Auditoriumid != showtime.Auditoriumid))
-            return null; // Seats not in correct auditorium
+            throw new InvalidOperationException("One or more seats do not belong to the showtime's auditorium");
 
         // Check seats not already booked
         var bookedSeatIds = await _bookingRepository.GetBookedSeatIdsForShowtimeAsync(request.Showtimeid, cancellationToken);
-        if (request.Seatids.Any(seatId => bookedSeatIds.Contains(seatId)))
-            return null; // Some seats already booked
+        var alreadyBookedSeats = request.Seatids.Where(seatId => bookedSeatIds.Contains(seatId)).ToList();
+        if (alreadyBookedSeats.Any())
+        {
+            var bookedSeatNames = seats
+                .Where(s => alreadyBookedSeats.Contains(s.Seatid))
+                .Select(s => $"{s.Row}{s.Number}")
+                .ToList();
+            throw new InvalidOperationException($"The following seats are already booked: {string.Join(", ", bookedSeatNames)}");
+        }
 
-        // Generate booking code
-        var bookingCode = _bookingCodeGenerator.GenerateBookingCode(DateTime.UtcNow);
+        // Note: BookingCode will be generated only after payment confirmation
+        // Initial booking has null BookingCode
 
         // Calculate total amount (seat price based on showtime price)
         var seatPrice = showtime.Price ?? 0;
         var totalAmount = seatPrice * request.Seatids.Count;
         var seatsWithPrices = request.Seatids.Select(seatId => (seatId, seatPrice)).ToList();
 
-        // Create booking
+        // Create booking with null BookingCode (will be generated after payment)
         var booking = await _bookingRepository.CreateBookingAsync(
             customerid, 
             request.Showtimeid, 
-            bookingCode, 
+            null, // BookingCode is null until payment confirmed
             totalAmount, 
             seatsWithPrices, 
             cancellationToken);
@@ -140,7 +151,7 @@ public class BookingService : IBookingService
         return new BookingResponseDTO
         {
             Bookingid = booking.Bookingid,
-            Bookingcode = booking.Bookingcode ?? bookingCode,
+            Bookingcode = booking.Bookingcode, // Will be null for pending bookings
             Showtimeid = booking.Showtimeid,
             Seats = seats.Select(s => new BookedSeatDTO
             {
@@ -151,7 +162,73 @@ public class BookingService : IBookingService
             }).ToList(),
             Totalamount = totalAmount,
             Status = booking.Status ?? "pending",
-            Createdat = booking.Bookingtime ?? DateTime.UtcNow
+            Createdat = booking.Bookingtime ?? DateTime.Now
+        };
+    }
+
+    public async Task<UpdatedBookingResponseDTO?> AddCombosToBookingAsync(
+        int bookingId, 
+        int customerId, 
+        AddCombosRequestDTO request, 
+        CancellationToken cancellationToken = default)
+    {
+        // Validate booking exists and belongs to customer
+        var booking = await _bookingRepository.GetByIdWithDetailsAsync(bookingId);
+        if (booking == null)
+            throw new InvalidOperationException("Booking not found");
+
+        if (booking.Customerid != customerId)
+            throw new UnauthorizedAccessException("This booking does not belong to you");
+
+        if (booking.Status?.ToLower() != "pending")
+            throw new InvalidOperationException("Can only add combos to pending bookings");
+
+        // Validate all combos
+        if (request.Combos.Any(c => c.Quantity <= 0))
+            throw new InvalidOperationException("Combo quantity must be greater than 0");
+
+        var comboIds = request.Combos.Select(c => c.Comboid).ToList();
+        var combos = await _comboRepository.GetCombosByIdsAsync(comboIds, cancellationToken);
+
+        if (combos.Count != comboIds.Count)
+            throw new InvalidOperationException("One or more combos not found");
+
+        // Calculate new total amount
+        var existingTotal = booking.Totalamount ?? 0;
+        var comboTotal = request.Combos.Sum(c =>
+        {
+            var combo = combos.First(co => co.Comboid == c.Comboid);
+            return (combo.Price ?? 0) * c.Quantity;
+        });
+        var newTotal = existingTotal + comboTotal;
+
+        // Add combos to booking
+        var comboItems = request.Combos.Select(c =>
+        {
+            var combo = combos.First(co => co.Comboid == c.Comboid);
+            return (c.Comboid, c.Quantity, combo.Price ?? 0);
+        }).ToList();
+
+        await _bookingRepository.AddCombosAsync(bookingId, comboItems, newTotal, cancellationToken);
+
+        // Return updated booking response
+        return new UpdatedBookingResponseDTO
+        {
+            Bookingid = bookingId,
+            Bookingcode = booking.Bookingcode,
+            Showtimeid = booking.Showtimeid,
+            Combos = request.Combos.Select(c =>
+            {
+                var combo = combos.First(co => co.Comboid == c.Comboid);
+                return new ComboItemDTO
+                {
+                    Name = combo.Name,
+                    Quantity = c.Quantity,
+                    Price = combo.Price ?? 0
+                };
+            }).ToList(),
+            Totalamount = newTotal,
+            Status = booking.Status ?? "pending"
         };
     }
 }

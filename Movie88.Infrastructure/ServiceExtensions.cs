@@ -13,7 +13,17 @@ namespace Movie88.Infrastructure
         public static void ConfigurePersistenceApp(this IServiceCollection services, IConfiguration configuration)
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
-            services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionString));
+            services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionString, npgsqlOptions =>
+            {
+                // Enable retry on transient failures
+                npgsqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(5),
+                    errorCodesToAdd: null);
+                
+                // Set command timeout
+                npgsqlOptions.CommandTimeout(30);
+            }));
 
             // Register AutoMapper - scan Infrastructure assembly for EntityToModelMapper
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
@@ -47,6 +57,9 @@ namespace Movie88.Infrastructure
             
             // Auditorium Repository
             services.AddScoped<Domain.Interfaces.IAuditoriumRepository, AuditoriumRepository>();
+            
+            // Combo Repository
+            services.AddScoped<Domain.Interfaces.IComboRepository, ComboRepository>();
         }
     }
 }

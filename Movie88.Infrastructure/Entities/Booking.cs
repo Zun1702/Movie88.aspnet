@@ -24,7 +24,7 @@ public partial class Booking
 
     [Column("bookingcode")]
     [StringLength(20)]
-    public string Bookingcode { get; set; } = null!;
+    public string? Bookingcode { get; set; }
 
     [Column("bookingtime", TypeName = "timestamp without time zone")]
     public DateTime? Bookingtime { get; set; }

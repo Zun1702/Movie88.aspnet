@@ -15,14 +15,14 @@ Content-Type: application/json
   "password": "123321"
 }
 
-@token = YOUR_JWT_TOKEN_HERE
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiNDZkZGNlNDQtNDFjMi00MGMwLWE3NjQtN2VmOTZmMjk1N2Y1IiwibmJmIjoxNzYyMjc4Mjc2LCJleHAiOjE3NjIyODE4NzYsImlhdCI6MTc2MjI3ODI3NiwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.X1j7NSPX1DvzXn_QSk0iNT2J1s0hsGWzR7oHprn6FWY
 @movieId = 1
 @cinemaId = 1
 @showtimeId = 1
 @auditoriumId = 1
 @bookingId = 156
-@seatId1 = 125
-@seatId2 = 126
+@seatId1 = 9
+@seatId2 = 10
 
 ###############################################
 # 🎬 PHASE 1: CINEMA & SHOWTIME SELECTION

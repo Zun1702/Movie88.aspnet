@@ -128,60 +128,111 @@ public class BookingRepository : IBookingRepository
     public async Task<BookingModel> CreateBookingAsync(
         int customerid, 
         int showtimeid, 
-        string bookingcode, 
+        string? bookingcode, 
         decimal totalamount, 
         List<(int seatid, decimal seatprice)> seats, 
         CancellationToken cancellationToken = default)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        try
+        // Use execution strategy for retry-compatible transactions
+        var strategy = _context.Database.CreateExecutionStrategy();
+        
+        return await strategy.ExecuteAsync(async () =>
         {
-            // Create booking entity
-            var bookingEntity = new Booking
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                Customerid = customerid,
-                Showtimeid = showtimeid,
-                Bookingcode = bookingcode,
-                Bookingtime = DateTime.UtcNow,
-                Totalamount = totalamount,
-                Status = "pending"
-            };
+                // Create booking entity
+                var bookingEntity = new Booking
+                {
+                    Customerid = customerid,
+                    Showtimeid = showtimeid,
+                    Bookingcode = bookingcode,
+                    Bookingtime = DateTime.Now,
+                    Totalamount = totalamount,
+                    Status = "pending"
+                };
 
-            _context.Bookings.Add(bookingEntity);
-            await _context.SaveChangesAsync(cancellationToken);
+                _context.Bookings.Add(bookingEntity);
+                await _context.SaveChangesAsync(cancellationToken);
 
-            // Create bookingseat entities
-            foreach (var (seatid, seatprice) in seats)
-            {
-                var bookingSeat = new Bookingseat
+                // Create bookingseat entities
+                foreach (var (seatid, seatprice) in seats)
+                {
+                    var bookingSeat = new Bookingseat
+                    {
+                        Bookingid = bookingEntity.Bookingid,
+                        Seatid = seatid,
+                        Showtimeid = showtimeid,
+                        Seatprice = seatprice
+                    };
+                    _context.Bookingseats.Add(bookingSeat);
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                // Return booking model
+                return new BookingModel
                 {
                     Bookingid = bookingEntity.Bookingid,
-                    Seatid = seatid,
-                    Showtimeid = showtimeid,
-                    Seatprice = seatprice
+                    Customerid = bookingEntity.Customerid,
+                    Showtimeid = bookingEntity.Showtimeid,
+                    Bookingcode = bookingEntity.Bookingcode,
+                    Bookingtime = bookingEntity.Bookingtime,
+                    Totalamount = bookingEntity.Totalamount,
+                    Status = bookingEntity.Status
                 };
-                _context.Bookingseats.Add(bookingSeat);
             }
-
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-
-            // Return booking model
-            return new BookingModel
+            catch
             {
-                Bookingid = bookingEntity.Bookingid,
-                Customerid = bookingEntity.Customerid,
-                Showtimeid = bookingEntity.Showtimeid,
-                Bookingcode = bookingEntity.Bookingcode,
-                Bookingtime = bookingEntity.Bookingtime,
-                Totalamount = bookingEntity.Totalamount,
-                Status = bookingEntity.Status
-            };
-        }
-        catch
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
+
+    public async Task AddCombosAsync(
+        int bookingId, 
+        List<(int comboid, int quantity, decimal price)> combos, 
+        decimal newTotalAmount, 
+        CancellationToken cancellationToken = default)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
         {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                // Add bookingcombo records
+                foreach (var (comboid, quantity, price) in combos)
+                {
+                    var bookingCombo = new Bookingcombo
+                    {
+                        Bookingid = bookingId,
+                        Comboid = comboid,
+                        Quantity = quantity,
+                        Comboprice = price
+                    };
+                    _context.Bookingcombos.Add(bookingCombo);
+                }
+
+                // Update booking total amount
+                var booking = await _context.Bookings.FindAsync(new object[] { bookingId }, cancellationToken);
+                if (booking != null)
+                {
+                    booking.Totalamount = newTotalAmount;
+                    _context.Bookings.Update(booking);
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
     }
 }

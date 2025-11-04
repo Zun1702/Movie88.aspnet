@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Movie88.Application.DTOs.Bookings;
+using Movie88.Application.DTOs.Combos;
 using Movie88.Application.Interfaces;
 using System.Security.Claims;
 
@@ -107,31 +108,132 @@ public class BookingsController : ControllerBase
         }
 
         // Create booking
-        var booking = await _bookingService.CreateBookingAsync(
-            customerResult.Data.Customerid, 
-            request, 
-            cancellationToken);
+        try
+        {
+            var booking = await _bookingService.CreateBookingAsync(
+                customerResult.Data.Customerid, 
+                request, 
+                cancellationToken);
 
-        if (booking == null)
+            if (booking == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    statusCode = 400,
+                    message = "Failed to create booking",
+                    data = (object?)null
+                });
+            }
+
+            return CreatedAtAction(
+                nameof(CreateBooking),
+                new { id = booking.Bookingid },
+                new
+                {
+                    success = true,
+                    statusCode = 201,
+                    message = "Booking created successfully",
+                    data = booking
+                });
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(new
             {
                 success = false,
                 statusCode = 400,
-                message = "Failed to create booking. Showtime not found, already started, or seats unavailable",
+                message = ex.Message,
+                data = (object?)null
+            });
+        }
+    }
+
+    /// <summary>
+    /// Add combos to an existing booking
+    /// </summary>
+    /// <param name="id">Booking ID</param>
+    /// <param name="request">List of combos with quantities</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated booking with combos</returns>
+    [HttpPost("{id}/add-combos")]
+    public async Task<IActionResult> AddCombos(
+        int id,
+        [FromBody] AddCombosRequestDTO request,
+        CancellationToken cancellationToken)
+    {
+        // Extract userid from JWT token
+        var useridClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(useridClaim) || !int.TryParse(useridClaim, out int userid))
+        {
+            return Unauthorized(new
+            {
+                success = false,
+                statusCode = 401,
+                message = "User not authenticated",
                 data = (object?)null
             });
         }
 
-        return CreatedAtAction(
-            nameof(CreateBooking),
-            new { id = booking.Bookingid },
-            new
+        // Get customerid from userid
+        var customerResult = await _customerService.GetProfileByUserIdAsync(userid);
+        if (!customerResult.IsSuccess || customerResult.Data == null)
+        {
+            return NotFound(new
+            {
+                success = false,
+                statusCode = 404,
+                message = "Customer profile not found",
+                data = (object?)null
+            });
+        }
+
+        try
+        {
+            var updatedBooking = await _bookingService.AddCombosToBookingAsync(
+                id,
+                customerResult.Data.Customerid,
+                request,
+                cancellationToken);
+
+            if (updatedBooking == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    statusCode = 404,
+                    message = "Booking not found",
+                    data = (object?)null
+                });
+            }
+
+            return Ok(new
             {
                 success = true,
-                statusCode = 201,
-                message = "Booking created successfully",
-                data = booking
+                statusCode = 200,
+                message = "Combos added to booking successfully",
+                data = updatedBooking
             });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new
+            {
+                success = false,
+                statusCode = 403,
+                message = ex.Message,
+                data = (object?)null
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                statusCode = 400,
+                message = ex.Message,
+                data = (object?)null
+            });
+        }
     }
 }

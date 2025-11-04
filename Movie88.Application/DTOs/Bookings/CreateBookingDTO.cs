@@ -9,7 +9,7 @@ public class CreateBookingRequestDTO
 public class BookingResponseDTO
 {
     public int Bookingid { get; set; }
-    public string Bookingcode { get; set; } = string.Empty;
+    public string? Bookingcode { get; set; } // Null until payment confirmed
     public int Showtimeid { get; set; }
     public List<BookedSeatDTO> Seats { get; set; } = new();
     public decimal Totalamount { get; set; }
