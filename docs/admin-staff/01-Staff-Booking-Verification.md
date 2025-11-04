@@ -1,7 +1,9 @@
-# 🎟️ Staff: Xác thực Booking tại Quầy (3 Endpoints)
+# 🎟️ Staff: Xác thực Booking Online (3 Endpoints)
 
 **Status**: ⚠️ **PENDING IMPLEMENTATION** (0/3 endpoints - 0%)  
 **Assigned**: Việt
+
+> **📱 Online-Only Flow**: Khách hàng đặt vé online → Thanh toán thành công → Nhận BookingCode (QR) → Staff verify & check-in
 
 ---
 
@@ -9,7 +11,7 @@
 
 | # | Method | Endpoint | Use Case | Auth | Status | Assign |
 |---|--------|----------|----------|------|--------|--------|
-| 1 | GET | `/api/bookings/verify/{bookingCode}` | Verify booking at counter | ✅ Staff | ⏳ TODO | Việt |
+| 1 | GET | `/api/bookings/verify/{bookingCode}` | Verify booking code/QR | ✅ Staff | ⏳ TODO | Việt |
 | 2 | PUT | `/api/bookings/{id}/check-in` | Check-in customer | ✅ Staff | ⏳ TODO | Việt |
 | 3 | GET | `/api/bookings/today` | View today's bookings | ✅ Staff | ⏳ TODO | Việt |
 
@@ -17,23 +19,82 @@
 
 ## 🎯 Vai trò của Staff
 
-**Bạn là nhân viên tại quầy check-in** rạp chiếu phim Movie88. Nhiệm vụ chính:
+**Bạn là nhân viên xác thực vé online** tại rạp chiếu phim Movie88. Nhiệm vụ chính:
 
 ### ✅ Quyền hạn
-- ✅ Xem thông tin booking
-- ✅ Verify booking code
-- ✅ Check-in khách hàng
+- ✅ Verify booking code/QR code (sau khi khách đặt vé online)
+- ✅ Xem thông tin booking đã thanh toán
+- ✅ Check-in khách hàng đã có booking
 
 ### ❌ Không có quyền
+- ❌ Tạo booking mới (chỉ có online booking)
 - ❌ Sửa/xóa booking
 - ❌ Hoàn tiền (cần Admin)
 - ❌ Quản lý phim/rạp/suất chiếu
+- ❌ Bán vé tại quầy (không có nghiệp vụ này)
+
+---
+
+## 📱 Online Booking Flow (Nghiệp vụ chính)
+
+> **🎯 QUAN TRỌNG**: Hệ thống Movie88 chỉ xử lý **online booking**. Không có nghiệp vụ mua vé tại quầy.
+
+### Complete Customer Journey
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ONLINE BOOKING FLOW                          │
+└─────────────────────────────────────────────────────────────────┘
+
+1️⃣ CUSTOMER (Tại nhà/bất kỳ đâu)
+   ├─ Mở app/website Movie88
+   ├─ Chọn phim, rạp, suất chiếu, ghế
+   ├─ Tạo booking → Status: "Pending", PaymentStatus: "Pending"
+   └─ Booking chưa có BookingCode (chưa generate)
+
+2️⃣ PAYMENT (Online)
+   ├─ Thanh toán qua VNPay/MOMO
+   ├─ Payment Gateway xác nhận thành công
+   └─ Webhook cập nhật: PaymentStatus: "Completed"
+
+3️⃣ SYSTEM (Tự động)
+   ├─ Phát hiện payment thành công
+   ├─ Generate BookingCode: BK20251104001
+   ├─ Generate QR Code chứa BookingCode
+   ├─ Gửi email/SMS/notification cho khách
+   └─ Khách nhận được: QR Code + BookingCode
+
+4️⃣ CUSTOMER (Đến rạp)
+   ├─ Mở app/email để lấy QR Code
+   └─ Show QR cho staff tại quầy check-in
+
+5️⃣ STAFF (Tại rạp) ← YOUR ROLE
+   ├─ Scan QR hoặc nhập BookingCode
+   ├─ Call API: GET /api/bookings/verify/{bookingCode}
+   ├─ Kiểm tra: PaymentStatus = "Completed" ✅
+   ├─ Xác nhận thông tin: Tên, phim, giờ, ghế
+   ├─ Call API: PUT /api/bookings/{id}/check-in
+   └─ Hướng dẫn khách vào rạp
+
+6️⃣ CUSTOMER
+   └─ Vào rạp xem phim 🎬
+```
+
+### 🔒 Security Rules
+
+| Rule | Description |
+|------|-------------|
+| ✅ **Rule 1** | BookingCode chỉ được generate **SAU KHI** thanh toán thành công |
+| ✅ **Rule 2** | Chỉ booking có `paymentStatus = "Completed"` mới được verify |
+| ✅ **Rule 3** | Không có nghiệp vụ "mua vé tại quầy" |
+| ✅ **Rule 4** | Staff chỉ verify & check-in, không tạo booking mới |
+| ✅ **Rule 5** | Mỗi booking chỉ được check-in **1 lần** |
 
 ---
 
 ## 🎯 1. GET /api/bookings/verify/{bookingCode}
 
-**Use Case**: Verify booking at counter  
+**Use Case**: Verify booking code/QR after online payment  
 **Auth Required**: ✅ Staff/Admin  
 **Status**: ⏳ TODO
 
@@ -41,13 +102,13 @@
 
 | Step | Action | Duration |
 |------|--------|----------|
-| 1 | Customer arrives with booking code | 5s |
-| 2 | Staff enters code into system | 10s |
-| 3 | System verifies & displays info | 2s |
-| 4 | Staff checks information | 15s |
-| 5 | Confirm & check-in | 5s |
-| 6 | Print ticket/Scan QR | 10s |
-| **Total** | **Complete workflow** | **~45s** |
+| 1 | Khách đến rạp với QR code (đã thanh toán online) | 5s |
+| 2 | Staff scan QR hoặc nhập booking code | 10s |
+| 3 | System verify & hiển thị thông tin booking | 2s |
+| 4 | Staff kiểm tra: Tên khách, phim, giờ chiếu, ghế | 15s |
+| 5 | Xác nhận & check-in khách hàng | 5s |
+| 6 | Hướng dẫn khách vào rạp | 5s |
+| **Total** | **Complete workflow** | **~40s** |
 
 ### Request
 ```http
@@ -157,15 +218,29 @@ Authorization: Bearer {staff_token}
 }
 ```
 
+### Response 400 Bad Request (Payment Not Completed)
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Payment not completed",
+  "errors": [
+    "This booking has not been paid yet. Payment status: Pending"
+  ]
+}
+```
+
+> **🔒 Security Rule**: Chỉ booking có `paymentStatus = "Completed"` mới được phép verify và check-in.
+
 ### Related Entities
 **Booking** (bookings table):
 - ✅ `bookingid` (int, PK)
-- ✅ `bookingcode` (string, unique)
+- ✅ `bookingcode` (string, unique) - Generated after payment success
 - ✅ `customerid` (int, FK)
 - ✅ `showtimeid` (int, FK)
 - ✅ `totalamount` (decimal)
-- ✅ `status` (string) - Pending, Confirmed, Cancelled
-- ✅ `paymentstatus` (string) - Pending, Completed, Failed
+- ✅ `status` (string) - Confirmed, Cancelled (no "Pending" after payment)
+- ✅ `paymentstatus` (string) - **Completed** (required for verify)
 - ✅ `bookingdate` (DateTime)
 - ✅ `checkedinstatus` (string) - NotCheckedIn, CheckedIn
 - ✅ `checkedintime` (DateTime, nullable)
@@ -327,39 +402,41 @@ Authorization: Bearer {staff_token}
 
 ## � Use Cases & Scenarios
 
-### Use Case 1: Khách hàng đến đúng giờ
+### Use Case 1: Khách hàng đặt vé online và đến đúng giờ ✅
 
 **Scenario:**
 - Khách: Nguyen Van A
-- Booking Code: BK20251104001
+- **Đã đặt vé online và thanh toán thành công qua VNPay/MOMO**
+- Booking Code: BK20251104001 (nhận được sau khi thanh toán)
 - Suất chiếu: 19:30
 - Thời gian đến: 19:15 (trước 15 phút)
 
 **Steps:**
 
-1. **Nhận booking code từ khách**
+1. **Khách show QR code hoặc booking code (đã có sẵn sau khi thanh toán online)**
    ```
-   Khách: "Xin chào, em có booking code là BK20251104001"
+   Khách: (Mở app/email) "Em đã đặt vé online, đây là mã QR ạ"
+   Staff: (Scan QR hoặc nhìn thấy code BK20251104001)
    ```
 
-2. **Nhập code vào hệ thống**
+2. **Staff verify qua hệ thống**
    ```
    Staff: Call API GET /api/bookings/verify/BK20251104001
    ```
 
 3. **Kiểm tra response**
-   - ✅ Status: "Confirmed"
-   - ✅ Payment: "Completed"
+   - ✅ Status: "Confirmed" (đã đặt vé)
+   - ✅ Payment: "Completed" ← **QUAN TRỌNG** (đã thanh toán online)
    - ✅ Movie: "Avengers: Endgame"
    - ✅ Showtime: 19:30 (OK, còn 15 phút)
    - ✅ Seats: A5, A6
-   - ✅ Customer name matches ID
+   - ✅ Customer name: Nguyen Van A
 
 4. **Xác nhận với khách**
    ```
-   Staff: "Anh Nguyen Van A phải không ạ? 
-          Anh xem phim Avengers lúc 19:30, 
-          ghế A5 và A6 phải không?"
+   Staff: "Dạ, anh Nguyen Van A phải không ạ? 
+          Em xác nhận anh xem phim Avengers lúc 19:30, 
+          ghế A5 và A6 đúng không ạ?"
    
    Khách: "Đúng rồi!"
    ```
@@ -370,7 +447,7 @@ Authorization: Bearer {staff_token}
    Response: "Check-in successful"
    ```
 
-6. **Hướng dẫn khách**
+6. **Hướng dẫn khách vào rạp**
    ```
    Staff: "Dạ, Cinema 3 nằm ở tầng 2, 
           rẽ trái ra khỏi thang máy. 
@@ -378,26 +455,39 @@ Authorization: Bearer {staff_token}
           Chúc anh xem phim vui vẻ!"
    ```
 
-**Timeline:** ~45 giây
+**Timeline:** ~40 giây
+
+> **✅ Happy Path**: Đặt vé online → Thanh toán thành công → Nhận QR → Đến rạp → Verify → Check-in → Vào rạp 🎬
 
 ---
 
-### Use Case 2: Khách đến muộn
+### Use Case 2: Khách đặt vé online nhưng đến muộn
 
 **Scenario:**
-- Booking Code: BK20251104002
+- **Đã đặt vé online và thanh toán thành công**
+- Booking Code: BK20251104002 (nhận được sau khi thanh toán)
 - Suất chiếu: 19:30
 - Thời gian đến: 19:45 (muộn 15 phút)
 
 **Steps:**
 
-1. **Verify booking code**
+1. **Khách show QR code**
    ```
-   Status: "Confirmed"
+   Khách: (Mở app) "Em đã đặt vé online, đây là mã QR ạ"
+   Staff: (Scan QR → BK20251104002)
+   ```
+
+2. **Verify booking code**
+   ```
+   Staff: Call API GET /api/bookings/verify/BK20251104002
+   
+   Response:
+   Status: "Confirmed" ✅
+   PaymentStatus: "Completed" ✅ (đã thanh toán online)
    Showtime: 19:30 (started 15 mins ago)
    ```
 
-2. **Thông báo cho khách**
+3. **Thông báo cho khách**
    ```
    Staff: "Anh ơi, suất chiếu của anh đã bắt đầu từ 19:30, 
           hiện tại phim đã chiếu được 15 phút rồi ạ. 
@@ -409,7 +499,7 @@ Authorization: Bearer {staff_token}
           để không làm phiền khán giả khác."
    ```
 
-3. **Check-in với note**
+4. **Check-in với note**
    ```json
    PUT /api/bookings/12346/check-in
    {
@@ -418,20 +508,38 @@ Authorization: Bearer {staff_token}
    }
    ```
 
-4. **Hướng dẫn vào rạp nhẹ nhàng**
+5. **Hướng dẫn vào rạp nhẹ nhàng**
+   ```
+   Staff: "Dạ, Cinema 3 ở tầng 2 ạ. 
+          Anh vui lòng đi nhẹ tay để không làm ồn nhé."
+   ```
+
+> **📝 Note**: Khách vẫn được check-in dù đến muộn vì **đã thanh toán online**. Không hoàn tiền.
 
 ---
 
-### Use Case 3: Booking Code không hợp lệ
+### Use Case 3: Booking Code không hợp lệ (Nhập sai code)
 
 **Scenario:**
-- Khách cung cấp code: BK20251104999
+- Khách đã đặt vé online và thanh toán
+- Staff nhập sai code: BK20251104999 (thay vì BK20251104001)
 - Response: 404 Not Found
 
 **Steps:**
 
-1. **Nhập code và nhận lỗi**
+1. **Khách show QR/code**
+   ```
+   Khách: (Mở app) "Em đã đặt vé online, đây là mã ạ"
+   Staff: (Nhập sai code: BK20251104999)
+   ```
+
+2. **Nhập code và nhận lỗi**
+   ```
+   Staff: Call API GET /api/bookings/verify/BK20251104999
+   ```
+   
    ```json
+   Response:
    {
      "success": false,
      "statusCode": 404,
@@ -439,84 +547,91 @@ Authorization: Bearer {staff_token}
    }
    ```
 
-2. **Kiểm tra lại với khách**
+3. **Kiểm tra lại với khách**
    ```
-   Staff: "Anh cho em xem lại booking code được không? 
+   Staff: "Anh cho em xem lại mã booking được không? 
           Em thấy code này chưa có trong hệ thống."
    
-   Khách: (Mở email/SMS) "À code là BK20251104001 ạ!"
+   Khách: (Cho staff xem rõ hơn) "Code là BK20251104001 ạ!"
    
-   Staff: "Dạ vâng, em thử lại nhé."
+   Staff: "À, em xin lỗi. Em thử lại nhé."
    ```
 
-3. **Verify lại code đúng**
+4. **Verify lại code đúng → Success**
 
 **Common Mistakes:**
 - ❌ Nhầm chữ O với số 0
-- ❌ Nhầm chữ I với số 1
+- ❌ Nhầm chữ I với số 1  
 - ❌ Copy thiếu ký tự
 - ❌ Spaces ở đầu/cuối
+- ✅ **Best practice**: Dùng QR scanner thay vì nhập tay
 
 ---
 
-### Use Case 4: Booking chưa thanh toán
+### Use Case 4: Booking chưa thanh toán ❌ (KHÔNG BAO GIỜ XẢY RA)
 
-**Scenario:**
+> **⚠️ LƯU Ý QUAN TRỌNG**: Use case này **KHÔNG BAO GIỜ XẢY RA** trong hệ thống của chúng ta vì:
+> - BookingCode chỉ được generate **SAU KHI** thanh toán thành công
+> - Khách không thể nhận được QR/BookingCode nếu chưa thanh toán
+> - API `/api/bookings/verify/{bookingCode}` sẽ **LUÔN** trả về `paymentStatus = "Completed"`
+
+**Scenario:** (Chỉ để tham khảo - không xảy ra trong thực tế)
 - Booking Code: BK20251104003
-- Payment Status: "Pending"
+- Payment Status: "Pending" ❌ (KHÔNG THỂ)
 
-**Steps:**
+**Lý do không xảy ra:**
+```
+Flow đúng:
+1. Khách đặt vé → Status: "Pending", PaymentStatus: "Pending"
+2. Chưa có BookingCode (chưa generate)
+3. Thanh toán thành công → PaymentStatus: "Completed"
+4. Hệ thống generate BookingCode → BK20251104001
+5. Gửi QR/BookingCode cho khách
+6. Khách đến rạp → Staff verify → Check-in
 
-1. **Verify và phát hiện chưa thanh toán**
-   ```json
-   {
-     "payment": {
-       "paymentStatus": "Pending",
-       "paymentMethod": null,
-       "paidAt": null
-     }
-   }
+❌ Không thể có: BookingCode + PaymentStatus "Pending"
+```
+
+**Nếu xảy ra (lỗi hệ thống):**
+1. **Thông báo cho khách**
+   ```
+   Staff: "Anh ơi, em thấy có vấn đề với booking của anh. 
+          Vui lòng đợi em liên hệ bộ phận kỹ thuật ạ."
    ```
 
-2. **Thông báo cho khách**
-   ```
-   Staff: "Anh ơi, em thấy booking của anh 
-          chưa được thanh toán ạ. 
-          Anh có muốn thanh toán bây giờ không?"
-   
-   Khách: "Ủa, em đã chuyển khoản rồi mà?"
-   
-   Staff: "Vậy anh đợi em liên hệ bộ phận kế toán 
-          kiểm tra lại nhé. Xin anh chờ khoảng 5 phút."
-   ```
-
-3. **Escalate to Admin/Manager**
-   - Gọi hotline: [số điện thoại nội bộ]
-   - Hoặc: Liên hệ qua Slack/Teams
+2. **Escalate to IT/Admin ngay lập tức**
+   - Hotline: [số điện thoại nội bộ]
+   - Slack: #tech-support
    - Cung cấp: Booking Code, Customer info
-
-4. **Xử lý tùy theo policy**
-   - Option 1: Cho khách vào nếu có proof of payment
-   - Option 2: Yêu cầu thanh toán lại
-   - Option 3: Chuyển suất chiếu khác
+   - **Đây là lỗi nghiêm trọng của hệ thống**
 
 ---
 
-### Use Case 5: Khách đến sai rạp
+### Use Case 5: Khách đến sai rạp (Có thể xảy ra)
 
 **Scenario:**
+- Khách **đã đặt vé online và thanh toán thành công**
 - Khách đến CGV Vincom
-- Booking là cho CGV Landmark
+- Nhưng booking là cho CGV Landmark
 
 **Steps:**
 
-1. **Verify và phát hiện sai rạp**
+1. **Verify booking code và phát hiện sai rạp**
+   ```
+   Staff: Call API GET /api/bookings/verify/BK20251104005
+   ```
+   
    ```json
+   Response:
    {
-     "showtime": {
-       "cinema": {
-         "name": "CGV Landmark 81",
-         "address": "720A Dien Bien Phu, Binh Thanh"
+     "data": {
+       "bookingCode": "BK20251104005",
+       "paymentStatus": "Completed", ✅ (đã thanh toán online)
+       "showtime": {
+         "cinema": {
+           "name": "CGV Landmark 81",
+           "address": "720A Dien Bien Phu, Binh Thanh"
+         }
        }
      }
    }
@@ -536,9 +651,9 @@ Authorization: Bearer {staff_token}
    ```
 
 3. **Hỗ trợ nếu cần**
-   - Gọi Grab/taxi
-   - Gọi cho rạp đích thông báo
-   - Nếu không kịp: Liên hệ Admin để đổi suất
+   - Gọi Grab/taxi cho khách
+   - Gọi cho rạp đích thông báo khách đang trên đường
+   - Nếu không kịp: Liên hệ Admin để đổi suất (hoặc hoàn tiền)
 
 ---
 
