@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Movie88.Application.Interfaces;
+using Movie88.Application.Services;
 using Movie88.Infrastructure.Context;
 using Movie88.Infrastructure.Repositories;
 using System.Reflection;
@@ -41,6 +42,9 @@ namespace Movie88.Infrastructure
             
             // Showtime Repository
             services.AddScoped<Domain.Interfaces.IShowtimeRepository, ShowtimeRepository>();
+
+            // Admin Repository
+            services.AddScoped<IAdminService, AdminService>();
         }
     }
 }

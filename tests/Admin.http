@@ -1,0 +1,454 @@
+### Movie88 API Testing - Admin User Management
+### Base URL
+# @baseUrl = https://movie88aspnet-app.up.railway.app/api
+@baseUrl = https://localhost:7238/api
+# @baseUrl = http://localhost:5203/api
+
+### Variables
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyOSIsImVtYWlsIjoiaG9hbmd2aWV0QGV4YW1wbGUuY29tIiwidW5pcXVlX25hbWUiOiJIb2FuZyBWaWV0Iiwicm9sZSI6IkFkbWluIiwianRpIjoiZTg3NDc0OWUtOTBhOC00MzNjLTgxYzAtYjAwZGU1OGIyYTMyIiwibmJmIjoxNzYyMjc3MTI1LCJleHAiOjE3NjIyODA3MjUsImlhdCI6MTc2MjI3NzEyNSwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.SCt9xjfgAYCDipQRkadly7Y42YF_WOsFs-4R0gk9quo
+@userId = 29
+
+###############################################
+# 0. AUTHENTICATION - Login as Admin
+###############################################
+
+### Test 0.1: Login as Admin to get admin token
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "hoangviet@example.com",
+  "password": "123456"
+}
+
+### Test 0.2: Copy token from response above and paste to @adminToken variable
+
+###############################################
+# 1. GET /api/admin/users - Get all users with filters
+###############################################
+
+### Test 1.1: Get all users (default pagination)
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.2: Get users with pagination
+GET {{baseUrl}}/admin/users?page=1&pageSize=5
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.3: Filter by role - Customer
+GET {{baseUrl}}/admin/users?role=Customer
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.4: Filter by role - Staff
+GET {{baseUrl}}/admin/users?role=staff
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.5: Filter by role - Admin
+GET {{baseUrl}}/admin/users?role=Admin
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.6: Filter by status - Active users
+GET {{baseUrl}}/admin/users?status=active
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.7: Filter by status - Inactive users (banned)
+GET {{baseUrl}}/admin/users?status=inactive
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.8: Search by email
+GET {{baseUrl}}/admin/users?search=hoangviet@example.com
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.9: Search by fullname
+GET {{baseUrl}}/admin/users?search=BM4
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.10: Combined filters
+GET {{baseUrl}}/admin/users?role=Admin&status=inactive&search=BM4&page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 1.11: Unauthorized request (no token) - Should return 401
+GET {{baseUrl}}/admin/users
+Accept: application/json
+
+### Test 1.12: Non-admin token - Should return 403
+GET {{baseUrl}}/admin/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.customer_token_here
+Accept: application/json
+
+###############################################
+# 2. POST /api/admin/users - Create Staff or Admin
+###############################################
+
+### Test 2.1: Create Staff user with all fields
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "staff01@movie88.com",
+  "password": "Movie88@1",
+  "fullname": "Nguyen Van Staff",
+  "role": "Staff",
+  "phone": "0901234567"
+}
+
+### Test 2.2: Create Admin user with minimal fields
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "admin02@movie88.com",
+  "password": "Admin@123456",
+  "fullname": "Tran Thi Admin",
+  "role": "Admin"
+}
+
+
+### Test 2.4: Try to create Customer (should fail - 400)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "customer@movie88.com",
+  "password": "Customer@123",
+  "fullname": "Customer User",
+  "role": "Customer"
+}
+
+### Test 2.5: Create with duplicate email (should fail - 400)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "staff01@movie88.com",
+  "password": "Staff@123456",
+  "fullname": "Duplicate Email",
+  "role": "Staff"
+}
+
+### Test 2.6: Create with weak password (should fail - 400)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "weakpass@movie88.com",
+  "password": "123",
+  "fullname": "Weak Password User",
+  "role": "Staff"
+}
+
+### Test 2.7: Create with invalid role (should fail - 400)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "invalid@movie88.com",
+  "password": "Valid@123456",
+  "fullname": "Invalid Role",
+  "role": "SuperAdmin"
+}
+
+### Test 2.8: Create without required fields (should fail - 400)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "missing@movie88.com"
+}
+
+###############################################
+# 3. PUT /api/admin/users/{id}/role - Update user role
+###############################################
+
+### Test 3.1: Promote Customer to Staff
+PUT {{baseUrl}}/admin/users/{{userId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newRole": "Staff"
+}
+
+### Test 3.2: Promote Staff to Admin
+PUT {{baseUrl}}/admin/users/12/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newRole": "Admin"
+}
+
+### Test 3.3: Demote Admin to Staff
+PUT {{baseUrl}}/admin/users/13/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newRole": "Staff"
+}
+
+### Test 3.4: Demote Staff to Customer
+PUT {{baseUrl}}/admin/users/14/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newRole": "Customer"
+}
+
+### Test 3.5: Try to demote yourself (should fail - 400)
+# First get your own userId from login response, then try:
+PUT {{baseUrl}}/admin/users/1/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newRole": "Staff"
+}
+
+### Test 3.6: Update to invalid role (should fail - 400)
+PUT {{baseUrl}}/admin/users/{{userId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newRole": "SuperUser"
+}
+
+### Test 3.7: Update non-existent user (should fail - 404)
+PUT {{baseUrl}}/admin/users/99999/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newRole": "Staff"
+}
+
+###############################################
+# 4. PUT /api/admin/users/{id}/ban - Ban/Unban user
+###############################################
+
+### Test 4.1: Ban user (set isActive = false)
+PUT {{baseUrl}}/admin/users/{{userId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### Test 4.2: Unban user (set isActive = true)
+PUT {{baseUrl}}/admin/users/{{userId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": true
+}
+
+### Test 4.3: Ban another user
+PUT {{baseUrl}}/admin/users/17/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### Test 4.4: Try to ban yourself (should fail - 400)
+# Use your own userId from login response
+PUT {{baseUrl}}/admin/users/29/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### Test 4.5: Ban non-existent user (should fail - 404)
+PUT {{baseUrl}}/admin/users/99999/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+
+###############################################
+# Expected Response Formats
+###############################################
+
+### GET Users Response Format:
+# {
+#   "isSuccess": true,
+#   "message": "Users retrieved successfully",
+#   "statusCode": 200,
+#   "data": {
+#     "items": [
+#       {
+#         "userId": 11,
+#         "email": "user@example.com",
+#         "fullname": "Nguyen Van A",
+#         "role": "Customer",
+#         "isActive": true,
+#         "isVerified": true,
+#         "registeredAt": "2025-09-15T10:30:00",
+#         "totalBookings": 12,
+#         "totalSpent": 2400000,
+#         "lastLogin": null
+#       }
+#     ],
+#     "currentPage": 1,
+#     "pageSize": 50,
+#     "totalPages": 170,
+#     "totalItems": 8500,
+#     "hasNextPage": true,
+#     "hasPreviousPage": false
+#   },
+#   "errors": []
+# }
+
+### POST User Response Format:
+# {
+#   "isSuccess": true,
+#   "message": "User created successfully",
+#   "statusCode": 201,
+#   "data": {
+#     "userId": 789,
+#     "email": "staff01@movie88.com",
+#     "fullname": "Nguyen Van Staff",
+#     "role": "Staff",
+#     "isActive": true,
+#     "isVerified": false,
+#     "phone": "0901234567",
+#     "createdAt": "2025-11-04T15:30:00",
+#     "updatedAt": null
+#   },
+#   "errors": []
+# }
+
+### PUT Role Response Format:
+# {
+#   "isSuccess": true,
+#   "message": "User role updated successfully",
+#   "statusCode": 200,
+#   "data": {
+#     "userId": 123,
+#     "email": "user@example.com",
+#     "fullname": "Nguyen Van A",
+#     "role": "Staff",
+#     "isActive": true,
+#     "isVerified": true,
+#     "phone": "0901234567",
+#     "createdAt": "2025-09-15T10:30:00",
+#     "updatedAt": "2025-11-04T15:30:00"
+#   },
+#   "errors": []
+# }
+
+### PUT Ban Response Format:
+# {
+#   "isSuccess": true,
+#   "message": "User banned successfully",
+#   "statusCode": 200,
+#   "data": {
+#     "userId": 456,
+#     "email": "spammer@example.com",
+#     "fullname": "Bad User",
+#     "role": "Customer",
+#     "isActive": false,
+#     "isVerified": true,
+#     "phone": null,
+#     "createdAt": "2025-10-01T08:00:00",
+#     "updatedAt": "2025-11-04T15:45:00"
+#   },
+#   "errors": []
+# }
+
+###############################################
+# Test Checklist
+###############################################
+
+### ✅ Test Cases to Verify:
+# 
+# GET /api/admin/users:
+# 1. ✅ Pagination works correctly
+# 2. ✅ Filter by role (customer, staff, admin)
+# 3. ✅ Filter by status (active, inactive)
+# 4. ✅ Search by email works
+# 5. ✅ Search by fullname works
+# 6. ✅ Combined filters work
+# 7. ✅ Aggregated data (totalBookings, totalSpent) displays correctly
+# 8. ❌ Non-admin access returns 403
+# 9. ❌ No token returns 401
+#
+# POST /api/admin/users:
+# 1. ✅ Create Staff with all fields
+# 2. ✅ Create Admin with minimal fields
+# 3. ❌ Cannot create Customer role
+# 4. ❌ Duplicate email returns 400
+# 5. ❌ Weak password returns 400
+# 6. ❌ Invalid role returns 400
+# 7. ✅ Created user has isActive=true, isVerified=false
+# 8. ✅ Password is hashed
+#
+# PUT /api/admin/users/{id}/role:
+# 1. ✅ Promote Customer → Staff
+# 2. ✅ Promote Staff → Admin
+# 3. ✅ Demote Admin → Staff
+# 4. ❌ Cannot demote yourself
+# 5. ❌ Invalid role returns 400
+# 6. ❌ Non-existent user returns 404
+#
+# PUT /api/admin/users/{id}/ban:
+# 1. ✅ Ban user (isActive=false)
+# 2. ✅ Unban user (isActive=true)
+# 3. ❌ Cannot ban yourself
+# 4. ❌ Non-existent user returns 404
+# 5. ✅ Banned user cannot login
+# 6. ✅ Banned user cannot make bookings
+
+###############################################
+# Notes
+###############################################
+
+### 📝 Before running tests:
+# 1. Make sure API is running: dotnet run --project Movie88.WebApi
+# 2. Login as Admin first (Test 0.1) to get admin token
+# 3. Copy token from response and paste to @adminToken variable
+# 4. Update @baseUrl if using different environment
+# 5. Check Swagger UI: https://localhost:7238/swagger
+# 6. Install REST Client extension in VS Code
+
+### 📝 Test Data Requirements:
+# - At least 1 Admin user in database
+# - At least 10 users for pagination testing
+# - Users with different roles (Customer, Staff, Admin)
+# - Users with bookings (for aggregated data testing)
+# - Both active and inactive users
+
+### 📝 Security Notes:
+# - Only users with "Admin" role can access these endpoints
+# - Admin cannot demote or ban themselves
+# - Customer role cannot be created via this endpoint (use register instead)
+# - Password must be strong (8+ chars, uppercase, number, special char)
+# - All timestamps are stored as "timestamp without time zone" in PostgreSQL
