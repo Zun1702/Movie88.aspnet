@@ -44,14 +44,3 @@ public class AuditoriumInfoDTO
     public string? Name { get; set; }
     public int Seatscount { get; set; }
 }
-
-/// <summary>
-/// Cinema information in showtime context (if not using from Cinemas folder)
-/// </summary>
-public class CinemaInfoDTO
-{
-    public int Cinemaid { get; set; }
-    public string? Name { get; set; }
-    public string? Address { get; set; }
-    public string? City { get; set; }
-}

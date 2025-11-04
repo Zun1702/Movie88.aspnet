@@ -28,19 +28,3 @@ public class ShowtimesByCinemaGroupDTO
     public string Address { get; set; } = null!;
     public List<ShowtimeItemDTO> Showtimes { get; set; } = new();
 }
-
-/// <summary>
-/// Individual showtime item
-/// </summary>
-public class ShowtimeItemDTO
-{
-    public int Showtimeid { get; set; }
-    public DateTime Starttime { get; set; }
-    public DateTime? Endtime { get; set; }
-    public decimal Price { get; set; }
-    public string Format { get; set; } = null!;
-    public string Languagetype { get; set; } = null!;
-    public int Auditoriumid { get; set; }
-    public string Auditoriumname { get; set; } = null!;
-    public int AvailableSeats { get; set; }
-}
