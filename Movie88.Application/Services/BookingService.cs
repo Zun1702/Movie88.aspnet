@@ -1,9 +1,11 @@
 using Movie88.Application.DTOs.Bookings;
 using Movie88.Application.DTOs.Combos;
 using Movie88.Application.DTOs.Common;
+using Movie88.Application.DTOs.Vouchers;
 using Movie88.Application.HandlerResponse;
 using Movie88.Application.Interfaces;
 using Movie88.Domain.Interfaces;
+using Movie88.Domain.Enums;
 
 namespace Movie88.Application.Services;
 
@@ -13,17 +15,23 @@ public class BookingService : IBookingService
     private readonly ICustomerRepository _customerRepository;
     private readonly IBookingCodeGenerator _bookingCodeGenerator;
     private readonly IComboRepository _comboRepository;
+    private readonly IVoucherService _voucherService;
+    private readonly IVoucherRepository _voucherRepository;
 
     public BookingService(
         IBookingRepository bookingRepository, 
         ICustomerRepository customerRepository,
         IBookingCodeGenerator bookingCodeGenerator,
-        IComboRepository comboRepository)
+        IComboRepository comboRepository,
+        IVoucherService voucherService,
+        IVoucherRepository voucherRepository)
     {
         _bookingRepository = bookingRepository;
         _customerRepository = customerRepository;
         _bookingCodeGenerator = bookingCodeGenerator;
         _comboRepository = comboRepository;
+        _voucherService = voucherService;
+        _voucherRepository = voucherRepository;
     }
 
     public async Task<Result<PagedResultDTO<BookingListDTO>>> GetMyBookingsAsync(int userId, int page, int pageSize, string? status)
@@ -161,7 +169,7 @@ public class BookingService : IBookingService
                 Seatprice = seatPrice
             }).ToList(),
             Totalamount = totalAmount,
-            Status = booking.Status ?? "pending",
+            Status = booking.Status ?? nameof(BookingStatus.Pending),
             Createdat = booking.Bookingtime ?? DateTime.Now
         };
     }
@@ -180,7 +188,7 @@ public class BookingService : IBookingService
         if (booking.Customerid != customerId)
             throw new UnauthorizedAccessException("This booking does not belong to you");
 
-        if (booking.Status?.ToLower() != "pending")
+        if (booking.Status?.ToLower() != nameof(BookingStatus.Pending).ToLower())
             throw new InvalidOperationException("Can only add combos to pending bookings");
 
         // Validate all combos
@@ -228,7 +236,64 @@ public class BookingService : IBookingService
                 };
             }).ToList(),
             Totalamount = newTotal,
-            Status = booking.Status ?? "pending"
+            Status = booking.Status ?? nameof(BookingStatus.Pending)
+        };
+    }
+
+    public async Task<ApplyVoucherResponseDTO?> ApplyVoucherToBookingAsync(
+        int bookingId,
+        int customerId,
+        ApplyVoucherRequestDTO request,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Validate voucher (reuse validation service)
+        var validateRequest = new ValidateVoucherRequestDTO
+        {
+            Code = request.Code,
+            Bookingid = bookingId
+        };
+
+        var validationResult = await _voucherService.ValidateVoucherAsync(validateRequest, customerId, cancellationToken);
+        if (!validationResult.IsSuccess)
+        {
+            throw new InvalidOperationException(validationResult.Message ?? "Voucher validation failed");
+        }
+
+        var voucher = validationResult.Data!;
+
+        // 2. Get booking
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken);
+        if (booking == null)
+        {
+            throw new InvalidOperationException("Booking not found");
+        }
+
+        // 3. Check if booking already has a voucher
+        if (booking.Voucherid.HasValue)
+        {
+            throw new InvalidOperationException("Booking already has a voucher applied");
+        }
+
+        // 4. Calculate discount
+        var originalAmount = booking.Totalamount ?? 0;
+        var discountAmount = voucher.ApplicableDiscount;
+        var newTotal = originalAmount - discountAmount;
+
+        // 5. Apply voucher to booking using execution strategy
+        await _bookingRepository.ApplyVoucherAsync(bookingId, voucher.Voucherid, newTotal, cancellationToken);
+
+        // 6. Increment voucher usage count
+        await _voucherRepository.IncrementUsageCountAsync(voucher.Voucherid, cancellationToken);
+
+        // 7. Return response
+        return new ApplyVoucherResponseDTO
+        {
+            Bookingid = bookingId,
+            Voucherid = voucher.Voucherid,
+            VoucherCode = voucher.Code,
+            OriginalAmount = originalAmount,
+            DiscountAmount = discountAmount,
+            Totalamount = newTotal
         };
     }
 }

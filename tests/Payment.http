@@ -1,7 +1,9 @@
 ### 💳 Payment & Vouchers API Testing
 ### Complete payment flow from voucher validation to payment confirmation
 
-@baseUrl = https://localhost:7238/api
+# Switch between localhost and production
+@baseUrl = https://movie88aspnet-app.up.railway.app/api
+# @baseUrl = https://localhost:7238/api
 
 ### Variables
 ### Login to get JWT token first
@@ -13,10 +15,10 @@ Content-Type: application/json
   "password": "123321"
 }
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiNDZkZGNlNDQtNDFjMi00MGMwLWE3NjQtN2VmOTZmMjk1N2Y1IiwibmJmIjoxNzYyMjc4Mjc2LCJleHAiOjE3NjIyODE4NzYsImlhdCI6MTc2MjI3ODI3NiwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.X1j7NSPX1DvzXn_QSk0iNT2J1s0hsGWzR7oHprn6FWY
-@bookingId = 156
-@voucherCode = STUDENT50
-@paymentId = 1
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiMDM0NDE3ZjItYjU0MC00YWM2LTk3NzYtNGZiNjc0MzBmZTk5IiwibmJmIjoxNzYyMjg5ODY0LCJleHAiOjE3NjIyOTM0NjQsImlhdCI6MTc2MjI4OTg2NCwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.81IDq6RLUgPKHA4AzE2p9VKdUn1Ib6mrBlMoSVizlRg
+@bookingId = 17
+@voucherCode = MOVIE50k
+@paymentId = 2
 
 ###############################################
 # 💰 PHASE 1: VOUCHER MANAGEMENT
@@ -96,16 +98,32 @@ Content-Type: application/json
 ###############################################
 
 ### 3. POST Create VNPay Payment (REQUIRES AUTH)
+### ✅ RECOMMENDED for web testing (Chrome/Browser)
+### Uses default ReturnUrl from config: https://movie88aspnet-app.up.railway.app/api/payments/vnpay/callback
+### This ensures VNPay can redirect back to your API after payment
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": {{bookingId}}
+}
+
+### 3.1 Create Payment - Custom HTTPS Return URL (for custom web redirect)
+### ✅ Works on web browsers - VNPay redirects to your custom HTTPS URL
 POST {{baseUrl}}/payments/vnpay/create
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
   "bookingid": {{bookingId}},
-  "returnurl": "https://localhost:7238/payment/result"
+  "returnurl": "https://yourdomain.com/payment-success"
 }
 
-### 3.1 Create Payment - Different Return URL
+### 3.2 Create Payment - Mobile App Deep Link
+### ⚠️ WARNING: Only use this with MOBILE APP testing!
+### Deep link scheme "movieapp://" will be BLOCKED on web browsers (Chrome/Firefox)
+### causing payment button to be disabled. Use test case #3 for web testing instead.
 POST {{baseUrl}}/payments/vnpay/create
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -401,6 +419,47 @@ GET {{baseUrl}}/payments/vnpay/callback?vnp_Amount=20750000&vnp_ResponseCode=00&
 # 5. Test voucher application BEFORE payment
 # 6. Verify BookingCode is null before payment, set after payment
 # 7. Test all error cases (expired, invalid, limit exceeded)
+
+###############################################
+# 🔗 RETURN URL EXPLANATION
+###############################################
+
+# ⚠️ IMPORTANT: Understanding ReturnUrl parameter
+
+# 1. DEFAULT (No returnurl) - ✅ RECOMMENDED FOR WEB TESTING
+#    - Uses config: "https://localhost:7238/api/payments/vnpay/callback"
+#    - VNPay redirects to your API
+#    - API processes callback → Updates database → Returns HTML redirect
+#    - Works perfectly on Chrome/Firefox/Edge
+
+# 2. CUSTOM HTTPS URL - ✅ Works on web browsers
+#    - Example: "https://yourdomain.com/payment-success"
+#    - VNPay redirects to your custom web page
+#    - Your page receives query parameters (vnp_ResponseCode, vnp_TxnRef, etc.)
+#    - You need to call API separately to verify payment status
+
+# 3. MOBILE APP DEEP LINK - ❌ BLOCKED on web browsers
+#    - Example: "movieapp://payment/result"
+#    - This is URL scheme for mobile app (like opening app from link)
+#    - Android/iOS apps register custom schemes in AndroidManifest.xml/Info.plist
+#    - Web browsers DON'T understand these schemes → Payment button disabled
+#    - ONLY use this when testing with REAL mobile app
+
+# 💡 WHY test case #3.2 fails on Chrome:
+#    1. You create payment with returnurl: "movieapp://payment/result"
+#    2. VNPay tries to redirect to movieapp://payment/result?vnp_...
+#    3. Chrome doesn't know what "movieapp://" is (no app installed)
+#    4. Chrome blocks the redirect → Payment button becomes unresponsive
+#    5. Solution: Use test case #3 (no returnurl) for web testing!
+
+# 📱 Mobile App Flow (when using deep link):
+#    1. App calls API: POST /payments/vnpay/create with deep link returnurl
+#    2. App opens VNPay URL in WebView/Browser
+#    3. User completes payment
+#    4. VNPay redirects to: movieapp://payment/result?vnp_ResponseCode=00...
+#    5. Mobile OS opens your app with these parameters
+#    6. App parses parameters → Calls API to verify payment status
+#    7. App shows success/failure screen
 
 ###############################################
 # ✅ EXPECTED RESULTS

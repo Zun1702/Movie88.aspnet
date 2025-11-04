@@ -53,6 +53,13 @@ namespace Movie88.Application.Configuration
             
             // Auditorium Service
             services.AddScoped<IAuditoriumService, AuditoriumService>();
+            
+            // Voucher Service
+            services.AddScoped<IVoucherService, VoucherService>();
+            
+            // Payment Services
+            services.AddScoped<IPaymentService, PaymentService>();
+            services.AddScoped<IVNPayService, VNPayService>();
         }
     }
 }

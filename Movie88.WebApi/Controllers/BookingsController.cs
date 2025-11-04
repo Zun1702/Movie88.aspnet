@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Movie88.Application.DTOs.Bookings;
 using Movie88.Application.DTOs.Combos;
+using Movie88.Application.DTOs.Vouchers;
 using Movie88.Application.Interfaces;
 using System.Security.Claims;
 
@@ -233,6 +234,91 @@ public class BookingsController : ControllerBase
                 statusCode = 400,
                 message = ex.Message,
                 data = (object?)null
+            });
+        }
+    }
+
+    /// <summary>
+    /// Apply a voucher code to a booking
+    /// </summary>
+    /// <param name="id">Booking ID</param>
+    /// <param name="request">Request containing voucher code</param>
+    /// <returns>Updated booking information with discount applied</returns>
+    [HttpPost("{id}/apply-voucher")]
+    public async Task<IActionResult> ApplyVoucher(int id, [FromBody] ApplyVoucherRequestDTO request)
+    {
+        try
+        {
+            // Extract userId from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    statusCode = 401,
+                    message = "Unauthorized - Invalid token"
+                });
+            }
+
+            // Get customer from userId
+            var customerResult = await _customerService.GetProfileByUserIdAsync(userId);
+            if (!customerResult.IsSuccess || customerResult.Data == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    statusCode = 404,
+                    message = "Customer profile not found"
+                });
+            }
+
+            var result = await _bookingService.ApplyVoucherToBookingAsync(id, customerResult.Data.Customerid, request);
+
+            if (result == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    statusCode = 400,
+                    message = "Failed to apply voucher"
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                statusCode = 200,
+                message = "Voucher applied successfully",
+                data = result
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new
+            {
+                success = false,
+                statusCode = 403,
+                message = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                statusCode = 400,
+                message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                success = false,
+                statusCode = 500,
+                message = "An error occurred while applying voucher",
+                error = ex.Message
             });
         }
     }

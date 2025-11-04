@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Movie88.Domain.Interfaces;
 using Movie88.Domain.Models;
+using Movie88.Domain.Enums;
 using Movie88.Infrastructure.Context;
 
 namespace Movie88.Infrastructure.Repositories;
@@ -208,7 +209,7 @@ public class ShowtimeRepository : IShowtimeRepository
             .Where(bs => bs.Showtimeid == showtimeId 
                 && bs.Booking != null 
                 && bs.Booking.Status != null
-                && bs.Booking.Status.ToLower() != "cancelled")
+                && bs.Booking.Status.ToLower() != nameof(BookingStatus.Cancelled).ToLower())
             .CountAsync(cancellationToken);
 
         return showtime.Auditorium.Seatscount - bookedSeatsCount;

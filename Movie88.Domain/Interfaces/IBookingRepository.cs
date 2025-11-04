@@ -16,4 +16,8 @@ public interface IBookingRepository
     
     // Add combos methods
     Task AddCombosAsync(int bookingId, List<(int comboid, int quantity, decimal price)> combos, decimal newTotalAmount, CancellationToken cancellationToken = default);
+    
+    // Voucher methods
+    Task<BookingModel?> GetByIdAsync(int bookingId, CancellationToken cancellationToken = default);
+    Task ApplyVoucherAsync(int bookingId, int voucherId, decimal newTotalAmount, CancellationToken cancellationToken = default);
 }

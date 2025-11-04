@@ -60,6 +60,13 @@ namespace Movie88.Infrastructure
             
             // Combo Repository
             services.AddScoped<Domain.Interfaces.IComboRepository, ComboRepository>();
+            
+            // Voucher Repository
+            services.AddScoped<Domain.Interfaces.IVoucherRepository, VoucherRepository>();
+            
+            // Payment Repositories
+            services.AddScoped<Domain.Interfaces.IPaymentRepository, PaymentRepository>();
+            services.AddScoped<Domain.Interfaces.IPaymentmethodRepository, PaymentmethodRepository>();
         }
     }
 }

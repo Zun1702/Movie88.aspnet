@@ -63,4 +63,14 @@ public class Result<T>
             StatusCode = statusCode
         };
     }
+
+    public static Result<T> Failure(string message)
+    {
+        return new Result<T>
+        {
+            IsSuccess = false,
+            Message = message,
+            StatusCode = 400
+        };
+    }
 }
