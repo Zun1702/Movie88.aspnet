@@ -1,21 +1,22 @@
 # 💳 Screen 5: Payment & Vouchers (8 Endpoints)
 
-**Status**: 🔄 **PENDING** (0/8 endpoints - 0%)
+**Status**: 🔄 **PENDING** (0/8 endpoints - 0%)  
+**Assigned**: Trung
 
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Screen | Auth | Status |
-|---|--------|----------|--------|------|--------|
-| 1 | GET | `/api/bookings/{id}` | BookingSummaryActivity | ✅ | ✅ DONE (Screen 2) |
-| 2 | POST | `/api/vouchers/validate` | BookingSummaryActivity | ✅ | ❌ TODO |
-| 3 | POST | `/api/bookings/{id}/apply-voucher` | BookingSummaryActivity | ✅ | ❌ TODO |
-| 4 | POST | `/api/payments/vnpay/create` | BookingSummaryActivity | ✅ | ❌ TODO |
-| 5 | GET | `/api/payments/vnpay/callback` | VNPayWebViewActivity | ❌ | ❌ TODO |
-| 6 | POST | `/api/payments/vnpay/ipn` | PaymentResultActivity | ❌ | ❌ TODO |
-| 7 | PUT | `/api/payments/{id}/confirm` | PaymentResultActivity | ✅ | ❌ TODO |
-| 8 | GET | `/api/bookings/{id}` | PaymentResultActivity | ✅ | ✅ DONE (Screen 2) |
+| # | Method | Endpoint | Screen | Auth | Status | Assign |
+|---|--------|----------|--------|------|--------|--------|
+| 1 | GET | `/api/bookings/{id}` | BookingSummaryActivity | ✅ | ✅ DONE | Trung |
+| 2 | POST | `/api/vouchers/validate` | BookingSummaryActivity | ✅ | ❌ TODO | Trung |
+| 3 | POST | `/api/bookings/{id}/apply-voucher` | BookingSummaryActivity | ✅ | ❌ TODO | Trung |
+| 4 | POST | `/api/payments/vnpay/create` | BookingSummaryActivity | ✅ | ❌ TODO | Trung |
+| 5 | GET | `/api/payments/vnpay/callback` | VNPayWebViewActivity | ❌ | ❌ TODO | Trung |
+| 6 | POST | `/api/payments/vnpay/ipn` | PaymentResultActivity | ❌ | ❌ TODO | Trung |
+| 7 | PUT | `/api/payments/{id}/confirm` | PaymentResultActivity | ✅ | ❌ TODO | Trung |
+| 8 | GET | `/api/bookings/{id}` | PaymentResultActivity | ✅ | ✅ DONE | Trung |
 
 ---
 

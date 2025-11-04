@@ -1,20 +1,21 @@
 # 👤 Screen 6: Profile & History (6 Endpoints)
 
-**Status**: 🔄 **PENDING** (0/6 endpoints - 0%)
+**Status**: 🔄 **PENDING** (3/6 endpoints - 50%)  
+**Assigned**: Tri (TODO endpoints)
 
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Screen | Auth | Status |
-|---|--------|----------|--------|------|--------|
-| 1 | GET | `/api/users/me` | ProfileFragment, EditProfileActivity | ✅ | ❌ TODO |
-| 2 | GET | `/api/customers/profile` | ProfileFragment | ✅ | ✅ DONE (Screen 2) |
-| 3 | PUT | `/api/users/{id}` | EditProfileActivity | ✅ | ❌ TODO |
-| 4 | PUT | `/api/customers/profile` | EditProfileActivity | ✅ | ❌ TODO |
-| 5 | GET | `/api/bookings/my-bookings` | BookingsFragment | ✅ | ✅ DONE (Screen 2) |
-| 6 | POST | `/api/auth/change-password` | ProfileFragment | ✅ | ✅ DONE (Screen 1) |
-| 7 | POST | `/api/auth/logout` | ProfileFragment | ✅ | ✅ DONE (Screen 1) |
+| # | Method | Endpoint | Screen | Auth | Status | Assign |
+|---|--------|----------|--------|------|--------|--------|
+| 1 | GET | `/api/users/me` | ProfileFragment, EditProfileActivity | ✅ | ❌ TODO | Tri |
+| 2 | GET | `/api/customers/profile` | ProfileFragment | ✅ | ✅ DONE | Trung |
+| 3 | PUT | `/api/users/{id}` | EditProfileActivity | ✅ | ❌ TODO | Tri |
+| 4 | PUT | `/api/customers/profile` | EditProfileActivity | ✅ | ❌ TODO | Tri |
+| 5 | GET | `/api/bookings/my-bookings` | BookingsFragment | ✅ | ✅ DONE | Trung |
+| 6 | POST | `/api/auth/change-password` | ProfileFragment | ✅ | ✅ DONE | Trung |
+| 7 | POST | `/api/auth/logout` | ProfileFragment | ✅ | ✅ DONE | Trung |
 
 ---
 

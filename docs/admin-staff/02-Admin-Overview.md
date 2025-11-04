@@ -6,41 +6,41 @@
 
 ## 📋 Endpoints Overview
 
-### A. Movie Management (4 endpoints)
-| # | Method | Endpoint | Description | Auth | Status |
-|---|--------|----------|-------------|------|--------|
-| 1 | POST | `/api/movies` | Thêm phim mới | ✅ Admin | ⏳ TODO |
-| 2 | PUT | `/api/movies/{id}` | Cập nhật phim | ✅ Admin | ⏳ TODO |
-| 3 | DELETE | `/api/movies/{id}` | Xóa phim | ✅ Admin | ⏳ TODO |
-| 4 | GET | `/api/admin/movies` | Danh sách phim (admin view) | ✅ Admin | ⏳ TODO |
+### A. Movie Management (4 endpoints) - **Assigned: Tri**
+| # | Method | Endpoint | Description | Auth | Status | Assign |
+|---|--------|----------|-------------|------|--------|--------|
+| 1 | POST | `/api/movies` | Thêm phim mới | ✅ Admin | ⏳ TODO | Tri |
+| 2 | PUT | `/api/movies/{id}` | Cập nhật phim | ✅ Admin | ⏳ TODO | Tri |
+| 3 | DELETE | `/api/movies/{id}` | Xóa phim | ✅ Admin | ⏳ TODO | Tri |
+| 4 | GET | `/api/admin/movies` | Danh sách phim (admin view) | ✅ Admin | ⏳ TODO | Tri |
 
-### B. Cinema & Showtime Management (6 endpoints)
-| # | Method | Endpoint | Description | Auth | Status |
-|---|--------|----------|-------------|------|--------|
-| 5 | POST | `/api/admin/cinemas` | Thêm rạp mới | ✅ Admin | ⏳ TODO |
-| 6 | PUT | `/api/admin/cinemas/{id}` | Cập nhật rạp | ✅ Admin | ⏳ TODO |
-| 7 | DELETE | `/api/admin/cinemas/{id}` | Xóa rạp | ✅ Admin | ⏳ TODO |
-| 8 | POST | `/api/admin/showtimes` | Tạo suất chiếu | ✅ Admin | ⏳ TODO |
-| 9 | POST | `/api/admin/showtimes/bulk` | Tạo nhiều suất cùng lúc | ✅ Admin | ⏳ TODO |
-| 10 | DELETE | `/api/admin/showtimes/{id}` | Hủy suất chiếu | ✅ Admin | ⏳ TODO |
+### B. Cinema & Showtime Management (6 endpoints) - **Assigned: Tri**
+| # | Method | Endpoint | Description | Auth | Status | Assign |
+|---|--------|----------|-------------|------|--------|--------|
+| 5 | POST | `/api/admin/cinemas` | Thêm rạp mới | ✅ Admin | ⏳ TODO | Tri |
+| 6 | PUT | `/api/admin/cinemas/{id}` | Cập nhật rạp | ✅ Admin | ⏳ TODO | Tri |
+| 7 | DELETE | `/api/admin/cinemas/{id}` | Xóa rạp | ✅ Admin | ⏳ TODO | Tri |
+| 8 | POST | `/api/admin/showtimes` | Tạo suất chiếu | ✅ Admin | ⏳ TODO | Tri |
+| 9 | POST | `/api/admin/showtimes/bulk` | Tạo nhiều suất cùng lúc | ✅ Admin | ⏳ TODO | Tri |
+| 10 | DELETE | `/api/admin/showtimes/{id}` | Hủy suất chiếu | ✅ Admin | ⏳ TODO | Tri |
 
-### C. User Management (4 endpoints)
-| # | Method | Endpoint | Description | Auth | Status |
-|---|--------|----------|-------------|------|--------|
-| 11 | GET | `/api/admin/users` | Danh sách users | ✅ Admin | ⏳ TODO |
-| 12 | POST | `/api/admin/users` | Thêm staff/admin | ✅ Admin | ⏳ TODO |
-| 13 | PUT | `/api/admin/users/{id}/role` | Cập nhật role | ✅ Admin | ⏳ TODO |
-| 14 | PUT | `/api/admin/users/{id}/ban` | Ban/unban user | ✅ Admin | ⏳ TODO |
+### C. User Management (4 endpoints) - **Assigned: Việt**
+| # | Method | Endpoint | Description | Auth | Status | Assign |
+|---|--------|----------|-------------|------|--------|--------|
+| 11 | GET | `/api/admin/users` | Danh sách users | ✅ Admin | ⏳ TODO | Việt |
+| 12 | POST | `/api/admin/users` | Thêm staff/admin | ✅ Admin | ⏳ TODO | Việt |
+| 13 | PUT | `/api/admin/users/{id}/role` | Cập nhật role | ✅ Admin | ⏳ TODO | Việt |
+| 14 | PUT | `/api/admin/users/{id}/ban` | Ban/unban user | ✅ Admin | ⏳ TODO | Việt |
 
-### D. Reports & Analytics (6 endpoints)
-| # | Method | Endpoint | Description | Auth | Status |
-|---|--------|----------|-------------|------|--------|
-| 15 | GET | `/api/admin/dashboard/stats` | Dashboard overview | ✅ Admin | ⏳ TODO |
-| 16 | GET | `/api/admin/reports/revenue/daily` | Báo cáo doanh thu ngày | ✅ Admin | ⏳ TODO |
-| 17 | GET | `/api/admin/reports/revenue/monthly` | Báo cáo doanh thu tháng | ✅ Admin | ⏳ TODO |
-| 18 | GET | `/api/admin/reports/bookings/statistics` | Thống kê booking | ✅ Admin | ⏳ TODO |
-| 19 | GET | `/api/admin/reports/popular-movies` | Phim phổ biến | ✅ Admin | ⏳ TODO |
-| 20 | GET | `/api/admin/reports/customers/analytics` | Phân tích khách hàng | ✅ Admin | ⏳ TODO |
+### D. Reports & Analytics (6 endpoints) - **Assigned: Việt**
+| # | Method | Endpoint | Description | Auth | Status | Assign |
+|---|--------|----------|-------------|------|--------|--------|
+| 15 | GET | `/api/admin/dashboard/stats` | Dashboard overview | ✅ Admin | ⏳ TODO | Việt |
+| 16 | GET | `/api/admin/reports/revenue/daily` | Báo cáo doanh thu ngày | ✅ Admin | ⏳ TODO | Việt |
+| 17 | GET | `/api/admin/reports/revenue/monthly` | Báo cáo doanh thu tháng | ✅ Admin | ⏳ TODO | Việt |
+| 18 | GET | `/api/admin/reports/bookings/statistics` | Thống kê booking | ✅ Admin | ⏳ TODO | Việt |
+| 19 | GET | `/api/admin/reports/popular-movies` | Phim phổ biến | ✅ Admin | ⏳ TODO | Việt |
+| 20 | GET | `/api/admin/reports/customers/analytics` | Phân tích khách hàng | ✅ Admin | ⏳ TODO | Việt |
 
 ---
 

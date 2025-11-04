@@ -1,16 +1,17 @@
 # 🎟️ Staff: Xác thực Booking tại Quầy (3 Endpoints)
 
-**Status**: ⚠️ **PENDING IMPLEMENTATION** (0/3 endpoints - 0%)
+**Status**: ⚠️ **PENDING IMPLEMENTATION** (0/3 endpoints - 0%)  
+**Assigned**: Việt
 
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Use Case | Auth | Status |
-|---|--------|----------|----------|------|--------|
-| 1 | GET | `/api/bookings/verify/{bookingCode}` | Verify booking at counter | ✅ Staff | ⏳ TODO |
-| 2 | PUT | `/api/bookings/{id}/check-in` | Check-in customer | ✅ Staff | ⏳ TODO |
-| 3 | GET | `/api/bookings/today` | View today's bookings | ✅ Staff | ⏳ TODO |
+| # | Method | Endpoint | Use Case | Auth | Status | Assign |
+|---|--------|----------|----------|------|--------|--------|
+| 1 | GET | `/api/bookings/verify/{bookingCode}` | Verify booking at counter | ✅ Staff | ⏳ TODO | Việt |
+| 2 | PUT | `/api/bookings/{id}/check-in` | Check-in customer | ✅ Staff | ⏳ TODO | Việt |
+| 3 | GET | `/api/bookings/today` | View today's bookings | ✅ Staff | ⏳ TODO | Việt |
 
 ---
 

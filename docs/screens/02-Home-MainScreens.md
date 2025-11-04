@@ -1,22 +1,23 @@
 # 🏠 Screen 2: Home & Main Screens (9 Endpoints)
 
-**Status**: 🎉 **FULLY COMPLETED** (9/9 endpoints - 100%)
+**Status**: 🎉 **FULLY COMPLETED** (9/9 endpoints - 100%)  
+**Assigned**: Trung
 
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Screen | Auth | Status |
-|---|--------|----------|--------|------|--------|
-| 1 | GET | `/api/movies` | HomeFragment | ❌ | ✅ DONE |
-| 2 | GET | `/api/movies/now-showing` | HomeFragment | ❌ | ✅ DONE |
-| 3 | GET | `/api/movies/coming-soon` | HomeFragment | ❌ | ✅ DONE |
-| 4 | GET | `/api/movies/search` | HomeFragment, SearchMovieActivity | ❌ | ✅ DONE |
-| 5 | GET | `/api/promotions/active` | HomeFragment | ❌ | ✅ DONE |
-| 6 | GET | `/api/bookings/my-bookings` | BookingsFragment | ✅ | ✅ DONE |
-| 7 | GET | `/api/bookings/{id}` | BookingsFragment | ✅ | ✅ DONE |
-| 8 | GET | `/api/customers/profile` | ProfileFragment | ✅ | ✅ DONE |
-| 9 | POST | `/api/auth/logout` | ProfileFragment | ✅ | ✅ DONE |
+| # | Method | Endpoint | Screen | Auth | Status | Assign |
+|---|--------|----------|--------|------|--------|--------|
+| 1 | GET | `/api/movies` | HomeFragment | ❌ | ✅ DONE | Trung |
+| 2 | GET | `/api/movies/now-showing` | HomeFragment | ❌ | ✅ DONE | Trung |
+| 3 | GET | `/api/movies/coming-soon` | HomeFragment | ❌ | ✅ DONE | Trung |
+| 4 | GET | `/api/movies/search` | HomeFragment, SearchMovieActivity | ❌ | ✅ DONE | Trung |
+| 5 | GET | `/api/promotions/active` | HomeFragment | ❌ | ✅ DONE | Trung |
+| 6 | GET | `/api/bookings/my-bookings` | BookingsFragment | ✅ | ✅ DONE | Trung |
+| 7 | GET | `/api/bookings/{id}` | BookingsFragment | ✅ | ✅ DONE | Trung |
+| 8 | GET | `/api/customers/profile` | ProfileFragment | ✅ | ✅ DONE | Trung |
+| 9 | POST | `/api/auth/logout` | ProfileFragment | ✅ | ✅ DONE | Trung |
 
 ---
 

@@ -1,23 +1,24 @@
 # 🎫 Screen 4: Booking Flow (10 Endpoints)
 
-**Status**: 🔄 **PENDING** (0/10 endpoints - 0%)
+**Status**: 🔄 **PENDING** (0/10 endpoints - 0%)  
+**Assigned**: Trung
 
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Screen | Auth | Status |
-|---|--------|----------|--------|------|--------|
-| 1 | GET | `/api/cinemas` | SelectCinemaActivity | ❌ | ❌ TODO |
-| 2 | GET | `/api/showtimes/by-movie/{movieId}` | SelectCinemaActivity | ❌ | ❌ TODO |
-| 3 | GET | `/api/showtimes/by-date` | SelectCinemaActivity | ❌ | ❌ TODO |
-| 4 | GET | `/api/showtimes/{id}` | SelectSeatActivity | ❌ | ❌ TODO |
-| 5 | GET | `/api/showtimes/{id}/available-seats` | SelectSeatActivity | ❌ | ❌ TODO |
-| 6 | GET | `/api/auditoriums/{id}/seats` | SelectSeatActivity | ❌ | ❌ TODO |
-| 7 | POST | `/api/bookings/create` | SelectSeatActivity | ✅ | ❌ TODO |
-| 8 | GET | `/api/combos` | SelectComboActivity | ❌ | ❌ TODO |
-| 9 | POST | `/api/bookings/{id}/add-combos` | SelectComboActivity | ✅ | ❌ TODO |
-| 10 | GET | `/api/movies/{id}` | SelectCinemaActivity | ❌ | ✅ DONE (Screen 3) |
+| # | Method | Endpoint | Screen | Auth | Status | Assign |
+|---|--------|----------|--------|------|--------|--------|
+| 1 | GET | `/api/cinemas` | SelectCinemaActivity | ❌ | ❌ TODO | Trung |
+| 2 | GET | `/api/showtimes/by-movie/{movieId}` | SelectCinemaActivity | ❌ | ❌ TODO | Trung |
+| 3 | GET | `/api/showtimes/by-date` | SelectCinemaActivity | ❌ | ❌ TODO | Trung |
+| 4 | GET | `/api/showtimes/{id}` | SelectSeatActivity | ❌ | ❌ TODO | Trung |
+| 5 | GET | `/api/showtimes/{id}/available-seats` | SelectSeatActivity | ❌ | ❌ TODO | Trung |
+| 6 | GET | `/api/auditoriums/{id}/seats` | SelectSeatActivity | ❌ | ❌ TODO | Trung |
+| 7 | POST | `/api/bookings/create` | SelectSeatActivity | ✅ | ❌ TODO | Trung |
+| 8 | GET | `/api/combos` | SelectComboActivity | ❌ | ❌ TODO | Trung |
+| 9 | POST | `/api/bookings/{id}/add-combos` | SelectComboActivity | ✅ | ❌ TODO | Trung |
+| 10 | GET | `/api/movies/{id}` | SelectCinemaActivity | ❌ | ✅ DONE | Trung |
 
 ---
 

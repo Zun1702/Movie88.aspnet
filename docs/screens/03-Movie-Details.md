@@ -1,17 +1,18 @@
 # 🎬 Screen 3: Movie Details & Reviews (4 Endpoints)
 
-**Status**: ✅ **COMPLETED** (4/4 endpoints - 100%)
+**Status**: ✅ **COMPLETED** (4/4 endpoints - 100%)  
+**Assigned**: Trung
 
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Screen | Auth | Status |
-|---|--------|----------|--------|------|--------|
-| 1 | GET | `/api/movies/{id}` | MovieDetailActivity | ❌ | ✅ DONE |
-| 2 | GET | `/api/movies/{id}/showtimes` | MovieDetailActivity | ❌ | ✅ DONE |
-| 3 | GET | `/api/reviews/movie/{movieId}` | MovieDetailActivity | ❌ | ✅ DONE |
-| 4 | POST | `/api/reviews` | MovieDetailActivity | ✅ | ✅ DONE |
+| # | Method | Endpoint | Screen | Auth | Status | Assign |
+|---|--------|----------|--------|------|--------|--------|
+| 1 | GET | `/api/movies/{id}` | MovieDetailActivity | ❌ | ✅ DONE | Trung |
+| 2 | GET | `/api/movies/{id}/showtimes` | MovieDetailActivity | ❌ | ✅ DONE | Trung |
+| 3 | GET | `/api/reviews/movie/{movieId}` | MovieDetailActivity | ❌ | ✅ DONE | Trung |
+| 4 | POST | `/api/reviews` | MovieDetailActivity | ✅ | ✅ DONE | Trung |
 
 ---
 

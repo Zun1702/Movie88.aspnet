@@ -1,24 +1,25 @@
 # 🔐 Screen 1: Authentication (10 Endpoints)
 
 **Status**: ✅ **COMPLETED** (10/10 endpoints - 100%)  
-**Updated**: November 4, 2025 - Added OTP Email Verification & Password Reset
+**Updated**: November 4, 2025 - Added OTP Email Verification & Password Reset  
+**Assigned**: Trung
 
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Screen | Auth | Status |
-|---|--------|----------|--------|------|--------|
-| 1 | POST | `/api/auth/login` | LoginActivity | ❌ | ✅ DONE |
-| 2 | POST | `/api/auth/register` | RegisterActivity | ❌ | ✅ DONE |
-| 3 | POST | `/api/auth/forgot-password` | ForgotPasswordActivity | ❌ | ✅ DONE |
-| 4 | POST | `/api/auth/refresh-token` | SplashActivity | ✅ | ✅ DONE |
-| 5 | POST | `/api/auth/logout` | - | ✅ | ✅ DONE |
-| 6 | POST | `/api/auth/change-password` | - | ✅ | ✅ DONE |
-| 7 | POST | `/api/auth/send-otp` | VerifyEmailActivity | ❌ | ✅ NEW |
-| 8 | POST | `/api/auth/verify-otp` | VerifyEmailActivity | ❌ | ✅ NEW |
-| 9 | POST | `/api/auth/resend-otp` | VerifyEmailActivity | ❌ | ✅ NEW |
-| 10 | POST | `/api/auth/reset-password` | ResetPasswordActivity | ❌ | ✅ NEW |
+| # | Method | Endpoint | Screen | Auth | Status | Assign |
+|---|--------|----------|--------|------|--------|--------|
+| 1 | POST | `/api/auth/login` | LoginActivity | ❌ | ✅ DONE | Trung |
+| 2 | POST | `/api/auth/register` | RegisterActivity | ❌ | ✅ DONE | Trung |
+| 3 | POST | `/api/auth/forgot-password` | ForgotPasswordActivity | ❌ | ✅ DONE | Trung |
+| 4 | POST | `/api/auth/refresh-token` | SplashActivity | ✅ | ✅ DONE | Trung |
+| 5 | POST | `/api/auth/logout` | - | ✅ | ✅ DONE | Trung |
+| 6 | POST | `/api/auth/change-password` | - | ✅ | ✅ DONE | Trung |
+| 7 | POST | `/api/auth/send-otp` | VerifyEmailActivity | ❌ | ✅ NEW | Trung |
+| 8 | POST | `/api/auth/verify-otp` | VerifyEmailActivity | ❌ | ✅ NEW | Trung |
+| 9 | POST | `/api/auth/resend-otp` | VerifyEmailActivity | ❌ | ✅ NEW | Trung |
+| 10 | POST | `/api/auth/reset-password` | ResetPasswordActivity | ❌ | ✅ NEW | Trung |
 
 **✨ New Features**:
 - 🔐 Email verification with OTP (6-digit code, 10 minutes expiry)
