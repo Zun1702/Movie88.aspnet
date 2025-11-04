@@ -10,11 +10,11 @@ Content-Type: application/json
 
 {
   "email": "ngoctrungtsn111@gmail.com",
-  "password": "123456"
+  "password": "123321"
 }
 
 # Copy the accessToken from the response and paste it here:
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiZDdjNzNiNzItYzc2OS00MGRmLTk0ZjYtZGFkODczZTM4YWQyIiwibmJmIjoxNzYyMTg1NDEyLCJleHAiOjE3NjIxODkwMTIsImlhdCI6MTc2MjE4NTQxMiwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.xk2Kf1Xn8OAVvQFfC1y-59JLwiRiLWBHyYrQO5Z7kJU
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiZjE0Nzc3ZGEtMzAyZC00NjFiLWFjNzItY2Q1Y2MyZWZlNzVkIiwibmJmIjoxNzYyMjY2MzkwLCJleHAiOjE3NjIyNjk5OTAsImlhdCI6MTc2MjI2NjM5MCwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.7B1lX2DwuFdm6aINpCc5WZ9ZEy4II69OAlDw1IEoWhU
 
 
 ###############################################

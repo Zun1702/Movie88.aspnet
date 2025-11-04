@@ -41,6 +41,9 @@ namespace Movie88.Infrastructure
             
             // Showtime Repository
             services.AddScoped<Domain.Interfaces.IShowtimeRepository, ShowtimeRepository>();
+            
+            // Cinema Repository
+            services.AddScoped<Domain.Interfaces.ICinemaRepository, CinemaRepository>();
         }
     }
 }
