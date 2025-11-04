@@ -1,39 +1,41 @@
 # 💳 Screen 5: Payment & Vouchers (8 Endpoints)
 
-**Status**: 🔄 **PENDING** (0/8 endpoints - 0%)  
+**Status**: 🔄 **PENDING** (2/8 endpoints - 25%)  
 **Assigned**: Trung
+
+> **💳 Payment Integration**: VNPay sandbox integration với voucher system
 
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Screen | Auth | Status | Assign |
-|---|--------|----------|--------|------|--------|--------|
-| 1 | GET | `/api/bookings/{id}` | BookingSummaryActivity | ✅ | ✅ DONE | Trung |
-| 2 | POST | `/api/vouchers/validate` | BookingSummaryActivity | ✅ | ❌ TODO | Trung |
-| 3 | POST | `/api/bookings/{id}/apply-voucher` | BookingSummaryActivity | ✅ | ❌ TODO | Trung |
-| 4 | POST | `/api/payments/vnpay/create` | BookingSummaryActivity | ✅ | ❌ TODO | Trung |
-| 5 | GET | `/api/payments/vnpay/callback` | VNPayWebViewActivity | ❌ | ❌ TODO | Trung |
-| 6 | POST | `/api/payments/vnpay/ipn` | PaymentResultActivity | ❌ | ❌ TODO | Trung |
-| 7 | PUT | `/api/payments/{id}/confirm` | PaymentResultActivity | ✅ | ❌ TODO | Trung |
-| 8 | GET | `/api/bookings/{id}` | PaymentResultActivity | ✅ | ✅ DONE | Trung |
+Chia thành **3 giai đoạn** để dev hiệu quả:
+
+### 💰 Phase 1: Voucher Management (2 endpoints)
+| # | Method | Endpoint | Purpose | Auth | Status | Assign |
+|---|--------|----------|---------|------|--------|--------|
+| 1 | POST | `/api/vouchers/validate` | Validate voucher code | ✅ | ❌ TODO | Trung |
+| 2 | POST | `/api/bookings/{id}/apply-voucher` | Apply voucher to booking | ✅ | ❌ TODO | Trung |
+
+### 💳 Phase 2: VNPay Payment Integration (4 endpoints)
+| # | Method | Endpoint | Purpose | Auth | Status | Assign |
+|---|--------|----------|---------|------|--------|--------|
+| 3 | POST | `/api/payments/vnpay/create` | Create VNPay payment URL | ✅ | ❌ TODO | Trung |
+| 4 | GET | `/api/payments/vnpay/callback` | Handle VNPay redirect | ❌ | ❌ TODO | Trung |
+| 5 | POST | `/api/payments/vnpay/ipn` | Handle VNPay IPN notification | ❌ | ❌ TODO | Trung |
+| 6 | GET | `/api/payments/{id}` | Get payment details | ✅ | ❌ TODO | Trung |
+
+### 📊 Phase 3: Booking Info (2 endpoints - Already Done)
+| # | Method | Endpoint | Purpose | Auth | Status | Assign |
+|---|--------|----------|---------|------|--------|--------|
+| 7 | GET | `/api/bookings/{id}` | Get booking summary | ✅ | ✅ DONE | Trung |
+| 8 | GET | `/api/bookings/{id}` | Get booking details | ✅ | ✅ DONE | Trung |
 
 ---
 
-## 🎯 1. GET /api/bookings/{id}
+## 💰 PHASE 1: VOUCHER MANAGEMENT
 
-**Screen**: BookingSummaryActivity, PaymentResultActivity  
-**Auth Required**: ✅ Yes
-
-### Status
-✅ **ALREADY IMPLEMENTED** (see Screen 02-Home-MainScreens.md)
-
-### Response
-Returns full booking details including movie, cinema, showtime, seats, combos, voucher, payment info.
-
----
-
-## 🎯 2. POST /api/vouchers/validate
+### 🎯 1. POST /api/vouchers/validate
 
 **Screen**: BookingSummaryActivity  
 **Auth Required**: ✅ Yes
@@ -129,7 +131,7 @@ Returns full booking details including movie, cinema, showtime, seats, combos, v
 
 ---
 
-## 🎯 3. POST /api/bookings/{id}/apply-voucher
+### 🎯 2. POST /api/bookings/{id}/apply-voucher
 
 **Screen**: BookingSummaryActivity  
 **Auth Required**: ✅ Yes
@@ -200,7 +202,9 @@ Returns full booking details including movie, cinema, showtime, seats, combos, v
 
 ---
 
-## 🎯 4. POST /api/payments/vnpay/create
+## 💳 PHASE 2: VNPAY PAYMENT INTEGRATION
+
+### 🎯 3. POST /api/payments/vnpay/create
 
 **Screen**: BookingSummaryActivity  
 **Auth Required**: ✅ Yes
@@ -243,7 +247,8 @@ Returns full booking details including movie, cinema, showtime, seats, combos, v
 
 **Paymentmethod** (paymentmethods table):
 - ✅ `methodid` (int, PK)
-- ✅ `methodname` (string, max 50) - "VNPay", "MoMo", "Cash", etc.
+- ✅ `name` (string, max 50) - "VNPay", "MoMo", "Cash", etc.
+- ✅ `description` (string, max 255, nullable)
 
 ### Business Logic
 1. **Validate Booking**:
@@ -256,7 +261,7 @@ Returns full booking details including movie, cinema, showtime, seats, combos, v
 2. **Find/Create Payment Method**:
    ```csharp
    var vnpayMethod = await _context.Paymentmethods
-       .FirstOrDefaultAsync(pm => pm.Methodname == "VNPay");
+       .FirstOrDefaultAsync(pm => pm.Name == "VNPay");
    ```
 
 3. **Create Payment Record**:
@@ -314,11 +319,20 @@ Returns full booking details including movie, cinema, showtime, seats, combos, v
 {
   "VNPay": {
     "Url": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-    "TmnCode": "YOUR_TMN_CODE",
-    "HashSecret": "YOUR_HASH_SECRET",
-    "ReturnUrl": "https://your-api.com/api/payments/vnpay/callback"
+    "TmnCode": "1F8WTZLN",
+    "HashSecret": "MHUB7S9TTKIX3ZGI43G6TH7RTCE8RJVB",
+    "ReturnUrl": "https://localhost:7238/api/payments/vnpay/callback"
   }
 }
+```
+
+### VNPay Test Card (Sandbox)
+```
+Ngân hàng: NCB
+Số thẻ: 9704198526191432198
+Tên chủ thẻ: NGUYEN VAN A
+Ngày phát hành: 07/15
+Mật khẩu OTP: 123456
 ```
 
 ### Error Cases
@@ -328,7 +342,7 @@ Returns full booking details including movie, cinema, showtime, seats, combos, v
 
 ---
 
-## 🎯 5. GET /api/payments/vnpay/callback
+### 🎯 4. GET /api/payments/vnpay/callback
 
 **Screen**: VNPayWebViewActivity (auto-handled by WebView)  
 **Auth Required**: ❌ No (VNPay calls this directly)
@@ -386,26 +400,49 @@ VNPay will redirect with these parameters:
    - `vnp_Amount`: Payment amount (in cents)
    - `vnp_TransactionNo`: VNPay transaction number
 
-3. **Update Payment Status**:
+3. **Update Payment Status & Generate BookingCode** (⚠️ CRITICAL):
    ```csharp
    var payment = await _context.Payments
+       .Include(p => p.Booking)
        .FirstOrDefaultAsync(p => p.Transactioncode == vnp_TxnRef);
    
    if (vnp_ResponseCode == "00")
    {
-       payment.Status = "Completed";
-       payment.Paymenttime = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
-       
-       // Update booking status
-       var booking = await _context.Bookings.FindAsync(payment.Bookingid);
-       booking.Status = "Confirmed";
+       // Use execution strategy for transaction
+       var strategy = _context.Database.CreateExecutionStrategy();
+       await strategy.ExecuteAsync(async () =>
+       {
+           using var transaction = await _context.Database.BeginTransactionAsync();
+           try
+           {
+               // Update payment
+               payment.Status = "Completed";
+               payment.Paymenttime = DateTime.Now; // Use DateTime.Now
+               
+               // Generate BookingCode (NOW after payment confirmed!)
+               var bookingTime = DateTime.Now;
+               var bookingCode = _bookingCodeGenerator.GenerateBookingCode(bookingTime);
+               
+               // Update booking
+               var booking = payment.Booking;
+               booking.Status = "Confirmed";
+               booking.Bookingcode = bookingCode; // Set BookingCode here!
+               
+               await _context.SaveChangesAsync();
+               await transaction.CommitAsync();
+           }
+           catch
+           {
+               await transaction.RollbackAsync();
+               throw;
+           }
+       });
    }
    else
    {
        payment.Status = "Failed";
+       await _context.SaveChangesAsync();
    }
-   
-   await _context.SaveChangesAsync();
    ```
 
 4. **Redirect to App**:
@@ -429,7 +466,7 @@ VNPay will redirect with these parameters:
 
 ---
 
-## 🎯 6. POST /api/payments/vnpay/ipn
+### 🎯 5. POST /api/payments/vnpay/ipn
 
 **Screen**: PaymentResultActivity (auto-handled by VNPay)  
 **Auth Required**: ❌ No (VNPay calls this directly)
@@ -448,11 +485,13 @@ VNPay sends same parameters as callback, but as POST request.
 ### Business Logic
 1. **Validate Secure Hash** (same as callback)
 
-2. **Update Payment Status** (same as callback)
+2. **Update Payment Status & Generate BookingCode** (same as callback - see endpoint 4)
 
 3. **Return Confirmation to VNPay**:
    - `RspCode: "00"` = Success
    - `RspCode: "99"` = Error
+   
+⚠️ **IMPORTANT**: Must use same logic as callback to generate BookingCode and update booking status
 
 ### IPN (Instant Payment Notification)
 - VNPay calls this endpoint to notify server of payment result
@@ -462,32 +501,36 @@ VNPay sends same parameters as callback, but as POST request.
 
 ---
 
-## 🎯 7. PUT /api/payments/{id}/confirm
+### 🎯 6. GET /api/payments/{id}
 
 **Screen**: PaymentResultActivity  
 **Auth Required**: ✅ Yes
-
-### Request Body (Optional)
-```json
-{
-  "status": "Completed"
-}
-```
 
 ### Response 200 OK
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "Payment confirmed successfully",
+  "message": "Payment details retrieved successfully",
   "data": {
     "paymentid": 22,
     "bookingid": 156,
+    "customerid": 3,
     "amount": 207500,
     "status": "Completed",
-    "methodname": "VNPay",
     "transactioncode": "PAY_20251103154500_156",
-    "paymenttime": "2025-11-03T15:45:30"
+    "paymenttime": "2025-11-03T15:45:30",
+    "method": {
+      "methodid": 1,
+      "name": "VNPay",
+      "description": "VNPay Payment Gateway"
+    },
+    "booking": {
+      "bookingid": 156,
+      "bookingcode": "BK-20251103-0156",
+      "status": "Confirmed",
+      "totalamount": 207500
+    }
   }
 }
 ```
@@ -496,68 +539,176 @@ VNPay sends same parameters as callback, but as POST request.
 1. **Validate Payment**:
    - Get userId from JWT
    - Find Customer by userid
-   - Find Payment by paymentid
+   - Find Payment by paymentid with includes:
+     - Method (Paymentmethod)
+     - Booking (basic info)
    - Verify payment's booking belongs to customer
 
-2. **Update Payment**:
-   - Set status to "Completed"
-   - Set paymenttime to current timestamp
-
-3. **Update Booking**:
-   - Set booking status to "Confirmed"
+2. **Return Payment Details**:
+   - Include payment method information
+   - Include basic booking information
+   - Show payment status and transaction code
 
 ### Error Cases
 - 403 Forbidden - Payment doesn't belong to user
-- 400 Bad Request - Payment already confirmed
 - 404 Not Found - Payment not found
+
+---
+
+## 📊 PHASE 3: BOOKING INFO (ALREADY DONE)
+
+### 🎯 7-8. GET /api/bookings/{id}
+
+**Status**: ✅ **ALREADY IMPLEMENTED** (see Screen 02-Home-MainScreens.md and Screen 04-Booking-Flow.md)
+
+**Screens**: 
+- BookingSummaryActivity (before payment)
+- PaymentResultActivity (after payment)
+
+**Auth Required**: ✅ Yes
+
+### Response
+Returns full booking details including:
+- Movie, cinema, showtime information
+- Selected seats with prices
+- Applied combos with quantities
+- Voucher details (if applied)
+- Payment information
+- Booking status and code
+
+This endpoint is reused in both payment screens:
+1. **BookingSummaryActivity**: Shows booking summary before payment
+2. **PaymentResultActivity**: Shows confirmed booking after payment with BookingCode
 
 ---
 
 ## 📊 Implementation Summary
 
-### To Be Created
+### ✅ Already Exist (Entities)
 
-#### Domain Layer (Movie88.Domain/Models/)
+#### Infrastructure Layer (Movie88.Infrastructure/Entities/)
 ```
-❌ PaymentModel.cs         - Payment entity mapping
-❌ VoucherModel.cs         - Voucher entity mapping
-❌ PaymentmethodModel.cs   - Payment method entity mapping
+✅ Voucher.cs              - Already exists
+✅ Payment.cs              - Already exists
+✅ Paymentmethod.cs        - Already exists
+✅ Booking.cs              - Already exists (with Voucherid FK)
+```
+
+### 🔄 To Be Created/Extended
+
+#### Domain Layer (Movie88.Domain/)
+
+**Folder: Models/**
+```
+❌ PaymentModel.cs         - NEW
+❌ VoucherModel.cs         - NEW
+❌ PaymentmethodModel.cs   - NEW
+```
+
+**Folder: Interfaces/**
+```
+❌ IVoucherRepository.cs   - NEW
+❌ IPaymentRepository.cs   - NEW
+❌ IPaymentmethodRepository.cs - NEW
 ```
 
 #### Application Layer (Movie88.Application/)
+
+**Folder: DTOs/Vouchers/**
 ```
-❌ DTOs/Vouchers/
-   - ValidateVoucherRequestDTO.cs
-   - ValidateVoucherResponseDTO.cs
-   - ApplyVoucherRequestDTO.cs
+❌ VoucherDTO.cs           - NEW
+   - ValidateVoucherRequestDTO
+   - ValidateVoucherResponseDTO
+   - ApplyVoucherRequestDTO
+   - ApplyVoucherResponseDTO
+```
 
-❌ DTOs/Payments/
-   - CreatePaymentRequestDTO.cs
-   - CreatePaymentResponseDTO.cs
-   - VNPayCallbackDTO.cs
-   - ConfirmPaymentRequestDTO.cs
+**Folder: DTOs/Payments/**
+```
+❌ PaymentDTO.cs           - NEW
+   - CreatePaymentRequestDTO
+   - CreatePaymentResponseDTO
+   - PaymentDetailDTO
+   - VNPayCallbackParamsDTO
+```
 
-❌ Services/
-   - IVoucherService.cs / VoucherService.cs
-   - IPaymentService.cs / PaymentService.cs
-   - IVNPayService.cs / VNPayService.cs (for URL generation, hash validation)
+**Folder: Services/**
+```
+❌ IVoucherService.cs / VoucherService.cs - NEW
+   - ValidateVoucherAsync()
+   - ApplyVoucherToBookingAsync()
+   - CalculateDiscountAsync()
+
+❌ IPaymentService.cs / PaymentService.cs - NEW
+   - CreateVNPayPaymentAsync()
+   - ProcessVNPayCallbackAsync()
+   - ProcessVNPayIPNAsync()
+   - GetPaymentByIdAsync()
+   - GetPaymentByTransactionCodeAsync()
+
+❌ IVNPayService.cs / VNPayService.cs - NEW (Helper service)
+   - GeneratePaymentUrl()
+   - ValidateSignature()
+   - GenerateTransactionCode()
+   - HmacSHA512()
+```
+
+**Folder: Interfaces/**
+```
+❌ IBookingCodeGenerator.cs - EXTEND (add method if needed)
 ```
 
 #### Infrastructure Layer (Movie88.Infrastructure/)
+
+**Folder: Repositories/**
 ```
-❌ Repositories/
-   - IVoucherRepository.cs / VoucherRepository.cs
-   - IPaymentRepository.cs / PaymentRepository.cs
-   - IPaymentmethodRepository.cs / PaymentmethodRepository.cs
+❌ VoucherRepository.cs    - NEW
+   - GetByCodeAsync()
+   - IncrementUsageCountAsync()
+
+❌ PaymentRepository.cs    - NEW
+   - CreatePaymentAsync()
+   - UpdatePaymentStatusAsync()
+   - GetByIdWithDetailsAsync()
+   - GetByTransactionCodeAsync()
+
+❌ PaymentmethodRepository.cs - NEW
+   - GetByNameAsync()
+```
+
+**Folder: ServiceExtensions.cs**
+```
+✅ EXTEND - Register new services and repositories
 ```
 
 #### WebApi Layer (Movie88.WebApi/)
+
+**Folder: Controllers/**
 ```
-❌ Controllers/
-   - VouchersController.cs (1 endpoint)
-   - PaymentsController.cs (4 endpoints)
+❌ VouchersController.cs   - NEW (1 endpoint)
+   - POST /api/vouchers/validate
+
+❌ PaymentsController.cs   - NEW (5 endpoints)
+   - POST /api/payments/vnpay/create
+   - GET /api/payments/vnpay/callback
+   - POST /api/payments/vnpay/ipn
+   - GET /api/payments/{id}
    
-❌ appsettings.json (add VNPay configuration)
+✅ BookingsController.cs   - EXTEND (1 endpoint)
+   - POST /api/bookings/{id}/apply-voucher
+```
+
+**File: appsettings.json**
+```json
+❌ ADD VNPay Configuration:
+{
+  "VNPay": {
+    "Url": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    "TmnCode": "1F8WTZLN",
+    "HashSecret": "MHUB7S9TTKIX3ZGI43G6TH7RTCE8RJVB",
+    "ReturnUrl": "https://localhost:7238/api/payments/vnpay/callback"
+  }
+}
 ```
 
 ---
@@ -575,13 +726,19 @@ VNPay sends same parameters as callback, but as POST request.
 **Payment Entity**:
 - ⚠️ Uses `methodid` FK to Paymentmethod table
 - ⚠️ Uses `transactioncode`, NOT `transactionid`
-- ⚠️ `paymenttime` is timestamp without time zone
+- ⚠️ `paymenttime` is timestamp without time zone - Use `DateTime.Now` not `DateTime.UtcNow`
 - ⚠️ Status: "Pending", "Completed", "Failed", "Cancelled"
 - ❌ NO `vnpaydata` JSONB field
+
+**Paymentmethod Entity**:
+- ⚠️ Uses `name` field, NOT `methodname`
+- ⚠️ Seed data should include: "VNPay", "MoMo", "Cash"
 
 **Booking Entity**:
 - ⚠️ `voucherid` is nullable FK
 - ⚠️ `totalamount` updated when voucher applied
+- ⚠️ `bookingcode` is nullable - **Generated ONLY after payment confirmed in callback/IPN**
+- ⚠️ Status changes: "Pending" → "Confirmed" after successful payment
 
 ### VNPay Integration
 
@@ -598,9 +755,22 @@ private string HmacSHA512(string data, string key)
 
 **Transaction Code Format**:
 ```csharp
-private string GenerateTransactionCode()
+private string GenerateTransactionCode(int bookingId)
 {
     return $"PAY_{DateTime.Now:yyyyMMddHHmmss}_{bookingId}";
+}
+```
+
+**BookingCode Generation** (⚠️ CRITICAL):
+```csharp
+// ONLY generate BookingCode AFTER payment confirmed
+// In VNPay callback/IPN when vnp_ResponseCode == "00"
+if (vnp_ResponseCode == "00")
+{
+    var bookingTime = DateTime.Now;
+    var bookingCode = _bookingCodeGenerator.GenerateBookingCode(bookingTime);
+    booking.Bookingcode = bookingCode; // Set it here!
+    booking.Status = "Confirmed";
 }
 ```
 
@@ -650,80 +820,136 @@ decimal CalculateDiscount(Voucher voucher, decimal totalAmount)
 }
 ```
 
-**Payment Transaction**:
+**Payment Transaction with Execution Strategy**:
 ```csharp
-using var transaction = await _context.Database.BeginTransactionAsync();
-try
+// MUST use execution strategy for retry compatibility
+var strategy = _context.Database.CreateExecutionStrategy();
+await strategy.ExecuteAsync(async () =>
 {
-    // Update payment
-    payment.Status = "Completed";
-    payment.Paymenttime = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
-    
-    // Update booking
-    booking.Status = "Confirmed";
-    
-    await _context.SaveChangesAsync();
-    await transaction.CommitAsync();
-}
-catch
-{
-    await transaction.RollbackAsync();
-    throw;
-}
+    using var transaction = await _context.Database.BeginTransactionAsync();
+    try
+    {
+        // Update payment
+        payment.Status = "Completed";
+        payment.Paymenttime = DateTime.Now; // Use DateTime.Now
+        
+        // Generate BookingCode (ONLY here after payment!)
+        var bookingTime = DateTime.Now;
+        var bookingCode = _bookingCodeGenerator.GenerateBookingCode(bookingTime);
+        
+        // Update booking
+        booking.Status = "Confirmed";
+        booking.Bookingcode = bookingCode;
+        
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+    catch
+    {
+        await transaction.RollbackAsync();
+        throw;
+    }
+});
 ```
 
 ### PostgreSQL Specific
-- DateOnly for expirydate
-- timestamp without time zone for paymenttime
-- Use transactions for payment confirmation
+- DateOnly for voucher expirydate
+- timestamp without time zone for paymenttime - Use `DateTime.Now`
+- Use execution strategy pattern for all transactions with retry enabled
+- BookingCode nullable until payment confirmed
 
 ---
 
 ## 🧪 Testing Checklist
 
-### POST /api/vouchers/validate
-- [ ] Validate expired vouchers
-- [ ] Validate usage limit exceeded
-- [ ] Validate minimum purchase amount
+### Phase 1: Voucher Management
+#### POST /api/vouchers/validate
+- [ ] Validate expired vouchers (expirydate < today)
+- [ ] Validate usage limit exceeded (usedcount >= usagelimit)
+- [ ] Validate minimum purchase amount (totalamount >= minpurchaseamount)
 - [ ] Calculate discount correctly (percentage vs fixed)
-- [ ] Return 403 for wrong user
+- [ ] Return 403 for booking not belonging to user
+- [ ] Return 404 for voucher code not found
+- [ ] Check isactive = true
 
-### POST /api/bookings/{id}/apply-voucher
+#### POST /api/bookings/{id}/apply-voucher
 - [ ] Apply voucher correctly
-- [ ] Update totalamount
-- [ ] Increment usedcount
-- [ ] Prevent double application
-- [ ] Use transaction
+- [ ] Update booking.totalamount (original - discount)
+- [ ] Increment voucher.usedcount
+- [ ] Set booking.voucherid
+- [ ] Prevent double application (check if already has voucher)
+- [ ] Use execution strategy for transaction
+- [ ] Verify booking ownership
 
-### POST /api/payments/vnpay/create
-- [ ] Create payment record
-- [ ] Generate valid VNPay URL
-- [ ] Generate secure hash correctly
-- [ ] Handle VND amount conversion (×100)
-- [ ] Return correct transaction code
+### Phase 2: VNPay Payment
+#### POST /api/payments/vnpay/create
+- [ ] Create payment record with status "Pending"
+- [ ] Generate valid VNPay URL with all required params
+- [ ] Generate secure hash correctly (HMACSHA512)
+- [ ] Handle VND amount conversion (amount × 100)
+- [ ] Generate unique transaction code (PAY_YYYYMMDDHHMMSS_bookingId)
+- [ ] Return payment URL for redirect
+- [ ] Verify booking belongs to user
+- [ ] Check booking status is "Pending"
 
-### GET /api/payments/vnpay/callback
-- [ ] Validate secure hash
-- [ ] Parse response code correctly
-- [ ] Update payment status
-- [ ] Update booking status
-- [ ] Redirect to app with deep link
-- [ ] Handle all VNPay response codes
+#### GET /api/payments/vnpay/callback
+- [ ] Validate secure hash from VNPay
+- [ ] Parse vnp_ResponseCode correctly
+- [ ] Update payment status (Completed/Failed)
+- [ ] **Generate BookingCode ONLY on success (vnp_ResponseCode == "00")**
+- [ ] Update booking status to "Confirmed"
+- [ ] Use execution strategy for transaction
+- [ ] Redirect to app with correct deep link
+- [ ] Handle all VNPay response codes (00, 07, 09, 10, 11, 12, 13, 24, 51, 65, 75, 79, 99)
+- [ ] Use DateTime.Now not DateTime.UtcNow
 
-### POST /api/payments/vnpay/ipn
-- [ ] Validate secure hash
-- [ ] Update payment status
+#### POST /api/payments/vnpay/ipn
+- [ ] Validate secure hash from VNPay
+- [ ] Same logic as callback (BookingCode generation)
+- [ ] Update payment and booking atomically
 - [ ] Respond within 30 seconds
-- [ ] Return correct RspCode to VNPay
+- [ ] Return correct RspCode ("00" or "99") to VNPay
+- [ ] Handle retries from VNPay
+- [ ] Use execution strategy for transaction
 
-### PUT /api/payments/{id}/confirm
-- [ ] Verify payment ownership
-- [ ] Update payment and booking status
-- [ ] Use transaction
-- [ ] Prevent double confirmation
+#### GET /api/payments/{id}
+- [ ] Return payment details with method info
+- [ ] Include booking info (with BookingCode if confirmed)
+- [ ] Verify payment belongs to user
+- [ ] Return 404 if payment not found
+- [ ] Return 403 if not user's payment
+
+### Phase 3: Booking Info
+#### GET /api/bookings/{id}
+- [x] Already tested in Screen 02 and Screen 04
+- [x] Returns full booking with all related data
+- [x] Shows BookingCode after payment confirmed
+- [x] Shows voucher discount if applied
+
+---
+
+## 📝 VNPay Test Credentials
+
+**Sandbox Environment:**
+- URL: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+- TMN Code: `1F8WTZLN`
+- Hash Secret: `MHUB7S9TTKIX3ZGI43G6TH7RTCE8RJVB`
+
+**Test Card:**
+- Bank: NCB
+- Card Number: `9704198526191432198`
+- Card Holder: NGUYEN VAN A
+- Issue Date: 07/15
+- OTP: `123456`
+
+**Merchant Admin:** https://sandbox.vnpayment.vn/merchantv2/
+- Email: ngoctrungtsn111@gmail.com
+
+**Test Scenarios:** https://sandbox.vnpayment.vn/vnpaygw-sit-testing/user/login
 
 ---
 
 **Created**: November 3, 2025  
-**Last Updated**: November 3, 2025  
-**Progress**: ✅ 2/8 endpoints (25%) - 2 booking detail endpoints reused
+**Last Updated**: November 5, 2025  
+**Progress**: ✅ 2/8 endpoints (25%) - 2 booking detail endpoints reused  
+**Test File**: `tests/Payment.http` ✅

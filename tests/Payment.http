@@ -1,0 +1,445 @@
+### 💳 Payment & Vouchers API Testing
+### Complete payment flow from voucher validation to payment confirmation
+
+@baseUrl = https://localhost:7238/api
+
+### Variables
+### Login to get JWT token first
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "ngoctrungtsn111@gmail.com",
+  "password": "123321"
+}
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiNDZkZGNlNDQtNDFjMi00MGMwLWE3NjQtN2VmOTZmMjk1N2Y1IiwibmJmIjoxNzYyMjc4Mjc2LCJleHAiOjE3NjIyODE4NzYsImlhdCI6MTc2MjI3ODI3NiwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.X1j7NSPX1DvzXn_QSk0iNT2J1s0hsGWzR7oHprn6FWY
+@bookingId = 156
+@voucherCode = STUDENT50
+@paymentId = 1
+
+###############################################
+# 💰 PHASE 1: VOUCHER MANAGEMENT
+###############################################
+
+### 1. POST Validate Voucher (REQUIRES AUTH)
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "{{voucherCode}}",
+  "bookingid": {{bookingId}}
+}
+
+### 1.1 Validate - Invalid Voucher Code
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "INVALID_CODE",
+  "bookingid": {{bookingId}}
+}
+
+### 1.2 Validate - Expired Voucher
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "EXPIRED2024",
+  "bookingid": {{bookingId}}
+}
+
+###
+
+### 2. POST Apply Voucher to Booking (REQUIRES AUTH)
+POST {{baseUrl}}/bookings/{{bookingId}}/apply-voucher
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "{{voucherCode}}"
+}
+
+### 2.1 Apply - Try to Apply Same Voucher Again (should fail)
+POST {{baseUrl}}/bookings/{{bookingId}}/apply-voucher
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "{{voucherCode}}"
+}
+
+###
+
+### ERROR TEST: Validate without Auth (should return 401)
+POST {{baseUrl}}/vouchers/validate
+Content-Type: application/json
+
+{
+  "code": "{{voucherCode}}",
+  "bookingid": {{bookingId}}
+}
+
+### ERROR TEST: Apply without Auth (should return 401)
+POST {{baseUrl}}/bookings/{{bookingId}}/apply-voucher
+Content-Type: application/json
+
+{
+  "code": "{{voucherCode}}"
+}
+
+###############################################
+# 💳 PHASE 2: VNPAY PAYMENT INTEGRATION
+###############################################
+
+### 3. POST Create VNPay Payment (REQUIRES AUTH)
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": {{bookingId}},
+  "returnurl": "https://localhost:7238/payment/result"
+}
+
+### 3.1 Create Payment - Different Return URL
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": {{bookingId}},
+  "returnurl": "movieapp://payment/result"
+}
+
+###
+
+### 4. GET VNPay Callback (NO AUTH - VNPay calls this)
+### This will be called by VNPay after user completes payment
+### Example callback URL with success response:
+GET {{baseUrl}}/payments/vnpay/callback?vnp_Amount=20750000&vnp_BankCode=NCB&vnp_BankTranNo=VNP123456&vnp_CardType=ATM&vnp_OrderInfo=Thanh+toan+booking+156&vnp_PayDate=20251105154530&vnp_ResponseCode=00&vnp_TmnCode=1F8WTZLN&vnp_TransactionNo=123456789&vnp_TransactionStatus=00&vnp_TxnRef=PAY_20251105154500_156&vnp_SecureHash=HASH_VALUE
+
+### 4.1 Callback - Failed Payment (ResponseCode != 00)
+GET {{baseUrl}}/payments/vnpay/callback?vnp_Amount=20750000&vnp_BankCode=NCB&vnp_ResponseCode=24&vnp_TmnCode=1F8WTZLN&vnp_TransactionNo=123456789&vnp_TxnRef=PAY_20251105154500_156&vnp_SecureHash=HASH_VALUE
+
+###
+
+### 5. POST VNPay IPN (NO AUTH - VNPay calls this)
+### VNPay sends POST request to notify server
+POST {{baseUrl}}/payments/vnpay/ipn
+Content-Type: application/x-www-form-urlencoded
+
+vnp_Amount=20750000&vnp_BankCode=NCB&vnp_BankTranNo=VNP123456&vnp_CardType=ATM&vnp_OrderInfo=Thanh+toan+booking+156&vnp_PayDate=20251105154530&vnp_ResponseCode=00&vnp_TmnCode=1F8WTZLN&vnp_TransactionNo=123456789&vnp_TransactionStatus=00&vnp_TxnRef=PAY_20251105154500_156&vnp_SecureHash=HASH_VALUE
+
+###
+
+### 6. GET Payment Details (REQUIRES AUTH)
+GET {{baseUrl}}/payments/{{paymentId}}
+Authorization: Bearer {{token}}
+
+### 6.1 Get Payment - Non-existent Payment
+GET {{baseUrl}}/payments/99999
+Authorization: Bearer {{token}}
+
+###
+
+### ERROR TEST: Create Payment without Auth (should return 401)
+POST {{baseUrl}}/payments/vnpay/create
+Content-Type: application/json
+
+{
+  "bookingid": {{bookingId}},
+  "returnurl": "movieapp://payment/result"
+}
+
+### ERROR TEST: Get Payment without Auth (should return 401)
+GET {{baseUrl}}/payments/{{paymentId}}
+
+### ERROR TEST: Create Payment for Non-existent Booking
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": 99999,
+  "returnurl": "movieapp://payment/result"
+}
+
+### ERROR TEST: Create Payment for Already Paid Booking
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": 100,
+  "returnurl": "movieapp://payment/result"
+}
+
+###############################################
+# 📊 PHASE 3: BOOKING INFO (ALREADY DONE)
+###############################################
+
+### 7-8. GET Booking Details (REQUIRES AUTH)
+### See BookingFlow.http or Home.http for full booking details endpoint
+GET {{baseUrl}}/bookings/{{bookingId}}
+Authorization: Bearer {{token}}
+
+###
+
+###############################################
+# 🔄 COMPLETE PAYMENT FLOW SCENARIO
+###############################################
+
+### SCENARIO: Complete payment flow from start to finish
+
+# 1. Create booking (see BookingFlow.http)
+# Result: bookingId = 156, totalamount = 415000, status = "Pending"
+
+# 2. Validate voucher
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "STUDENT50",
+  "bookingid": 156
+}
+# Result: discountvalue = 50%, applicableDiscount = 207500
+
+# 3. Apply voucher
+POST {{baseUrl}}/bookings/156/apply-voucher
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "STUDENT50"
+}
+# Result: totalamount = 207500 (50% discount)
+
+# 4. Create VNPay payment
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": 156,
+  "returnurl": "movieapp://payment/result"
+}
+# Result: paymentId = 22, vnpayUrl = "https://sandbox.vnpayment.vn/..."
+
+# 5. User pays via VNPay (use test card)
+# Card: 9704198526191432198, OTP: 123456
+
+# 6. VNPay redirects to callback (automatic)
+# Result: payment.status = "Completed", booking.status = "Confirmed", booking.bookingcode = "BK-20251105-XXXX"
+
+# 7. Get payment details
+GET {{baseUrl}}/payments/22
+Authorization: Bearer {{token}}
+# Result: Shows completed payment with BookingCode
+
+# 8. Get booking details (verify BookingCode)
+GET {{baseUrl}}/bookings/156
+Authorization: Bearer {{token}}
+# Result: Shows confirmed booking with BookingCode for QR scanning
+
+###############################################
+# 📊 DATA VALIDATION TESTS
+###############################################
+
+### TEST: Voucher discount calculation (percentage)
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "DISCOUNT10",
+  "bookingid": 156
+}
+# Verify: applicableDiscount = totalamount × 10%
+
+### TEST: Voucher discount calculation (fixed)
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "FIXED50K",
+  "bookingid": 156
+}
+# Verify: applicableDiscount = 50000
+
+### TEST: Minimum purchase requirement
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "VIP200K",
+  "bookingid": 50
+}
+# Should fail if booking.totalamount < 200000
+
+### TEST: Usage limit exceeded
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "LIMITED10",
+  "bookingid": 156
+}
+# Should fail if voucher.usedcount >= voucher.usagelimit
+
+### TEST: VNPay amount conversion
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": 156,
+  "returnurl": "movieapp://payment/result"
+}
+# Verify: vnpayUrl contains vnp_Amount = (totalamount × 100)
+# Example: 207500 VND → vnp_Amount=20750000
+
+### TEST: Transaction code format
+# Verify: transactioncode = "PAY_YYYYMMDDHHMMSS_bookingId"
+# Example: "PAY_20251105154500_156"
+
+### TEST: BookingCode generation after payment
+# Before payment: booking.bookingcode = null
+# After callback with ResponseCode=00: booking.bookingcode = "BK-20251105-0156"
+
+###############################################
+# 🎯 PERFORMANCE TESTS
+###############################################
+
+### LOAD TEST: Validate voucher (should be fast)
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "STUDENT50",
+  "bookingid": 156
+}
+
+### LOAD TEST: Create payment (should handle VNPay URL generation)
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": 156,
+  "returnurl": "movieapp://payment/result"
+}
+
+###############################################
+# 🔒 SECURITY TESTS
+###############################################
+
+### TEST: Cannot validate other user's booking voucher
+POST {{baseUrl}}/vouchers/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "STUDENT50",
+  "bookingid": 999
+}
+# Should return 403 Forbidden
+
+### TEST: Cannot apply voucher to other user's booking
+POST {{baseUrl}}/bookings/999/apply-voucher
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "STUDENT50"
+}
+# Should return 403 Forbidden
+
+### TEST: Cannot create payment for other user's booking
+POST {{baseUrl}}/payments/vnpay/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingid": 999,
+  "returnurl": "movieapp://payment/result"
+}
+# Should return 403 Forbidden
+
+### TEST: Cannot get other user's payment details
+GET {{baseUrl}}/payments/999
+Authorization: Bearer {{token}}
+# Should return 403 Forbidden
+
+### TEST: VNPay secure hash validation
+# Callback with invalid hash should be rejected
+GET {{baseUrl}}/payments/vnpay/callback?vnp_Amount=20750000&vnp_ResponseCode=00&vnp_TxnRef=PAY_20251105154500_156&vnp_SecureHash=INVALID_HASH
+# Should return 400 Bad Request
+
+###############################################
+# 🧪 NOTES FOR TESTING
+###############################################
+
+# 1. Update @token with valid JWT token from login
+# 2. Update @bookingId with actual booking ID from booking creation
+# 3. Update @paymentId with actual payment ID from payment creation
+# 4. Test VNPay payment flow:
+#    - Create payment → Get vnpayUrl
+#    - Open vnpayUrl in browser
+#    - Use test card: 9704198526191432198, OTP: 123456
+#    - Complete payment on VNPay sandbox
+#    - Verify callback updates payment and booking
+#    - Check BookingCode is generated
+# 5. Test voucher application BEFORE payment
+# 6. Verify BookingCode is null before payment, set after payment
+# 7. Test all error cases (expired, invalid, limit exceeded)
+
+###############################################
+# ✅ EXPECTED RESULTS
+###############################################
+
+# Phase 1 (Voucher):
+# - POST /api/vouchers/validate → 200 OK with discount calculation
+# - POST /api/bookings/{id}/apply-voucher → 200 OK with updated totalamount
+#   - Booking.totalamount reduced by discount
+#   - Voucher.usedcount incremented
+#   - Booking.voucherid set
+
+# Phase 2 (VNPay Payment):
+# - POST /api/payments/vnpay/create → 200 OK with vnpayUrl
+#   - Payment record created with status "Pending"
+#   - Transaction code generated: PAY_YYYYMMDDHHMMSS_bookingId
+# - GET /api/payments/vnpay/callback → HTML redirect
+#   - Payment.status: "Pending" → "Completed"
+#   - Booking.status: "Pending" → "Confirmed"
+#   - **Booking.bookingcode: null → "BK-YYYYMMDD-XXXX"** (Generated!)
+# - POST /api/payments/vnpay/ipn → {"RspCode": "00"}
+#   - Same updates as callback
+# - GET /api/payments/{id} → 200 OK with payment details
+#   - Includes method info, booking info with BookingCode
+
+# Phase 3 (Booking Info):
+# - GET /api/bookings/{id} → 200 OK with full booking details
+#   - Shows BookingCode after payment confirmed
+#   - Shows applied voucher discount
+#   - Status is "Confirmed"
+
+###############################################
+# 🚀 NEXT STEPS AFTER PAYMENT
+###############################################
+
+# After completing payment flow:
+# 1. Booking has BookingCode (e.g., "BK-20251105-0156")
+# 2. User can view booking details with QR code
+# 3. Staff can scan QR code to verify booking (see Staff.http)
+# 4. User can view booking history (see Home.http)
+
+###
