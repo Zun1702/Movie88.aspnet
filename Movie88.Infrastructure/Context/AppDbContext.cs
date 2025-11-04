@@ -54,6 +54,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<OtpToken> OtpTokens { get; set; }
+
     public virtual DbSet<Voucher> Vouchers { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -274,10 +276,33 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Userid).HasName("User_pkey");
 
             entity.Property(e => e.Createdat).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Isverified).HasDefaultValue(false);
+            entity.Property(e => e.Isactive).HasDefaultValue(true);
 
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("User_roleid_fkey");
+        });
+
+        modelBuilder.Entity<OtpToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("otp_tokens_pkey");
+
+            entity.Property(e => e.Createdat).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Isused).HasDefaultValue(false);
+
+            entity.HasOne(d => d.User).WithMany(p => p.OtpTokens)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_otp_userid");
+
+            // Unique constraint on (otpcode, otptype, email)
+            entity.HasIndex(e => new { e.Otpcode, e.Otptype, e.Email })
+                .IsUnique()
+                .HasDatabaseName("idx_otp_code_type");
+
+            // Check constraints
+            entity.ToTable(t => t.HasCheckConstraint("chk_otp_code_length", "LENGTH(otpcode) = 6"));
+            entity.ToTable(t => t.HasCheckConstraint("chk_otp_type", "otptype IN ('EmailVerification', 'PasswordReset', 'Login')"));
         });
 
         modelBuilder.Entity<Voucher>(entity =>

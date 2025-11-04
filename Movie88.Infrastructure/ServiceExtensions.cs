@@ -21,6 +21,7 @@ namespace Movie88.Infrastructure
             // Register Repositories
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            services.AddScoped<Domain.Interfaces.IOtpTokenRepository, OtpTokenRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             
             // Movie Repository

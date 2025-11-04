@@ -34,7 +34,10 @@ namespace Movie88.Infrastructure.Mappers
                 Passwordhash = model.Passwordhash,
                 Phone = model.Phone,
                 Roleid = model.Roleid,
-                Createdat = model.Createdat
+                Createdat = model.Createdat,
+                Isverified = model.IsVerified,
+                Isactive = model.IsActive,
+                Verifiedat = model.VerifiedAt
             };
         }
     }

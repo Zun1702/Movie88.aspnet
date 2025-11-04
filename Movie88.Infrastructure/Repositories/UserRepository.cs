@@ -52,6 +52,13 @@ namespace Movie88.Infrastructure.Repositories
 
         public void Update(UserModel user)
         {
+            // Detach any existing tracked entity with the same key to avoid conflicts
+            var existingEntity = _context.Users.Local.FirstOrDefault(u => u.Userid == user.UserId);
+            if (existingEntity != null)
+            {
+                _context.Entry(existingEntity).State = EntityState.Detached;
+            }
+
             var entity = user.ToEntity();
             _context.Users.Update(entity);
         }
