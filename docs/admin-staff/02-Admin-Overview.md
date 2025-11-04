@@ -265,9 +265,23 @@ Content-Type: application/json
 ### Related Entities
 **Movie** (movies table):
 - ✅ `movieid` (int, PK, auto-increment)
-- ✅ `title`, `description`, `durationminutes`
-- ✅ `director`, `releasedate`, `posterurl`, `trailerurl`
-- ✅ `country`, `rating`, `genre`
+- ✅ `title` (string, max 200, not null)
+- ✅ `description` (text, nullable)
+- ✅ `durationminutes` (int, not null)
+- ✅ `director` (string, max 100, nullable)
+- ✅ `releasedate` (DateOnly, nullable)
+- ✅ `posterurl` (string, max 255, nullable)
+- ✅ `trailerurl` (string, max 255, nullable)
+- ✅ `country` (string, max 100, nullable)
+- ✅ `rating` (string, max 10, not null)
+- ✅ `genre` (string, max 255, nullable)
+- ✅ `createdat` (timestamp without time zone, nullable)
+- ❌ NO `isdeleted` field (soft delete not implemented)
+- ❌ NO `status` field (need to add if want to track active/inactive)
+
+**Navigation Properties:**
+- ✅ `ICollection<Review> Reviews`
+- ✅ `ICollection<Showtime> Showtimes`
 
 ### Implementation Plan
 - ⏳ Application: CreateMovieCommand.cs, CreateMovieDTO.cs
@@ -326,7 +340,7 @@ Authorization: Bearer {admin_token}
 ⚠️ **Chỉ xóa được nếu:**
 - Phim KHÔNG có booking nào
 - Nếu có booking: Phải cancel tất cả trước
-- Soft delete (IsDeleted=true, không xóa DB)
+- **Hard delete** hoặc **add status field** (entity hiện tại không có soft delete flag)
 
 ### Response 200 OK
 ```json
@@ -341,6 +355,11 @@ Authorization: Bearer {admin_token}
   }
 }
 ```
+
+> **💡 Note**: Current Movie entity doesn't have `isdeleted` field. Consider:
+> - **Option 1**: Hard delete from database (permanent)
+> - **Option 2**: Add migration to add `status` field (e.g., "Active", "Inactive", "Deleted")
+> - **Option 3**: Add `isdeleted` boolean column via migration
 
 ### Response 400 Bad Request
 ```json
@@ -404,12 +423,15 @@ Authorization: Bearer {admin_token}
 ```
 
 ### Related Entities
-**Admin view includes aggregated data:**
-- ✅ Movie basic info
-- ✅ Total bookings count
-- ✅ Total revenue
-- ✅ Occupancy rate
-- ✅ Average rating
+**Admin view includes aggregated data (calculated, not stored in Movie table):**
+- ✅ Movie basic info (from `movies` table)
+- ✅ Total bookings count (COUNT from `bookings` JOIN `showtimes`)
+- ✅ Total revenue (SUM from `payments` JOIN `bookings` JOIN `showtimes`)
+- ✅ Occupancy rate (calculated: booked seats / total seats from `showtimes` JOIN `auditoriums`)
+- ✅ Average rating (AVG from `reviews` table)
+- ✅ Total reviews count (COUNT from `reviews` table)
+
+> **💡 Implementation Note**: These are DTO fields calculated via JOIN queries, not entity properties.
 
 ---
 
@@ -445,13 +467,28 @@ Content-Type: application/json
 ### Request Body Fields
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| name | string | ✅ | Cinema name |
-| address | string | ✅ | Full address |
-| city | string | ✅ | City |
-| district | string | ❌ | District |
-| phone | string | ❌ | Contact phone |
-| email | string | ❌ | Contact email |
-| facilities | array | ❌ | ["3D", "IMAX", "4DX"] |
+| name | string | ✅ | Cinema name (max 100) |
+| address | string | ✅ | Full address (max 255) |
+| city | string | ❌ | City (max 100) |
+| district | string | ❌ | District *(not in entity, store in address or add column)* |
+| phone | string | ❌ | Contact phone (max 20) |
+| email | string | ❌ | Contact email *(not in entity, need to add column)* |
+| latitude | decimal | ❌ | GPS latitude *(not in entity, need to add column)* |
+| longitude | decimal | ❌ | GPS longitude *(not in entity, need to add column)* |
+| facilities | array | ❌ | ["3D", "IMAX", "4DX"] *(not in entity, need to add JSONB column)* |
+| parkingAvailable | bool | ❌ | Parking info *(not in entity, need to add column)* |
+| numberOfAuditoriums | int | ❌ | Total auditoriums *(calculate from Auditoria collection)* |
+
+> **⚠️ Current Entity Limitations**:
+> Cinema entity only has: `cinemaid`, `name`, `address`, `phone`, `city`, `createdat`
+> 
+> **To support all fields above, need migration to add**:
+> - `email` (string, max 100)
+> - `district` (string, max 100) or keep in address
+> - `latitude` (decimal)
+> - `longitude` (decimal)
+> - `facilities` (JSONB or separate table)
+> - `parkingavailable` (boolean)
 
 ### Response 201 Created
 ```json
@@ -464,6 +501,17 @@ Content-Type: application/json
   }
 }
 ```
+
+### Related Entities
+**Cinema** (cinemas table - CURRENT):
+- ✅ `cinemaid` (int, PK)
+- ✅ `name` (string, max 100, not null)
+- ✅ `address` (string, max 255, not null)
+- ✅ `phone` (string, max 20, nullable)
+- ✅ `city` (string, max 100, nullable)
+- ✅ `createdat` (timestamp without time zone, nullable)
+- ❌ NO `email`, `latitude`, `longitude`, `facilities`, `parkingavailable` fields
+- ✅ Navigation: `ICollection<Auditorium> Auditoria`
 
 ---
 
@@ -514,10 +562,19 @@ Content-Type: application/json
 | movieId | int | ✅ | Movie ID |
 | auditoriumId | int | ✅ | Auditorium ID |
 | startTime | DateTime | ✅ | Showtime start |
-| format | string | ✅ | 2D, 3D, IMAX |
-| language | string | ❌ | Audio language |
-| subtitle | string | ❌ | Subtitle language |
-| basePrice | decimal | ✅ | Base ticket price |
+| format | string | ✅ | 2D, 3D, IMAX (max 20) |
+| language | string | ❌ | Audio language *(map to `languagetype`)* |
+| subtitle | string | ❌ | Subtitle *(combine with language in `languagetype`)* |
+| basePrice | decimal | ✅ | Base ticket price (maps to `price`) |
+| pricing | object | ❌ | Seat-type pricing *(not in entity, need separate pricing table)* |
+
+> **⚠️ Entity Field Mapping**:
+> - `language` + `subtitle` → Store in `languagetype` field (e.g., "English - Phụ đề Việt")
+> - `basePrice` → Maps to `price` field
+> - `pricing` object (standard/vip/couple) → **Not supported** in current entity
+>   - Either use single `price` for all seats
+>   - Or add seat-type pricing via separate table/JSONB column
+> - `endtime` → Calculate automatically: `starttime + movie.durationminutes`
 
 ### Response 201 Created
 ```json
@@ -528,10 +585,25 @@ Content-Type: application/json
     "showtimeId": 456,
     "movieTitle": "Avengers",
     "startTime": "2025-11-05T19:30:00",
+    "endTime": "2025-11-05T22:31:00",
     "availableSeats": 150
   }
 }
 ```
+
+### Related Entities
+**Showtime** (showtimes table - CURRENT):
+- ✅ `showtimeid` (int, PK)
+- ✅ `movieid` (int, FK → movies, not null)
+- ✅ `auditoriumid` (int, FK → auditoria, not null)
+- ✅ `starttime` (timestamp without time zone, not null)
+- ✅ `endtime` (timestamp without time zone, nullable) - Auto-calculate from starttime + duration
+- ✅ `price` (decimal(10,2), not null) - Single price, not per seat type
+- ✅ `format` (string, max 20, not null) - "2D", "3D", "IMAX"
+- ✅ `languagetype` (string, max 50, not null) - Combine language + subtitle here
+- ❌ NO separate `language` and `subtitle` fields
+- ❌ NO per-seat-type pricing (standard/vip/couple)
+- ✅ Navigation: Movie, Auditorium, Bookings, Bookingseats
 
 ---
 
@@ -553,17 +625,18 @@ Authorization: Bearer {admin_token}
   "endDate": "2025-11-12",
   "timeslots": ["10:00", "13:00", "16:00", "19:00", "22:00"],
   "skipDays": [], // Bỏ qua ngày nào (e.g., maintenance)
+  "format": "2D",
+  "languageType": "English - Phụ đề Việt",
   "pricing": {
-    "weekday": {
-      "standard": 90000,
-      "vip": 150000
-    },
-    "weekend": {
-      "standard": 120000,
-      "vip": 180000
-    }
+    "weekday": 90000,
+    "weekend": 120000
   }
 }
+```
+
+> **⚠️ Pricing Simplified**: Current entity only has single `price` field.
+> - Weekday/weekend pricing OK (different rows, different prices)
+> - Per-seat-type pricing NOT supported (need separate pricing mechanism)
 ```
 
 ### Response 201 Created
@@ -574,12 +647,30 @@ Authorization: Bearer {admin_token}
   "data": {
     "created": 35,
     "skipped": 0,
-    "failed": 0
+    "failed": 0,
+    "details": [
+      {
+        "date": "2025-11-05",
+        "timeslots": ["10:00", "13:00", "16:00", "19:00", "22:00"],
+        "price": 90000
+      }
+    ]
   }
 }
 ```
 
 **Use Case**: Tạo lịch chiếu cho cả tuần trong 1 lần thay vì tạo từng suất
+
+**Implementation Logic**:
+```csharp
+// For each date in range (startDate → endDate)
+// For each timeslot
+// Create Showtime:
+//   - starttime = date + timeslot
+//   - endtime = starttime + movie.durationminutes
+//   - price = IsWeekend(date) ? weekendPrice : weekdayPrice
+//   - format, languagetype from request
+```
 
 ---
 
