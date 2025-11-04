@@ -7,4 +7,5 @@ public interface IShowtimeService
     Task<ShowtimesByMovieResponseDTO?> GetShowtimesByMovieAsync(int movieId, CancellationToken cancellationToken = default);
     Task<ShowtimeDetailDTO?> GetShowtimeByIdAsync(int showtimeId, CancellationToken cancellationToken = default);
     Task<List<ShowtimesByDateGroupDTO>> GetShowtimesByDateAsync(DateTime date, int? cinemaId = null, int? movieId = null, CancellationToken cancellationToken = default);
+    Task<int> GetAvailableSeatsAsync(int showtimeId, CancellationToken cancellationToken = default);
 }

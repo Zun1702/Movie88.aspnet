@@ -105,4 +105,41 @@ public class ShowtimesController : ControllerBase
             data = showtimes
         });
     }
+
+    /// <summary>
+    /// Get available seats count for a specific showtime
+    /// </summary>
+    /// <param name="id">Showtime ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Available seats count</returns>
+    [HttpGet("{id}/available-seats")]
+    public async Task<IActionResult> GetAvailableSeats(
+        [FromRoute] int id,
+        CancellationToken cancellationToken = default)
+    {
+        var availableSeats = await _showtimeService.GetAvailableSeatsAsync(id, cancellationToken);
+
+        if (availableSeats == -1)
+        {
+            return NotFound(new
+            {
+                success = false,
+                statusCode = 404,
+                message = $"Showtime with ID {id} not found",
+                data = (object?)null
+            });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            statusCode = 200,
+            message = "Available seats retrieved successfully",
+            data = new
+            {
+                showtimeid = id,
+                availableSeats = availableSeats
+            }
+        });
+    }
 }

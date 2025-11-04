@@ -178,4 +178,16 @@ public class ShowtimeService : IShowtimeService
 
         return dateGroups;
     }
+
+    public async Task<int> GetAvailableSeatsAsync(int showtimeId, CancellationToken cancellationToken = default)
+    {
+        // Check if showtime exists
+        var showtime = await _showtimeRepository.GetByIdAsync(showtimeId, cancellationToken);
+        
+        if (showtime == null)
+            return -1; // Indicate not found
+
+        // Get available seats count
+        return await _showtimeRepository.GetAvailableSeatsCountAsync(showtimeId, cancellationToken);
+    }
 }
