@@ -12,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Configure HttpClient for Email Service
+builder.Services.AddHttpClient();
+
 // Configure Database
 builder.Services.ConfigurePersistenceApp(builder.Configuration);
 
