@@ -49,17 +49,19 @@
 1️⃣ CUSTOMER (Tại nhà/bất kỳ đâu)
    ├─ Mở app/website Movie88
    ├─ Chọn phim, rạp, suất chiếu, ghế
-   ├─ Tạo booking → Status: "Pending", PaymentStatus: "Pending"
+   ├─ Tạo booking → Booking.Status: "Pending"
+   ├─ Tạo payment record → Payment.Status: "Pending"
    └─ Booking chưa có BookingCode (chưa generate)
 
 2️⃣ PAYMENT (Online)
    ├─ Thanh toán qua VNPay/MOMO
    ├─ Payment Gateway xác nhận thành công
-   └─ Webhook cập nhật: PaymentStatus: "Completed"
+   └─ Webhook cập nhật: Payment.Status: "Completed"
 
 3️⃣ SYSTEM (Tự động)
-   ├─ Phát hiện payment thành công
+   ├─ Phát hiện payment.Status = "Completed"
    ├─ Generate BookingCode: BK20251104001
+   ├─ Update Booking.Status: "Confirmed"
    ├─ Generate QR Code chứa BookingCode
    ├─ Gửi email/SMS/notification cho khách
    └─ Khách nhận được: QR Code + BookingCode
@@ -71,9 +73,10 @@
 5️⃣ STAFF (Tại rạp) ← YOUR ROLE
    ├─ Scan QR hoặc nhập BookingCode
    ├─ Call API: GET /api/bookings/verify/{bookingCode}
-   ├─ Kiểm tra: PaymentStatus = "Completed" ✅
+   ├─ Kiểm tra: Payment.Status = "Completed" ✅ (via Booking.Payments collection)
    ├─ Xác nhận thông tin: Tên, phim, giờ, ghế
    ├─ Call API: PUT /api/bookings/{id}/check-in
+   ├─ Update Booking.Status: "CheckedIn"
    └─ Hướng dẫn khách vào rạp
 
 6️⃣ CUSTOMER
@@ -85,10 +88,10 @@
 | Rule | Description |
 |------|-------------|
 | ✅ **Rule 1** | BookingCode chỉ được generate **SAU KHI** thanh toán thành công |
-| ✅ **Rule 2** | Chỉ booking có `paymentStatus = "Completed"` mới được verify |
+| ✅ **Rule 2** | Chỉ booking có `Payment.Status = "Completed"` mới được verify (check via Booking.Payments collection) |
 | ✅ **Rule 3** | Không có nghiệp vụ "mua vé tại quầy" |
 | ✅ **Rule 4** | Staff chỉ verify & check-in, không tạo booking mới |
-| ✅ **Rule 5** | Mỗi booking chỉ được check-in **1 lần** |
+| ✅ **Rule 5** | Mỗi booking chỉ được check-in **1 lần** (Booking.Status = "CheckedIn") |
 
 ---
 
@@ -184,12 +187,13 @@ Authorization: Bearer {staff_token}
       "totalAmount": 160000
     },
     "payment": {
-      "paymentStatus": "Completed",
+      "status": "Completed",
       "paymentMethod": "VNPay",
+      "transactionCode": "20251104143500",
       "paidAt": "2025-11-01T14:35:00"
     },
-    "checkinStatus": "NotCheckedIn",
-    "checkinTime": null
+    "bookingStatus": "Confirmed",
+    "canCheckIn": true
   }
 }
 ```
@@ -225,25 +229,38 @@ Authorization: Bearer {staff_token}
   "statusCode": 400,
   "message": "Payment not completed",
   "errors": [
-    "This booking has not been paid yet. Payment status: Pending"
+    "This booking has not been paid yet. No completed payment found in Payments collection."
   ]
 }
 ```
 
-> **🔒 Security Rule**: Chỉ booking có `paymentStatus = "Completed"` mới được phép verify và check-in.
+> **🔒 Security Rule**: Chỉ booking có `Payment.Status = "Completed"` (trong collection Booking.Payments) mới được phép verify và check-in.
 
 ### Related Entities
+
 **Booking** (bookings table):
 - ✅ `bookingid` (int, PK)
-- ✅ `bookingcode` (string, unique) - Generated after payment success
-- ✅ `customerid` (int, FK)
-- ✅ `showtimeid` (int, FK)
-- ✅ `totalamount` (decimal)
-- ✅ `status` (string) - Confirmed, Cancelled (no "Pending" after payment)
-- ✅ `paymentstatus` (string) - **Completed** (required for verify)
-- ✅ `bookingdate` (DateTime)
-- ✅ `checkedinstatus` (string) - NotCheckedIn, CheckedIn
-- ✅ `checkedintime` (DateTime, nullable)
+- ✅ `bookingcode` (string?, max 20) - Generated after payment success
+- ✅ `customerid` (int, FK → customers)
+- ✅ `showtimeid` (int, FK → showtimes)
+- ✅ `voucherid` (int?, nullable, FK → vouchers)
+- ✅ `totalamount` (decimal(10,2)?, nullable)
+- ✅ `status` (string?, max 50) - "Pending", "Confirmed", "CheckedIn", "Cancelled", "Completed", "Expired"
+- ✅ `bookingtime` (timestamp without time zone, nullable)
+- ✅ Navigation: `ICollection<Payment> Payments` - **Use this to check payment status**
+- ❌ NO `paymentstatus` field - Payment status is in separate Payment table
+- ❌ NO `checkedinstatus` field - Use Booking.Status = "CheckedIn" instead
+
+**Payment** (payments table) - **SEPARATE TABLE**:
+- ✅ `paymentid` (int, PK)
+- ✅ `bookingid` (int, FK → bookings)
+- ✅ `customerid` (int, FK → customers)
+- ✅ `methodid` (int, FK → paymentmethods)
+- ✅ `amount` (decimal(10,2))
+- ✅ `status` (string?, max 50) - **"Pending", "Completed", "Failed"**
+- ✅ `transactioncode` (string?, max 255) - VNPay/MOMO transaction ID
+- ✅ `paymenttime` (timestamp without time zone, nullable)
+- ✅ Relationship: Booking → ICollection<Payment> (1:N)
 
 **Showtime** (showtimes table):
 - ✅ `showtimeid` (int, PK)
@@ -304,8 +321,8 @@ Content-Type: application/json
   "data": {
     "bookingId": 12345,
     "bookingCode": "BK20251104001",
-    "checkinStatus": "CheckedIn",
-    "checkinTime": "2025-11-04T19:15:00",
+    "status": "CheckedIn",
+    "checkedInAt": "2025-11-04T19:15:00",
     "checkedInBy": {
       "staffId": 42,
       "staffName": "Tran Thi B"
@@ -326,9 +343,13 @@ Content-Type: application/json
 
 ### Related Entities
 **Booking** (bookings table):
-- ✅ Update `checkedinstatus` = "CheckedIn"
-- ✅ Update `checkedintime` = provided timestamp
-- ✅ Log staff who performed check-in
+- ✅ Update `status` = "CheckedIn"
+- ✅ Log check-in timestamp in response DTO
+- ✅ Log staff who performed check-in (via authentication context)
+
+> **💡 Note**: Current DB schema doesn't have `checkedintime` column. 
+> We track check-in status via `Booking.Status = "CheckedIn"`. 
+> If detailed check-in audit needed, consider adding columns: `checkedintime`, `checkedinby`.
 
 ### Implementation Plan
 - ⏳ Domain: Update Booking entity
@@ -356,8 +377,8 @@ Authorization: Bearer {staff_token}
 | cinemaId | int | ❌ | Filter by cinema (optional) |
 | page | int | ❌ | Page number (default: 1) |
 | pageSize | int | ❌ | Items per page (default: 50) |
-| status | string | ❌ | Filter: all, pending, confirmed, cancelled |
-| checkinStatus | string | ❌ | Filter: all, not-checked-in, checked-in |
+| status | string | ❌ | Filter: all, pending, confirmed, checkedin, cancelled, completed |
+| hasPayment | bool | ❌ | Filter: only bookings with completed payment (check via Payments collection) |
 
 ### Response 200 OK
 ```json
@@ -373,7 +394,8 @@ Authorization: Bearer {staff_token}
         "movieTitle": "Avengers",
         "showtimeStart": "19:30",
         "status": "Confirmed",
-        "checkinStatus": "NotCheckedIn"
+        "paymentStatus": "Completed",
+        "canCheckIn": true
       }
     ],
     "pagination": {
@@ -388,9 +410,11 @@ Authorization: Bearer {staff_token}
 
 ### Related Entities
 **Booking** (bookings table):
-- ✅ Filter by `bookingdate` = today
-- ✅ Join with Customer, Movie, Showtime
-- ✅ Show `checkedinstatus`
+- ✅ Filter by `bookingtime` = today
+- ✅ Join with Customer, Movie, Showtime, Payments
+- ✅ Show `status` field (Pending, Confirmed, CheckedIn, etc.)
+- ✅ Calculate `paymentStatus` from Payments collection
+- ✅ Calculate `canCheckIn` = (Payment.Status == "Completed" && Booking.Status != "CheckedIn")
 
 ### Implementation Plan
 - ⏳ Domain: TodayBookingDTO.cs
@@ -482,8 +506,8 @@ Authorization: Bearer {staff_token}
    Staff: Call API GET /api/bookings/verify/BK20251104002
    
    Response:
-   Status: "Confirmed" ✅
-   PaymentStatus: "Completed" ✅ (đã thanh toán online)
+   Booking.Status: "Confirmed" ✅
+   Payment.Status: "Completed" ✅ (via Payments collection)
    Showtime: 19:30 (started 15 mins ago)
    ```
 
@@ -573,23 +597,25 @@ Authorization: Bearer {staff_token}
 > **⚠️ LƯU Ý QUAN TRỌNG**: Use case này **KHÔNG BAO GIỜ XẢY RA** trong hệ thống của chúng ta vì:
 > - BookingCode chỉ được generate **SAU KHI** thanh toán thành công
 > - Khách không thể nhận được QR/BookingCode nếu chưa thanh toán
-> - API `/api/bookings/verify/{bookingCode}` sẽ **LUÔN** trả về `paymentStatus = "Completed"`
+> - API `/api/bookings/verify/{bookingCode}` sẽ **LUÔN** trả về booking có `Payment.Status = "Completed"` (trong collection Payments)
 
 **Scenario:** (Chỉ để tham khảo - không xảy ra trong thực tế)
 - Booking Code: BK20251104003
-- Payment Status: "Pending" ❌ (KHÔNG THỂ)
+- Payment.Status: "Pending" ❌ (KHÔNG THỂ - vì BookingCode chỉ được tạo sau khi Payment.Status = "Completed")
 
 **Lý do không xảy ra:**
 ```
 Flow đúng:
-1. Khách đặt vé → Status: "Pending", PaymentStatus: "Pending"
+1. Khách đặt vé → Booking.Status: "Pending", Payment.Status: "Pending"
 2. Chưa có BookingCode (chưa generate)
-3. Thanh toán thành công → PaymentStatus: "Completed"
+3. Thanh toán thành công → Payment.Status: "Completed"
 4. Hệ thống generate BookingCode → BK20251104001
-5. Gửi QR/BookingCode cho khách
-6. Khách đến rạp → Staff verify → Check-in
+5. Update Booking.Status: "Confirmed"
+6. Gửi QR/BookingCode cho khách
+7. Khách đến rạp → Staff verify → Check-in
 
-❌ Không thể có: BookingCode + PaymentStatus "Pending"
+❌ Không thể có: BookingCode + Payment.Status "Pending"
+✅ Khi có BookingCode → Payment.Status LUÔN là "Completed"
 ```
 
 **Nếu xảy ra (lỗi hệ thống):**
@@ -626,7 +652,10 @@ Flow đúng:
    {
      "data": {
        "bookingCode": "BK20251104005",
-       "paymentStatus": "Completed", ✅ (đã thanh toán online)
+       "status": "Confirmed",
+       "payment": {
+         "status": "Completed" ✅ (via Payments collection)
+       },
        "showtime": {
          "cinema": {
            "name": "CGV Landmark 81",
@@ -988,7 +1017,7 @@ Authorization: Bearer {{staffToken}}
       { "row": "A", "number": 5 }
     ],
     "payment": {
-      "paymentStatus": "Completed"
+      "status": "Completed"
     }
   }
 }
@@ -1003,8 +1032,8 @@ Authorization: Bearer {{staffToken}}
   "data": {
     "bookingId": 12345,
     "bookingCode": "BK20251104001",
-    "checkinStatus": "CheckedIn",
-    "checkinTime": "2025-11-04T19:15:00"
+    "status": "CheckedIn",
+    "checkedInAt": "2025-11-04T19:15:00"
   }
 }
 ```
@@ -1065,7 +1094,7 @@ try {
     Write-Host "✅ Verify Booking: SUCCESS" -ForegroundColor Green
     Write-Host "   Customer: $($response.data.customer.fullname)" -ForegroundColor White
     Write-Host "   Movie: $($response.data.movie.title)" -ForegroundColor White
-    Write-Host "   Payment: $($response.data.payment.paymentStatus)" -ForegroundColor White
+    Write-Host "   Payment: $($response.data.payment.status)" -ForegroundColor White
 } catch {
     Write-Host "❌ Verify Booking: FAILED - $($_.Exception.Message)" -ForegroundColor Red
 }
