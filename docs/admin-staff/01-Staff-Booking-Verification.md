@@ -192,6 +192,12 @@ Authorization: Bearer {staff_token}
       "transactionCode": "20251104143500",
       "paidAt": "2025-11-01T14:35:00"
     },
+    "checkIn": {
+      "isCheckedIn": false,
+      "checkedInTime": null,
+      "checkedInBy": null,
+      "checkedInByStaffName": null
+    },
     "bookingStatus": "Confirmed",
     "canCheckIn": true
   }
@@ -247,7 +253,10 @@ Authorization: Bearer {staff_token}
 - ✅ `totalamount` (decimal(10,2)?, nullable)
 - ✅ `status` (string?, max 50) - "Pending", "Confirmed", "CheckedIn", "Cancelled", "Completed", "Expired"
 - ✅ `bookingtime` (timestamp without time zone, nullable)
+- ✅ `checkedintime` (timestamp without time zone, nullable) - **NEW: When customer checked in**
+- ✅ `checkedinby` (int, nullable, FK → users.userid) - **NEW: Staff who performed check-in**
 - ✅ Navigation: `ICollection<Payment> Payments` - **Use this to check payment status**
+- ✅ Navigation: `User? CheckedInByUser` - **NEW: Staff user who checked in this booking**
 - ❌ NO `paymentstatus` field - Payment status is in separate Payment table
 - ❌ NO `checkedinstatus` field - Use Booking.Status = "CheckedIn" instead
 
@@ -344,12 +353,14 @@ Content-Type: application/json
 ### Related Entities
 **Booking** (bookings table):
 - ✅ Update `status` = "CheckedIn"
-- ✅ Log check-in timestamp in response DTO
-- ✅ Log staff who performed check-in (via authentication context)
+- ✅ Update `checkedintime` = current timestamp - **NEW FIELD**
+- ✅ Update `checkedinby` = staff user ID from JWT token - **NEW FIELD**
+- ✅ Load `CheckedInByUser` navigation property to get staff name
 
-> **💡 Note**: Current DB schema doesn't have `checkedintime` column. 
-> We track check-in status via `Booking.Status = "CheckedIn"`. 
-> If detailed check-in audit needed, consider adding columns: `checkedintime`, `checkedinby`.
+**User** (User table):
+- ✅ Staff user who performs check-in
+- ✅ Relationship: `ICollection<Booking> BookingsCheckedInBy` - All bookings checked in by this staff
+- ✅ Fields available: `userid`, `fullname`, `email`, `roleid`
 
 ### Implementation Plan
 - ⏳ Domain: Update Booking entity

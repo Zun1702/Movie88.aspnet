@@ -846,7 +846,9 @@ GET /api/admin/reports/bookings/statistics?startDate=2025-11-01&endDate=2025-11-
     "totalBookings": 12500,
     "completedBookings": 11800,
     "canceledBookings": 700,
+    "checkedInBookings": 11200,
     "cancellationRate": "5.6%",
+    "checkInRate": "94.9%",
     "averageBookingValue": 180000,
     "peakHours": ["19:00-20:00", "20:00-21:00"],
     "peakDays": ["Saturday", "Sunday"],
@@ -856,10 +858,20 @@ GET /api/admin/reports/bookings/statistics?startDate=2025-11-01&endDate=2025-11-
 ```
 
 ### Response includes
-- Total/completed/cancelled bookings
-- Cancellation rate
+- Total/completed/cancelled/checked-in bookings
+- Cancellation rate & check-in rate
 - Peak hours/days
 - Conversion rate
+
+### Related Entities for Check-in Tracking
+**Booking** (bookings table) - **UPDATED WITH NEW FIELDS**:
+- ✅ `checkedintime` (timestamp without time zone, nullable) - When customer checked in
+- ✅ `checkedinby` (int, nullable, FK → User.userid) - Staff who performed check-in
+- ✅ Navigation: `User? CheckedInByUser` - Staff user details
+
+**User** (User table):
+- ✅ Staff/Admin users who can perform check-ins
+- ✅ Navigation: `ICollection<Booking> BookingsCheckedInBy` - All bookings this staff checked in
 
 ---
 
