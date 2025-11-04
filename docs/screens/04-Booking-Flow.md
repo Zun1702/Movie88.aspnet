@@ -3,22 +3,39 @@
 **Status**: 🔄 **PENDING** (0/10 endpoints - 0%)  
 **Assigned**: Trung
 
+> **🎯 Core Business Flow**: Đây là luồng nghiệp vụ QUAN TRỌNG NHẤT của dự án - Đặt vé online
+
 ---
 
 ## 📋 Endpoints Overview
 
-| # | Method | Endpoint | Screen | Auth | Status | Assign |
-|---|--------|----------|--------|------|--------|--------|
-| 1 | GET | `/api/cinemas` | SelectCinemaActivity | ❌ | ❌ TODO | Trung |
-| 2 | GET | `/api/showtimes/by-movie/{movieId}` | SelectCinemaActivity | ❌ | ❌ TODO | Trung |
-| 3 | GET | `/api/showtimes/by-date` | SelectCinemaActivity | ❌ | ❌ TODO | Trung |
-| 4 | GET | `/api/showtimes/{id}` | SelectSeatActivity | ❌ | ❌ TODO | Trung |
-| 5 | GET | `/api/showtimes/{id}/available-seats` | SelectSeatActivity | ❌ | ❌ TODO | Trung |
-| 6 | GET | `/api/auditoriums/{id}/seats` | SelectSeatActivity | ❌ | ❌ TODO | Trung |
-| 7 | POST | `/api/bookings/create` | SelectSeatActivity | ✅ | ❌ TODO | Trung |
-| 8 | GET | `/api/combos` | SelectComboActivity | ❌ | ❌ TODO | Trung |
-| 9 | POST | `/api/bookings/{id}/add-combos` | SelectComboActivity | ✅ | ❌ TODO | Trung |
-| 10 | GET | `/api/movies/{id}` | SelectCinemaActivity | ❌ | ✅ DONE | Trung |
+Chia thành **3 giai đoạn** để dev hiệu quả:
+
+### 🎬 Phase 1: Cinema & Showtime Selection (4 endpoints)
+| # | Method | Endpoint | Purpose | Auth | Status | Assign |
+|---|--------|----------|---------|------|--------|--------|
+| 1 | GET | `/api/cinemas` | Danh sách rạp | ❌ | ❌ TODO | Trung |
+| 2 | GET | `/api/showtimes/by-movie/{movieId}` | Suất chiếu theo phim | ❌ | ❌ TODO | Trung |
+| 3 | GET | `/api/showtimes/by-date` | Suất chiếu theo ngày | ❌ | ❌ TODO | Trung |
+| 4 | GET | `/api/showtimes/{id}` | Chi tiết suất chiếu | ❌ | ❌ TODO | Trung |
+
+### 💺 Phase 2: Seat Selection & Booking Creation (3 endpoints)
+| # | Method | Endpoint | Purpose | Auth | Status | Assign |
+|---|--------|----------|---------|------|--------|--------|
+| 5 | GET | `/api/showtimes/{id}/available-seats` | Ghế còn trống | ❌ | ❌ TODO | Trung |
+| 6 | GET | `/api/auditoriums/{id}/seats` | Sơ đồ ghế phòng chiếu | ❌ | ❌ TODO | Trung |
+| 7 | POST | `/api/bookings/create` | **TẠO BOOKING** | ✅ | ❌ TODO | Trung |
+
+### 🍿 Phase 3: Combo Selection (2 endpoints)
+| # | Method | Endpoint | Purpose | Auth | Status | Assign |
+|---|--------|----------|---------|------|--------|--------|
+| 8 | GET | `/api/combos` | Danh sách combo | ❌ | ❌ TODO | Trung |
+| 9 | POST | `/api/bookings/{id}/add-combos` | Thêm combo vào booking | ✅ | ❌ TODO | Trung |
+
+### 📽️ Reference
+| # | Method | Endpoint | Purpose | Auth | Status | Assign |
+|---|--------|----------|---------|------|--------|--------|
+| 10 | GET | `/api/movies/{id}` | Chi tiết phim | ❌ | ✅ DONE | Trung |
 
 ---
 
@@ -246,7 +263,7 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
     "auditorium": {
       "auditoriumid": 5,
       "name": "Cinema 3",
-      "capacity": 150
+      "seatscount": 150
     },
     "availableSeats": 145
   }
@@ -323,7 +340,7 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 - ✅ `bookingid` (int, FK)
 - ✅ `seatid` (int, FK)
 - ✅ `showtimeid` (int, FK)
-- ✅ `price` (decimal(10,2))
+- ✅ `seatprice` (decimal(10,2)) ← **ACTUAL FIELD NAME (not "price")**
 
 ### Business Logic
 - Get all seats in auditorium
@@ -354,7 +371,7 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
   "data": {
     "auditoriumid": 5,
     "name": "Cinema 3",
-    "capacity": 150,
+    "seatscount": 150,
     "cinemaid": 1,
     "seatLayout": {
       "rows": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
@@ -378,13 +395,19 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 - ✅ `auditoriumid` (int, PK)
 - ✅ `cinemaid` (int, FK)
 - ✅ `name` (string, max 50)
-- ✅ `capacity` (int)
+- ✅ `seatscount` (int) ← **ACTUAL FIELD NAME**
 
-**Seat** (seats table): Same as above
+**Seat** (seats table):
+- ✅ `seatid` (int, PK)
+- ✅ `auditoriumid` (int, FK)
+- ✅ `Row` (string, max 2) ← **Capital R**
+- ✅ `Number` (int) ← **Capital N**
+- ✅ `type` (string, max 20)
+- ✅ `isavailable` (bool)
 
 ### Business Logic
 - Get all seats in auditorium
-- Group by row
+- Group by Row (capital R)
 - Return seat layout information
 - Note: This endpoint doesn't check showtime-specific bookings
 
@@ -516,7 +539,7 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 
 7. **Create Bookingseats**:
    - For each seat, create Bookingseat record:
-     - `bookingid`, `seatid`, `showtimeid`, `price` (from Showtime)
+     - `bookingid`, `seatid`, `showtimeid`, `seatprice` (from Showtime.Price)
 
 8. **Transaction**:
    - Wrap in database transaction for atomicity
@@ -576,10 +599,11 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 - ✅ `description` (string, max 255, nullable)
 - ✅ `price` (decimal(10,2))
 - ✅ `imageurl` (string, max 255, nullable)
-- ✅ `isavailable` (bool, nullable)
+- ❌ **NO `isavailable` field in entity**
 
 ### Business Logic
-- Filter: `isavailable = true`
+- Return all combos (no filter by availability)
+- Or implement soft delete/active flag if needed
 - Sort by price ASC
 
 ---
@@ -646,7 +670,7 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 - ✅ `bookingid` (int, FK)
 - ✅ `comboid` (int, FK)
 - ✅ `quantity` (int)
-- ✅ `price` (decimal(10,2)) - Total price for this combo (Combo.price × quantity)
+- ✅ `comboprice` (decimal(10,2), nullable) ← **ACTUAL FIELD NAME (not "price")** - Total price for this combo (Combo.price × quantity)
 
 ### Business Logic
 1. **Validate Booking**:
@@ -666,12 +690,12 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 4. **Add Combos**:
    - For each combo, create Bookingcombo:
      - `bookingid`, `comboid`, `quantity`
-     - `price` = Combo.price × quantity
+     - `comboprice` = Combo.price × quantity
 
 5. **Update Booking Total**:
    ```csharp
-   var seatsTotal = bookingseats.Sum(bs => bs.Price);
-   var combosTotal = bookingcombos.Sum(bc => bc.Price);
+   var seatsTotal = bookingseats.Sum(bs => bs.Seatprice);
+   var combosTotal = bookingcombos.Sum(bc => bc.Comboprice ?? 0);
    booking.Totalamount = seatsTotal + combosTotal;
    ```
 
@@ -689,68 +713,97 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 
 ## 📊 Implementation Summary
 
-### To Be Created
+### ✅ Already Created (Entity Models)
 
 #### Domain Layer (Movie88.Domain/Models/)
 ```
-❌ (CinemaModel.cs)        - Already needed for Screen 2
-❌ (AuditoriumModel.cs)    - Already needed for Screen 2
-❌ (SeatModel.cs)          - New
-❌ (ShowtimeModel.cs)      - Already needed for Screen 2
-❌ (BookingModel.cs)       - Already needed for Screen 2
-❌ BookingseatModel.cs     - New
-❌ ComboModel.cs           - New
-❌ BookingcomboModel.cs    - New
+✅ CinemaModel.cs           - Already exists
+✅ AuditoriumModel.cs       - Already exists
+✅ SeatModel.cs             - Already exists
+✅ ShowtimeModel.cs         - Already exists
+✅ BookingModel.cs          - Already exists
+✅ BookingSeatModel.cs      - Already exists (note: PascalCase)
+✅ ComboModel.cs            - Already exists
+✅ BookingComboModel.cs     - Already exists (note: PascalCase)
 ```
+
+#### Infrastructure Layer (Movie88.Infrastructure/Entities/)
+```
+✅ Cinema.cs                - Already exists
+✅ Auditorium.cs            - Already exists
+✅ Seat.cs                  - Already exists
+✅ Showtime.cs              - Already exists
+✅ Booking.cs               - Already exists
+✅ Bookingseat.cs           - Already exists
+✅ Combo.cs                 - Already exists
+✅ Bookingcombo.cs          - Already exists
+```
+
+### 🔄 To Be Created/Extended
 
 #### Application Layer (Movie88.Application/)
+
+**Folder Structure:**
 ```
-❌ DTOs/Cinemas/
-   - CinemaDTO.cs
-
-❌ DTOs/Showtimes/
-   - ShowtimeDetailDTO.cs
-   - ShowtimesByMovieDTO.cs
-   - ShowtimesByDateDTO.cs
-
-❌ DTOs/Seats/
-   - SeatDTO.cs
-   - SeatLayoutDTO.cs
-   - AvailableSeatsDTO.cs
-
-❌ DTOs/Bookings/
-   - CreateBookingRequestDTO.cs
-   - CreateBookingResponseDTO.cs
-   - AddCombosRequestDTO.cs
-
-❌ DTOs/Combos/
-   - ComboDTO.cs
-
-❌ Services/
-   - ICinemaService.cs / CinemaService.cs
-   - ISeatService.cs / SeatService.cs
-   - IComboService.cs / ComboService.cs
-   - (BookingService - extend existing)
-   - ✅ IBookingCodeGenerator.cs / BookingCodeGenerator.cs (DONE - Nov 3, 2025)
+Movie88.Application/
+├── DTOs/
+│   ├── Cinemas/           ← NEW FOLDER
+│   │   └── CinemaDTO.cs
+│   ├── Showtimes/         ← EXTEND EXISTING
+│   │   ├── ShowtimeDTO.cs (✅ exists)
+│   │   ├── ShowtimeDetailDTO.cs
+│   │   ├── ShowtimesByMovieDTO.cs
+│   │   └── ShowtimesByDateDTO.cs
+│   ├── Seats/             ← NEW FOLDER
+│   │   ├── SeatDTO.cs
+│   │   ├── SeatLayoutDTO.cs
+│   │   └── AvailableSeatsDTO.cs
+│   ├── Bookings/          ← EXTEND EXISTING
+│   │   ├── BookingListDTO.cs (✅ exists)
+│   │   ├── CreateBookingRequestDTO.cs
+│   │   ├── CreateBookingResponseDTO.cs
+│   │   └── AddCombosRequestDTO.cs
+│   └── Combos/            ← NEW FOLDER
+│       └── ComboDTO.cs
+├── Services/
+│   ├── BookingService.cs (✅ extend existing)
+│   ├── BookingCodeGenerator.cs (✅ already exists)
+│   ├── ShowtimeService.cs (✅ extend existing)
+│   ├── CinemaService.cs ← NEW
+│   ├── SeatService.cs ← NEW
+│   └── ComboService.cs ← NEW
+└── Interfaces/
+    ├── IBookingService.cs (✅ extend)
+    ├── IShowtimeService.cs (✅ extend)
+    ├── ICinemaService.cs ← NEW
+    ├── ISeatService.cs ← NEW
+    └── IComboService.cs ← NEW
 ```
 
 #### Infrastructure Layer (Movie88.Infrastructure/)
+
+**Folder Structure:**
 ```
-❌ Repositories/
-   - ICinemaRepository.cs / CinemaRepository.cs
-   - ISeatRepository.cs / SeatRepository.cs
-   - IComboRepository.cs / ComboRepository.cs
-   - (BookingRepository - extend)
+Movie88.Infrastructure/
+└── Repositories/
+    ├── BookingRepository.cs (✅ extend existing)
+    ├── ShowtimeRepository.cs (✅ extend existing)
+    ├── CinemaRepository.cs ← NEW
+    ├── SeatRepository.cs ← NEW
+    └── ComboRepository.cs ← NEW
 ```
 
 #### WebApi Layer (Movie88.WebApi/)
+
+**Folder Structure:**
 ```
-❌ Controllers/
-   - CinemasController.cs (1 endpoint)
-   - ShowtimesController.cs (3 endpoints)
-   - AuditoriumsController.cs (1 endpoint)
-   - BookingsController.cs (2 endpoints - extend)
-   - CombosController.cs (1 endpoint)
+Movie88.WebApi/
+└── Controllers/
+    ├── BookingsController.cs (✅ extend - add 2 endpoints)
+    ├── CinemasController.cs ← NEW (1 endpoint)
+    ├── ShowtimesController.cs ← NEW (3 endpoints)
+    ├── AuditoriumsController.cs ← NEW (1 endpoint)
+    └── CombosController.cs ← NEW (1 endpoint)
 ```
 
 ---
@@ -827,7 +880,7 @@ try
             Bookingid = booking.Bookingid,
             Seatid = seatId,
             Showtimeid = request.Showtimeid,
-            Price = showtime.Price
+            Seatprice = showtime.Price // ← Use Seatprice field
         };
         _context.Bookingseats.Add(bookingseat);
     }
@@ -860,7 +913,7 @@ foreach (var comboRequest in request.Combos)
         Bookingid = bookingId,
         Comboid = comboRequest.Comboid,
         Quantity = comboRequest.Quantity,
-        Price = combo.Price * comboRequest.Quantity
+        Comboprice = combo.Price * comboRequest.Quantity // ← Use Comboprice field
     };
     _context.Bookingcombos.Add(bookingcombo);
 }
@@ -868,10 +921,10 @@ foreach (var comboRequest in request.Combos)
 // 3. Update booking total
 var seatsTotal = await _context.Bookingseats
     .Where(bs => bs.Bookingid == bookingId)
-    .SumAsync(bs => bs.Price);
+    .SumAsync(bs => bs.Seatprice); // ← Use Seatprice
 var combosTotal = await _context.Bookingcombos
     .Where(bc => bc.Bookingid == bookingId)
-    .SumAsync(bc => bc.Price);
+    .SumAsync(bc => bc.Comboprice ?? 0); // ← Use Comboprice (nullable)
 booking.Totalamount = seatsTotal + combosTotal;
 
 await _context.SaveChangesAsync();
@@ -920,6 +973,110 @@ await _context.SaveChangesAsync();
 
 ---
 
+## 📝 Critical Field Name Reference
+
+> **⚠️ IMPORTANT**: Dưới đây là các field names THỰC TẾ trong database. Phải dùng CHÍNH XÁC để tránh lỗi!
+
+### Entity Field Names (Case-Sensitive)
+
+#### Cinema
+```csharp
+✅ Cinemaid (int)
+✅ Name (string)
+✅ Address (string)
+✅ Phone (string, nullable)
+✅ City (string, nullable)
+✅ Createdat (DateTime, nullable)
+```
+
+#### Auditorium
+```csharp
+✅ Auditoriumid (int)
+✅ Cinemaid (int)
+✅ Name (string)
+✅ Seatscount (int) ← NOT "capacity"
+```
+
+#### Seat
+```csharp
+✅ Seatid (int)
+✅ Auditoriumid (int)
+✅ Row (string) ← Capital R
+✅ Number (int) ← Capital N
+✅ Type (string, nullable)
+✅ Isavailable (bool, nullable)
+```
+
+#### Showtime
+```csharp
+✅ Showtimeid (int)
+✅ Movieid (int)
+✅ Auditoriumid (int)
+✅ Starttime (DateTime)
+✅ Endtime (DateTime, nullable)
+✅ Price (decimal)
+✅ Format (string)
+✅ Languagetype (string)
+```
+
+#### Booking
+```csharp
+✅ Bookingid (int)
+✅ Customerid (int) ← NOT "userid"
+✅ Showtimeid (int)
+✅ Voucherid (int, nullable)
+✅ Bookingcode (string, unique)
+✅ Bookingtime (DateTime, nullable)
+✅ Totalamount (decimal, nullable)
+✅ Status (string, nullable) ← Use BookingStatus enum
+```
+
+#### Bookingseat
+```csharp
+✅ Bookingseatid (int)
+✅ Bookingid (int)
+✅ Showtimeid (int)
+✅ Seatid (int)
+✅ Seatprice (decimal) ← NOT "price"
+```
+
+#### Combo
+```csharp
+✅ Comboid (int)
+✅ Name (string)
+✅ Description (string, nullable)
+✅ Price (decimal)
+✅ Imageurl (string, nullable)
+❌ NO "isavailable" field
+```
+
+#### Bookingcombo
+```csharp
+✅ Bookingcomboid (int)
+✅ Bookingid (int)
+✅ Comboid (int)
+✅ Quantity (int)
+✅ Comboprice (decimal, nullable) ← NOT "price"
+```
+
+### Common Mistakes to Avoid
+
+❌ **DON'T USE**:
+- `capacity` → Use `Seatscount`
+- `row`, `number` → Use `Row`, `Number` (capital)
+- `price` in Bookingseat → Use `Seatprice`
+- `price` in Bookingcombo → Use `Comboprice`
+- `userid` in Booking → Use `Customerid`
+
+✅ **DO USE**:
+- Exact casing from entity classes
+- `Seatprice` and `Comboprice` for junction tables
+- `Seatscount` for auditorium capacity
+- `Customerid` (from JWT → Customer table)
+
+---
+
 **Created**: November 3, 2025  
-**Last Updated**: November 3, 2025  
-**Progress**: ❌ 0/10 endpoints (0%)
+**Last Updated**: November 4, 2025  
+**Progress**: ❌ 0/10 endpoints (0%)  
+**Test File**: `tests/BookingFlow.http` ✅
