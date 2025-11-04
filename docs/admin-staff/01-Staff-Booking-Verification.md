@@ -705,6 +705,322 @@ Authorization: Bearer {staff_token}
 
 ---
 
+## 🧪 Testing Guide
+
+### Quick Start
+
+**Option 1: REST Client (VS Code Extension)**
+
+1. Install REST Client extension
+2. Create `tests/Staff.http` file
+3. Run API server: `dotnet run`
+4. Click "Send Request" on each test
+
+**Option 2: Swagger UI**
+
+1. Run API: `dotnet run`
+2. Navigate to: https://localhost:7238/swagger
+3. Click "Authorize" và paste staff token
+4. Test endpoints với "Try it out"
+
+### Test File Template: `tests/Staff.http`
+
+```http
+### Staff API Testing - Booking Verification
+@baseUrl = https://movie88aspnet-app.up.railway.app/api
+# @baseUrl = https://localhost:7238/api
+
+### Variables
+@staffToken = YOUR_STAFF_TOKEN_HERE
+@bookingCode = BK20251104001
+@bookingId = 12345
+
+###############################################
+# 1. VERIFY BOOKING CODE
+###############################################
+
+### Test 1.1: Verify valid booking code
+GET {{baseUrl}}/bookings/verify/{{bookingCode}}
+Authorization: Bearer {{staffToken}}
+
+### Test 1.2: Verify invalid booking code (should return 404)
+GET {{baseUrl}}/bookings/verify/BK20251104999
+Authorization: Bearer {{staffToken}}
+
+### Test 1.3: Verify already checked-in booking (should return 400)
+GET {{baseUrl}}/bookings/verify/BK20251104002
+Authorization: Bearer {{staffToken}}
+
+### Test 1.4: Verify booking without payment (should show Pending status)
+GET {{baseUrl}}/bookings/verify/BK20251104003
+Authorization: Bearer {{staffToken}}
+
+###############################################
+# 2. CHECK-IN CUSTOMER
+###############################################
+
+### Test 2.1: Check-in on time
+PUT {{baseUrl}}/bookings/{{bookingId}}/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-04T19:15:00",
+  "notes": "Checked in at counter"
+}
+
+### Test 2.2: Check-in late arrival
+PUT {{baseUrl}}/bookings/12346/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-04T19:45:00",
+  "notes": "Late arrival - 15 minutes after showtime"
+}
+
+### Test 2.3: Check-in already checked booking (should fail)
+PUT {{baseUrl}}/bookings/12345/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-04T19:50:00",
+  "notes": "Duplicate check-in attempt"
+}
+
+###############################################
+# 3. TODAY'S BOOKINGS
+###############################################
+
+### Test 3.1: Get all today's bookings
+GET {{baseUrl}}/bookings/today
+Authorization: Bearer {{staffToken}}
+
+### Test 3.2: Get today's bookings with pagination
+GET {{baseUrl}}/bookings/today?page=1&pageSize=50
+Authorization: Bearer {{staffToken}}
+
+### Test 3.3: Filter by cinema
+GET {{baseUrl}}/bookings/today?cinemaId=1
+Authorization: Bearer {{staffToken}}
+
+### Test 3.4: Filter by status
+GET {{baseUrl}}/bookings/today?status=confirmed
+Authorization: Bearer {{staffToken}}
+
+### Test 3.5: Filter by check-in status
+GET {{baseUrl}}/bookings/today?checkinStatus=not-checked-in
+Authorization: Bearer {{staffToken}}
+
+### Test 3.6: Combined filters
+GET {{baseUrl}}/bookings/today?cinemaId=1&status=confirmed&checkinStatus=not-checked-in&page=1&pageSize=20
+Authorization: Bearer {{staffToken}}
+```
+
+### Test Scenarios
+
+#### 1. Verify Booking Code Tests
+- ✅ Valid booking code → Success 200
+- ✅ Invalid booking code → Error 404
+- ✅ Already checked-in → Error 400
+- ✅ Payment pending → Show pending status
+- ✅ Wrong cinema → Show correct cinema info
+- ✅ Expired showtime → Still can verify but show warning
+
+#### 2. Check-in Customer Tests
+- ✅ Check-in on time → Success 200
+- ✅ Check-in late (after showtime) → Success 200 with note
+- ✅ Check-in early (before showtime) → Success 200
+- ✅ Double check-in → Error 400
+- ✅ Check-in without verify first → Should still work
+- ✅ Check-in with invalid booking ID → Error 404
+
+#### 3. Today's Bookings Tests
+- ✅ Get all today's bookings
+- ✅ Pagination works correctly
+- ✅ Filter by cinema
+- ✅ Filter by status (pending, confirmed, cancelled)
+- ✅ Filter by check-in status
+- ✅ Combined filters work together
+
+### Expected Responses
+
+**Success - Verify Booking (200 OK):**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Booking verified successfully",
+  "data": {
+    "bookingCode": "BK20251104001",
+    "status": "Confirmed",
+    "customer": {
+      "fullname": "Nguyen Van A",
+      "phone": "0901234567"
+    },
+    "movie": {
+      "title": "Avengers: Endgame"
+    },
+    "showtime": {
+      "startTime": "2025-11-04T19:30:00",
+      "cinema": {
+        "name": "CGV Vincom Center"
+      }
+    },
+    "seats": [
+      { "row": "A", "number": 5 }
+    ],
+    "payment": {
+      "paymentStatus": "Completed"
+    }
+  }
+}
+```
+
+**Success - Check-in (200 OK):**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Check-in successful",
+  "data": {
+    "bookingId": 12345,
+    "bookingCode": "BK20251104001",
+    "checkinStatus": "CheckedIn",
+    "checkinTime": "2025-11-04T19:15:00"
+  }
+}
+```
+
+**Error - Invalid Booking Code (404):**
+```json
+{
+  "success": false,
+  "statusCode": 404,
+  "message": "Booking code not found",
+  "errors": [
+    "The booking code 'BK20251104999' does not exist in the system"
+  ]
+}
+```
+
+**Error - Already Checked In (400):**
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Booking already checked in",
+  "errors": [
+    "This booking was already checked in at 18:45 on 2025-11-04"
+  ]
+}
+```
+
+**Error - Unauthorized (401):**
+```json
+{
+  "success": false,
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "errors": ["Invalid or expired token"]
+}
+```
+
+### PowerShell Test Script: `tests/Test-StaffAPI.ps1`
+
+```powershell
+# Test Staff API endpoints
+$baseUrl = "https://localhost:7238/api"
+$staffToken = "YOUR_STAFF_TOKEN_HERE"
+
+$headers = @{
+    "Authorization" = "Bearer $staffToken"
+    "Content-Type" = "application/json"
+}
+
+Write-Host "Testing Staff API..." -ForegroundColor Cyan
+
+# Test 1: Verify Booking Code
+Write-Host "`n1. Testing Verify Booking Code..." -ForegroundColor Yellow
+$bookingCode = "BK20251104001"
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/bookings/verify/$bookingCode" -Method Get -Headers $headers
+    Write-Host "✅ Verify Booking: SUCCESS" -ForegroundColor Green
+    Write-Host "   Customer: $($response.data.customer.fullname)" -ForegroundColor White
+    Write-Host "   Movie: $($response.data.movie.title)" -ForegroundColor White
+    Write-Host "   Payment: $($response.data.payment.paymentStatus)" -ForegroundColor White
+} catch {
+    Write-Host "❌ Verify Booking: FAILED - $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 2: Invalid Booking Code (should fail with 404)
+Write-Host "`n2. Testing Invalid Booking Code..." -ForegroundColor Yellow
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/bookings/verify/BK99999999" -Method Get -Headers $headers
+    Write-Host "❌ Should have failed with 404" -ForegroundColor Red
+} catch {
+    if ($_.Exception.Response.StatusCode -eq 404) {
+        Write-Host "✅ Invalid Booking: Correctly returned 404" -ForegroundColor Green
+    } else {
+        Write-Host "❌ Unexpected error: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
+# Test 3: Check-in Customer
+Write-Host "`n3. Testing Check-in Customer..." -ForegroundColor Yellow
+$bookingId = 12345
+$checkinData = @{
+    checkinTime = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss")
+    notes = "Checked in via PowerShell test"
+} | ConvertTo-Json
+
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/bookings/$bookingId/check-in" -Method Put -Headers $headers -Body $checkinData
+    Write-Host "✅ Check-in: SUCCESS" -ForegroundColor Green
+    Write-Host "   Booking Code: $($response.data.bookingCode)" -ForegroundColor White
+    Write-Host "   Check-in Time: $($response.data.checkinTime)" -ForegroundColor White
+} catch {
+    Write-Host "❌ Check-in: FAILED - $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 4: Get Today's Bookings
+Write-Host "`n4. Testing Today's Bookings..." -ForegroundColor Yellow
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/bookings/today?page=1&pageSize=10" -Method Get -Headers $headers
+    Write-Host "✅ Today's Bookings: SUCCESS" -ForegroundColor Green
+    Write-Host "   Total Bookings: $($response.data.totalRecords)" -ForegroundColor White
+    Write-Host "   Not Checked In: $($response.data.bookings | Where-Object {$_.checkinStatus -eq 'NotCheckedIn'} | Measure-Object).Count" -ForegroundColor White
+} catch {
+    Write-Host "❌ Today's Bookings: FAILED - $($_.Exception.Message)" -ForegroundColor Red
+}
+
+Write-Host "`n✅ Staff API testing completed!" -ForegroundColor Cyan
+```
+
+### Common Issues & Solutions
+
+**Issue 1: Token expired (401)**
+- Solution: Login lại để lấy token mới
+- Staff token có thời hạn 60 phút
+
+**Issue 2: Booking code không tìm thấy (404)**
+- Check xem có nhầm O/0, I/1 không
+- Verify booking code chính xác từ customer
+- Check database xem booking có tồn tại không
+
+**Issue 3: Already checked in (400)**
+- Check `checkedintime` trong database
+- Có thể customer đã check-in rồi
+- Hoặc có lỗi duplicate check-in request
+
+**Issue 4: Forbidden (403)**
+- Staff token không có quyền
+- Cần Admin role cho một số endpoints
+- Check role trong JWT token
+
+---
+
 **Last Updated**: November 4, 2025  
 **Author**: Backend Team  
 **Status**: ⚠️ APIs chưa implement, cần triển khai

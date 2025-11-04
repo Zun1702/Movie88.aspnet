@@ -864,6 +864,369 @@ GET /api/admin/reports/customers/analytics?period=month
 
 ---
 
+## 🧪 Testing Guide
+
+### Quick Start
+
+**Option 1: REST Client (VS Code Extension)**
+
+1. Install REST Client extension
+2. Create `tests/Admin.http` file
+3. Run API server: `dotnet run`
+4. Click "Send Request" on each test
+
+**Option 2: Swagger UI**
+
+1. Run API: `dotnet run`
+2. Navigate to: https://localhost:7238/swagger
+3. Click "Authorize" và paste admin token
+4. Test endpoints với "Try it out"
+
+### Test File Template: `tests/Admin.http`
+
+```http
+### Admin API Testing
+@baseUrl = https://movie88aspnet-app.up.railway.app/api
+# @baseUrl = https://localhost:7238/api
+
+### Variables
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+
+###############################################
+# 1. DASHBOARD
+###############################################
+
+### Test 1: Get dashboard stats
+GET {{baseUrl}}/admin/dashboard/stats
+Authorization: Bearer {{adminToken}}
+
+###############################################
+# 2. MOVIE MANAGEMENT
+###############################################
+
+### Test 2.1: Create new movie
+POST {{baseUrl}}/movies
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "Test Movie",
+  "description": "Test description",
+  "durationMinutes": 120,
+  "director": "Test Director",
+  "releaseDate": "2025-12-01",
+  "rating": "PG-13",
+  "genre": "Action, Drama",
+  "country": "USA",
+  "posterUrl": "https://example.com/poster.jpg",
+  "trailerUrl": "https://youtube.com/watch?v=test"
+}
+
+### Test 2.2: Update movie
+PUT {{baseUrl}}/movies/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "posterUrl": "https://example.com/new-poster.jpg"
+}
+
+### Test 2.3: Delete movie
+DELETE {{baseUrl}}/movies/999
+Authorization: Bearer {{adminToken}}
+
+### Test 2.4: Get admin movies list
+GET {{baseUrl}}/admin/movies?page=1&pageSize=20&sortBy=revenue
+Authorization: Bearer {{adminToken}}
+
+###############################################
+# 3. CINEMA MANAGEMENT
+###############################################
+
+### Test 3.1: Create cinema
+POST {{baseUrl}}/admin/cinemas
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "CGV Test Cinema",
+  "address": "123 Test Street",
+  "city": "Ho Chi Minh",
+  "district": "District 1",
+  "phone": "1900 6017",
+  "facilities": ["3D", "IMAX"]
+}
+
+### Test 3.2: Update cinema
+PUT {{baseUrl}}/admin/cinemas/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "1900 9999"
+}
+
+### Test 3.3: Delete cinema
+DELETE {{baseUrl}}/admin/cinemas/999
+Authorization: Bearer {{adminToken}}
+
+###############################################
+# 4. SHOWTIME MANAGEMENT
+###############################################
+
+### Test 4.1: Create showtime
+POST {{baseUrl}}/admin/showtimes
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "movieId": 1,
+  "auditoriumId": 3,
+  "startTime": "2025-11-10T19:30:00",
+  "format": "2D",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "basePrice": 90000
+}
+
+### Test 4.2: Bulk create showtimes
+POST {{baseUrl}}/admin/showtimes/bulk
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "movieId": 1,
+  "auditoriumId": 3,
+  "startDate": "2025-11-10",
+  "endDate": "2025-11-17",
+  "timeslots": ["10:00", "13:00", "16:00", "19:00"],
+  "pricing": {
+    "weekday": { "standard": 90000 },
+    "weekend": { "standard": 120000 }
+  }
+}
+
+### Test 4.3: Delete showtime
+DELETE {{baseUrl}}/admin/showtimes/456
+Authorization: Bearer {{adminToken}}
+
+###############################################
+# 5. USER MANAGEMENT
+###############################################
+
+### Test 5.1: Get users list
+GET {{baseUrl}}/admin/users?role=customer&page=1&pageSize=50
+Authorization: Bearer {{adminToken}}
+
+### Test 5.2: Create staff
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "staff01@movie88.com",
+  "password": "Staff@123",
+  "fullname": "Test Staff",
+  "role": "Staff",
+  "phone": "0901234567",
+  "cinemaId": 1
+}
+
+### Test 5.3: Update user role
+PUT {{baseUrl}}/admin/users/123/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newRole": "Staff"
+}
+
+### Test 5.4: Ban user
+PUT {{baseUrl}}/admin/users/456/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Spam reviews",
+  "duration": "30 days"
+}
+
+###############################################
+# 6. REPORTS & ANALYTICS
+###############################################
+
+### Test 6.1: Daily revenue
+GET {{baseUrl}}/admin/reports/revenue/daily?date=2025-11-04
+Authorization: Bearer {{adminToken}}
+
+### Test 6.2: Monthly revenue
+GET {{baseUrl}}/admin/reports/revenue/monthly?month=11&year=2025
+Authorization: Bearer {{adminToken}}
+
+### Test 6.3: Booking statistics
+GET {{baseUrl}}/admin/reports/bookings/statistics?startDate=2025-11-01&endDate=2025-11-30
+Authorization: Bearer {{adminToken}}
+
+### Test 6.4: Popular movies
+GET {{baseUrl}}/admin/reports/popular-movies?period=month&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Test 6.5: Customer analytics
+GET {{baseUrl}}/admin/reports/customers/analytics?period=month
+Authorization: Bearer {{adminToken}}
+```
+
+### Test Scenarios
+
+#### 1. Dashboard Tests
+- ✅ Get dashboard stats with real-time data
+- ✅ Verify revenue calculations
+- ✅ Check popular movies ranking
+- ✅ Validate occupancy rates
+
+#### 2. Movie Management Tests
+- ✅ Create movie with all fields
+- ✅ Create movie with minimal fields
+- ✅ Update movie info
+- ✅ Delete movie without bookings → Success
+- ✅ Delete movie with bookings → Error 400
+- ✅ Get admin movies with sorting/filtering
+
+#### 3. Cinema Management Tests
+- ✅ Create cinema with facilities
+- ✅ Update cinema info
+- ✅ Delete inactive cinema → Success
+- ✅ Delete active cinema → Error 400
+
+#### 4. Showtime Management Tests
+- ✅ Create single showtime
+- ✅ Bulk create showtimes for week
+- ✅ Update showtime pricing
+- ✅ Delete showtime without bookings → Success
+- ✅ Delete showtime with bookings → Error 400
+
+#### 5. User Management Tests
+- ✅ Get users filtered by role
+- ✅ Create staff account
+- ✅ Promote customer to staff
+- ✅ Ban user with reason
+- ✅ Unban user
+
+#### 6. Reports Tests
+- ✅ Daily revenue with breakdown
+- ✅ Monthly revenue trends
+- ✅ Booking completion rate
+- ✅ Popular movies ranking
+- ✅ Customer retention metrics
+
+### Expected Responses
+
+**Success (200 OK):**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Operation successful",
+  "data": { /* ... */ }
+}
+```
+
+**Created (201 Created):**
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Resource created successfully",
+  "data": { "id": 123 }
+}
+```
+
+**Unauthorized (401):**
+```json
+{
+  "success": false,
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "errors": ["Invalid or expired token"]
+}
+```
+
+**Forbidden (403):**
+```json
+{
+  "success": false,
+  "statusCode": 403,
+  "message": "Forbidden",
+  "errors": ["Admin role required"]
+}
+```
+
+**Bad Request (400):**
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Validation failed",
+  "errors": [
+    "Movie title is required",
+    "Duration must be greater than 0"
+  ]
+}
+```
+
+### PowerShell Test Script: `tests/Test-AdminAPI.ps1`
+
+```powershell
+# Test Admin API endpoints
+$baseUrl = "https://localhost:7238/api"
+$adminToken = "YOUR_ADMIN_TOKEN_HERE"
+
+$headers = @{
+    "Authorization" = "Bearer $adminToken"
+    "Content-Type" = "application/json"
+}
+
+Write-Host "Testing Admin API..." -ForegroundColor Cyan
+
+# Test 1: Dashboard
+Write-Host "`n1. Testing Dashboard..." -ForegroundColor Yellow
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/admin/dashboard/stats" -Method Get -Headers $headers
+    Write-Host "✅ Dashboard: SUCCESS" -ForegroundColor Green
+} catch {
+    Write-Host "❌ Dashboard: FAILED - $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 2: Create Movie
+Write-Host "`n2. Testing Create Movie..." -ForegroundColor Yellow
+$movieData = @{
+    title = "Test Movie"
+    durationMinutes = 120
+    rating = "PG-13"
+} | ConvertTo-Json
+
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/movies" -Method Post -Headers $headers -Body $movieData
+    Write-Host "✅ Create Movie: SUCCESS - ID: $($response.data.movieId)" -ForegroundColor Green
+} catch {
+    Write-Host "❌ Create Movie: FAILED - $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 3: Get Admin Movies
+Write-Host "`n3. Testing Get Admin Movies..." -ForegroundColor Yellow
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/admin/movies?page=1&pageSize=10" -Method Get -Headers $headers
+    Write-Host "✅ Get Admin Movies: SUCCESS - Total: $($response.data.totalRecords)" -ForegroundColor Green
+} catch {
+    Write-Host "❌ Get Admin Movies: FAILED - $($_.Exception.Message)" -ForegroundColor Red
+}
+
+Write-Host "`n✅ Admin API testing completed!" -ForegroundColor Cyan
+```
+
+---
+
 ## 📞 Support & Contacts
 
 **IT Support:**
