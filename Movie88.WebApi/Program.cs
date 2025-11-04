@@ -98,7 +98,8 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Movie88 API v1");
-    c.RoutePrefix = string.Empty; // Set Swagger UI at root
+    // Use default route "swagger" so it works at /swagger
+    // c.RoutePrefix = string.Empty; // This makes it available at root /
 });
 
 // Disable HTTPS redirection for Railway (Railway handles HTTPS at edge)
