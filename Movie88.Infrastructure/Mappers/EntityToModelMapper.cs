@@ -13,6 +13,7 @@ public class EntityToModelMapper : Profile
         CreateMap<Promotion, PromotionModel>();
         
         CreateMap<Customer, CustomerModel>()
+            .ForMember(dest => dest.User, opt => opt.Ignore()) // ✅ Ignore User navigation property - already flattened
             .ForMember(dest => dest.Fullname, 
                 opt => opt.MapFrom(src => src.User != null ? src.User.Fullname : string.Empty))
             .ForMember(dest => dest.Email, 
