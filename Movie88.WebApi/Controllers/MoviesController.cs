@@ -108,21 +108,28 @@ public class MoviesController : ControllerBase
     /// GET /api/movies/{id}/showtimes - Get showtimes for a movie, grouped by date and cinema
     /// </summary>
     /// <param name="id">Movie ID</param>
-    /// <param name="date">Filter by date (optional, format: yyyy-MM-dd)</param>
-    /// <param name="cinemaid">Filter by cinema ID (optional)</param>
     [HttpGet("{id}/showtimes")]
-    public async Task<IActionResult> GetMovieShowtimes(
-        int id,
-        [FromQuery] DateTime? date = null,
-        [FromQuery] int? cinemaid = null)
+    public async Task<IActionResult> GetMovieShowtimes(int id)
     {
-        var result = await _showtimeService.GetShowtimesByMovieIdAsync(id, date, cinemaid);
+        var showtimes = await _showtimeService.GetShowtimesByMovieAsync(id);
         
-        return result.StatusCode switch
+        if (showtimes == null)
         {
-            200 => Ok(result),
-            404 => NotFound(result),
-            _ => StatusCode(result.StatusCode, result)
-        };
+            return NotFound(new
+            {
+                success = false,
+                statusCode = 404,
+                message = $"No showtimes found for movie ID {id}",
+                data = (object?)null
+            });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            statusCode = 200,
+            message = "Showtimes retrieved successfully",
+            data = showtimes
+        });
     }
 }

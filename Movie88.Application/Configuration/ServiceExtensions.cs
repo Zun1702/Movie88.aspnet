@@ -44,6 +44,22 @@ namespace Movie88.Application.Configuration
             
             // Showtime Service
             services.AddScoped<IShowtimeService, ShowtimeService>();
+            
+            // Cinema Service
+            services.AddScoped<ICinemaService, CinemaService>();
+            
+            // Combo Service
+            services.AddScoped<IComboService, ComboService>();
+            
+            // Auditorium Service
+            services.AddScoped<IAuditoriumService, AuditoriumService>();
+            
+            // Voucher Service
+            services.AddScoped<IVoucherService, VoucherService>();
+            
+            // Payment Services
+            services.AddScoped<IPaymentService, PaymentService>();
+            services.AddScoped<IVNPayService, VNPayService>();
 
             //User Service
             services.AddScoped<IUserService, UserService>();

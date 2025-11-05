@@ -1,0 +1,452 @@
+### 🎫 Booking Flow API Testing
+### Complete booking journey from cinema selection to combo addition
+
+@baseUrl = https://localhost:7238/api
+# @baseUrl = https://localhost:7238/api
+
+### Variables
+
+### Login to get JWT token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "ngoctrungtsn111@gmail.com",
+  "password": "123321"
+}
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiMDM0NDE3ZjItYjU0MC00YWM2LTk3NzYtNGZiNjc0MzBmZTk5IiwibmJmIjoxNzYyMjg5ODY0LCJleHAiOjE3NjIyOTM0NjQsImlhdCI6MTc2MjI4OTg2NCwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.81IDq6RLUgPKHA4AzE2p9VKdUn1Ib6mrBlMoSVizlRg
+@movieId = 1
+@cinemaId = 1
+@showtimeId = 1
+@auditoriumId = 1
+@bookingId = 17
+@seatId1 = 19
+@seatId2 = 20
+
+###############################################
+# 🎬 PHASE 1: CINEMA & SHOWTIME SELECTION
+###############################################
+
+### 1. GET List of Cinemas
+GET {{baseUrl}}/cinemas
+Content-Type: application/json
+
+### 1.1 GET Cinemas by City
+GET {{baseUrl}}/cinemas?city=TP.HCM
+Content-Type: application/json
+
+###
+
+### 2. GET Showtimes by Movie (grouped by date & cinema)
+GET {{baseUrl}}/showtimes/by-movie/{{movieId}}
+Content-Type: application/json
+
+### 2.1 Alternative: GET Showtimes via Movies endpoint
+GET {{baseUrl}}/movies/{{movieId}}/showtimes
+Content-Type: application/json
+
+### Note: by-movie endpoint returns ALL showtimes grouped by date & cinema
+### For filtering by date/cinema, use the by-date endpoint below
+
+###
+
+### 3. GET Showtimes by Date
+GET {{baseUrl}}/showtimes/by-date?date=2025-11-05
+Content-Type: application/json
+
+### 3.1 GET Showtimes by Date and Cinema
+GET {{baseUrl}}/showtimes/by-date?date=2025-11-05&cinemaid={{cinemaId}}
+Content-Type: application/json
+
+### 3.2 GET Showtimes by Date and Movie
+GET {{baseUrl}}/showtimes/by-date?date=2025-11-05&movieid={{movieId}}
+Content-Type: application/json
+
+### 3.3 GET Showtimes by Date, Cinema and Movie
+GET {{baseUrl}}/showtimes/by-date?date=2025-11-05&cinemaid={{cinemaId}}&movieid={{movieId}}
+Content-Type: application/json
+
+###
+
+### 4. GET Showtime Details
+GET {{baseUrl}}/showtimes/{{showtimeId}}
+Content-Type: application/json
+
+###############################################
+# 💺 PHASE 2: SEAT SELECTION & BOOKING CREATION
+###############################################
+
+### 5. GET Available Seats for Showtime
+GET {{baseUrl}}/showtimes/{{showtimeId}}/available-seats
+Content-Type: application/json
+
+###
+
+### 6. GET Auditorium Seat Layout
+GET {{baseUrl}}/auditoriums/{{auditoriumId}}/seats
+Content-Type: application/json
+
+###
+
+### 7. POST Create Booking (REQUIRES AUTH)
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [{{seatId1}}, {{seatId2}}]
+}
+
+### 7.1 Create Booking - Single Seat
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [{{seatId1}}]
+}
+
+### 7.2 Create Booking - Multiple Seats
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "showtimeid": 1,
+  "seatids": [13, 14, 15, 16]
+}
+
+###
+
+### ERROR TEST: Create Booking without Auth (should return 401)
+POST {{baseUrl}}/bookings/create
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [{{seatId1}}, {{seatId2}}]
+}
+
+### ERROR TEST: Create Booking with Invalid Showtime (should return 404)
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "showtimeid": 99999,
+  "seatids": [{{seatId1}}]
+}
+
+### ERROR TEST: Create Booking with Already Booked Seat (should return 409)
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [1, 2]
+}
+
+###############################################
+# 🍿 PHASE 3: COMBO SELECTION
+###############################################
+
+### 8. GET List of Combos
+GET {{baseUrl}}/combos
+Content-Type: application/json
+
+###
+
+### 9. POST Add Combos to Booking (REQUIRES AUTH)
+POST {{baseUrl}}/bookings/{{bookingId}}/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 2,
+      "quantity": 1
+    },
+    {
+      "comboid": 1,
+      "quantity": 2
+    }
+  ]
+}
+
+### 9.1 Add Single Combo
+POST {{baseUrl}}/bookings/{{bookingId}}/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 1,
+      "quantity": 1
+    }
+  ]
+}
+
+### 9.2 Add Multiple Combos
+POST {{baseUrl}}/bookings/15/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 1,
+      "quantity": 2
+    },
+    {
+      "comboid": 2,
+      "quantity": 1
+    }
+  ]
+}
+
+###
+
+### ERROR TEST: Add Combos without Auth (should return 401)
+POST {{baseUrl}}/bookings/{{bookingId}}/add-combos
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 1,
+      "quantity": 1
+    }
+  ]
+}
+
+### ERROR TEST: Add Combos to Non-existent Booking (should return 404)
+POST {{baseUrl}}/bookings/99999/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 1,
+      "quantity": 1
+    }
+  ]
+}
+
+### ERROR TEST: Add Invalid Combo (should return 404)
+POST {{baseUrl}}/bookings/{{bookingId}}/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 99999,
+      "quantity": 1
+    }
+  ]
+}
+
+### ERROR TEST: Add Combo with Zero Quantity (should return 400)
+POST {{baseUrl}}/bookings/{{bookingId}}/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 1,
+      "quantity": 0
+    }
+  ]
+}
+
+###############################################
+# 🔄 COMPLETE BOOKING FLOW SCENARIO
+###############################################
+
+### SCENARIO: Complete booking flow from start to finish
+### Step 1: Get cinemas
+### Step 2: Get showtimes for selected movie at selected cinema
+### Step 3: Get available seats for selected showtime
+### Step 4: Create booking with selected seats
+### Step 5: Add combos to booking
+### Step 6: Proceed to payment (see Payment.http)
+
+### 📝 Example Flow:
+
+# 1. Get cinemas in HCMC
+GET {{baseUrl}}/cinemas?city=Tp.HCM
+
+# 2. Get showtimes for "Avengers" at CGV Vincom on Nov 5
+GET {{baseUrl}}/showtimes/by-movie/1?date=2025-11-05&cinemaid=1
+
+# 3. Get available seats for selected showtime
+GET {{baseUrl}}/showtimes/1/available-seats
+
+# 4. Create booking with 2 seats (A5, A6)
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "showtimeid": 1,
+  "seatids": [17, 18]
+}
+
+# 5. Add combo to booking (use bookingId from response)
+POST {{baseUrl}}/bookings/1/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 2,
+      "quantity": 1
+    }
+  ]
+}
+
+###############################################
+# 📊 DATA VALIDATION TESTS
+###############################################
+
+### TEST: Future showtimes only
+GET {{baseUrl}}/showtimes/by-date?date=2025-11-05
+# Should only return showtimes with starttime >= now
+
+### TEST: Seat availability accuracy
+GET {{baseUrl}}/showtimes/{{showtimeId}}/available-seats
+# Compare with actual bookingseats in database
+
+### TEST: Booking code generation
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "showtimeid": 42,
+  "seatids": [125]
+}
+# Check bookingcode format: BK-YYYYMMDD-XXXX
+
+### TEST: Total amount calculation
+POST {{baseUrl}}/bookings/156/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 2,
+      "quantity": 1
+    }
+  ]
+}
+# Verify: totalamount = (seat count × showtime price) + (combo price × quantity)
+
+###############################################
+# 🎯 PERFORMANCE TESTS
+###############################################
+
+### LOAD TEST: Get available seats (should be fast)
+GET {{baseUrl}}/showtimes/{{showtimeId}}/available-seats
+
+### LOAD TEST: Get showtimes by movie (should handle multiple cinemas)
+GET {{baseUrl}}/showtimes/by-movie/1?date=2025-11-05
+
+###############################################
+# 🔒 SECURITY TESTS
+###############################################
+
+### TEST: Cannot create booking for other user
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "showtimeid": 42,
+  "seatids": [125]
+}
+# Should use customerid from JWT token only
+
+### TEST: Cannot add combos to other user's booking
+POST {{baseUrl}}/bookings/999/add-combos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 1,
+      "quantity": 1
+    }
+  ]
+}
+# Should return 403 Forbidden if booking doesn't belong to user
+
+###############################################
+# 📋 REFERENCE ENDPOINT
+###############################################
+
+### 10. GET Movie Details (Already implemented)
+GET {{baseUrl}}/movies/{{movieId}}
+Content-Type: application/json
+
+###
+
+###############################################
+# 🧪 NOTES FOR TESTING
+###############################################
+
+# 1. Update @token with valid JWT token from login
+# 2. Update @movieId, @cinemaId, @showtimeId with real IDs from database
+# 3. Update @bookingId with actual booking ID after creating booking
+# 4. Test each phase sequentially: Cinema Selection → Seat Selection → Combo Selection
+# 5. Verify booking status is "Pending" after creation
+# 6. Verify total amount is calculated correctly after adding combos
+# 7. Test error cases to ensure proper validation
+
+###############################################
+# ✅ EXPECTED RESULTS
+###############################################
+
+# Phase 1 (Cinema & Showtime):
+# - GET /api/cinemas → 200 OK with list of cinemas
+# - GET /api/showtimes/by-movie/{id} → 200 OK with grouped showtimes
+# - GET /api/showtimes/by-date → 200 OK with filtered showtimes
+# - GET /api/showtimes/{id} → 200 OK with showtime details
+
+# Phase 2 (Seat Selection & Booking):
+# - GET /api/showtimes/{id}/available-seats → 200 OK with seat availability
+# - GET /api/auditoriums/{id}/seats → 200 OK with seat layout
+# - POST /api/bookings/create → 201 Created with booking details
+#   - Booking status: "Pending"
+#   - BookingCode generated: BK-20251105-XXXX
+#   - Total amount calculated
+
+# Phase 3 (Combo Selection):
+# - GET /api/combos → 200 OK with list of combos
+# - POST /api/bookings/{id}/add-combos → 200 OK
+#   - Total amount updated with combo prices
+#   - Booking still "Pending"
+
+###############################################
+# 🚀 NEXT STEPS AFTER BOOKING FLOW
+###############################################
+
+# After completing booking flow:
+# 1. Proceed to Payment Flow (see Payment.http)
+# 2. Complete payment via VNPay/MOMO
+# 3. Booking status changes: Pending → Confirmed
+# 4. BookingCode becomes available for QR scanning at cinema
+# 5. Staff can verify and check-in (see Staff.http)
+
+###
