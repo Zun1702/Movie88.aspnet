@@ -12,4 +12,6 @@ public interface IBookingService
     Task<BookingResponseDTO?> CreateBookingAsync(int customerid, CreateBookingRequestDTO request, CancellationToken cancellationToken = default);
     Task<UpdatedBookingResponseDTO?> AddCombosToBookingAsync(int bookingId, int customerId, AddCombosRequestDTO request, CancellationToken cancellationToken = default);
     Task<ApplyVoucherResponseDTO?> ApplyVoucherToBookingAsync(int bookingId, int customerId, ApplyVoucherRequestDTO request, CancellationToken cancellationToken = default);
+    Task<CancelBookingResponseDTO> CancelBookingAsync(int bookingId, int customerId, CancellationToken cancellationToken = default);
+    Task AutoCancelExpiredBookingsAsync(CancellationToken cancellationToken = default);
 }

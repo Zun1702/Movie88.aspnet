@@ -322,4 +322,78 @@ public class BookingsController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// Cancel a pending booking and release seats
+    /// </summary>
+    /// <param name="id">Booking ID to cancel</param>
+    /// <returns>Cancellation confirmation with released seats</returns>
+    [HttpPost("{id}/cancel")]
+    public async Task<IActionResult> CancelBooking(int id)
+    {
+        try
+        {
+            // Extract userId from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    statusCode = 401,
+                    message = "Unauthorized - Invalid token"
+                });
+            }
+
+            // Get customer from userId
+            var customerResult = await _customerService.GetProfileByUserIdAsync(userId);
+            if (!customerResult.IsSuccess || customerResult.Data == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    statusCode = 404,
+                    message = "Customer profile not found"
+                });
+            }
+
+            var result = await _bookingService.CancelBookingAsync(id, customerResult.Data.Customerid);
+
+            return Ok(new
+            {
+                success = true,
+                statusCode = 200,
+                message = "Booking cancelled successfully",
+                data = result
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new
+            {
+                success = false,
+                statusCode = 403,
+                message = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                statusCode = 400,
+                message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                success = false,
+                statusCode = 500,
+                message = "An error occurred while cancelling booking",
+                error = ex.Message
+            });
+        }
+    }
 }

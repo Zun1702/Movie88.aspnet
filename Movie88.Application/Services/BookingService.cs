@@ -296,4 +296,61 @@ public class BookingService : IBookingService
             Totalamount = newTotal
         };
     }
+
+    public async Task<CancelBookingResponseDTO> CancelBookingAsync(
+        int bookingId, 
+        int customerId, 
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Get booking and validate ownership
+        var booking = await _bookingRepository.GetByIdWithDetailsAsync(bookingId);
+        if (booking == null)
+            throw new InvalidOperationException("Booking not found");
+
+        if (booking.Customerid != customerId)
+            throw new UnauthorizedAccessException("This booking does not belong to you");
+
+        // 2. Check booking status (only Pending bookings can be cancelled)
+        if (booking.Status?.ToLower() != nameof(BookingStatus.Pending).ToLower())
+            throw new InvalidOperationException($"Cannot cancel booking with status: {booking.Status}");
+
+        // 3. Cancel booking and release seats
+        var (cancelledBooking, seatIds) = await _bookingRepository.CancelBookingAndReleaseSeatsAsync(bookingId, cancellationToken);
+
+        // 4. Get seat names for response
+        var seatNames = booking.BookingSeats?
+            .Where(bs => seatIds.Contains(bs.Seatid))
+            .Select(bs => $"{bs.Seat?.Row}{bs.Seat?.Number}")
+            .ToList() ?? new List<string>();
+
+        return new CancelBookingResponseDTO
+        {
+            Bookingid = bookingId,
+            Bookingcode = cancelledBooking.Bookingcode,
+            Status = nameof(BookingStatus.Cancelled),
+            Message = "Booking cancelled successfully. Seats have been released.",
+            ReleasedSeats = seatNames,
+            CancelledAt = DateTime.Now
+        };
+    }
+
+    public async Task AutoCancelExpiredBookingsAsync(CancellationToken cancellationToken = default)
+    {
+        // Get all pending bookings older than 15 minutes
+        var expiredBookings = await _bookingRepository.GetPendingBookingsOlderThanAsync(15, cancellationToken);
+
+        foreach (var booking in expiredBookings)
+        {
+            try
+            {
+                // Cancel each expired booking
+                await _bookingRepository.CancelBookingAndReleaseSeatsAsync(booking.Bookingid, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue processing other bookings
+                Console.WriteLine($"Failed to auto-cancel booking {booking.Bookingid}: {ex.Message}");
+            }
+        }
+    }
 }

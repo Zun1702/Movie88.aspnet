@@ -158,7 +158,7 @@ public class BookingRepository : IBookingRepository
                 _context.Bookings.Add(bookingEntity);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                // Create bookingseat entities
+                // Create bookingseat entities AND mark seats as unavailable
                 foreach (var (seatid, seatprice) in seats)
                 {
                     var bookingSeat = new Bookingseat
@@ -169,6 +169,14 @@ public class BookingRepository : IBookingRepository
                         Seatprice = seatprice
                     };
                     _context.Bookingseats.Add(bookingSeat);
+                    
+                    // 🔒 CRITICAL: Mark seat as unavailable
+                    var seat = await _context.Seats.FindAsync(new object[] { seatid }, cancellationToken);
+                    if (seat != null)
+                    {
+                        seat.Isavailable = false;
+                        _context.Seats.Update(seat);
+                    }
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
@@ -317,5 +325,72 @@ public class BookingRepository : IBookingRepository
             );
 
         return booking == null ? null : _mapper.Map<BookingModel>(booking);
+    }
+
+    public async Task<(BookingModel booking, List<int> seatIds)> CancelBookingAndReleaseSeatsAsync(
+        int bookingId, 
+        CancellationToken cancellationToken = default)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                // Get booking with seats
+                var booking = await _context.Bookings
+                    .Include(b => b.Bookingseats)
+                    .ThenInclude(bs => bs.Seat)
+                    .FirstOrDefaultAsync(b => b.Bookingid == bookingId, cancellationToken);
+
+                if (booking == null)
+                    throw new InvalidOperationException("Booking not found");
+
+                // Update booking status to Cancelled
+                booking.Status = nameof(BookingStatus.Cancelled);
+                _context.Bookings.Update(booking);
+
+                // Release all seats (set Isavailable = true)
+                var seatIds = new List<int>();
+                foreach (var bookingSeat in booking.Bookingseats)
+                {
+                    if (bookingSeat.Seat != null)
+                    {
+                        bookingSeat.Seat.Isavailable = true;
+                        _context.Seats.Update(bookingSeat.Seat);
+                        seatIds.Add(bookingSeat.Seatid);
+                    }
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                var bookingModel = _mapper.Map<BookingModel>(booking);
+                return (bookingModel, seatIds);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
+
+    public async Task<List<BookingModel>> GetPendingBookingsOlderThanAsync(
+        int minutes, 
+        CancellationToken cancellationToken = default)
+    {
+        var cutoffTime = DateTime.Now.AddMinutes(-minutes);
+        
+        var bookings = await _context.Bookings
+            .Include(b => b.Bookingseats)
+            .ThenInclude(bs => bs.Seat)
+            .Where(b => b.Status == nameof(BookingStatus.Pending) 
+                     && b.Bookingtime.HasValue 
+                     && b.Bookingtime.Value <= cutoffTime)
+            .ToListAsync(cancellationToken);
+
+        return bookings.Select(b => _mapper.Map<BookingModel>(b)).ToList();
     }
 }

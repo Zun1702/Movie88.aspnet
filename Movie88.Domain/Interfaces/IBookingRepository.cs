@@ -27,4 +27,8 @@ public interface IBookingRepository
     /// Dùng cho verify QR code và check-in tại rạp.
     /// </summary>
     Task<BookingModel?> GetByBookingCodeWithDetailsAsync(string bookingCode, CancellationToken cancellationToken = default);
+    
+    // Cancel booking methods
+    Task<(BookingModel booking, List<int> seatIds)> CancelBookingAndReleaseSeatsAsync(int bookingId, CancellationToken cancellationToken = default);
+    Task<List<BookingModel>> GetPendingBookingsOlderThanAsync(int minutes, CancellationToken cancellationToken = default);
 }

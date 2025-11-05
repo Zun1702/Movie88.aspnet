@@ -88,6 +88,9 @@ builder.Services.AddSwaggerGen(options =>
 // Configure CORS
 builder.Services.ConfigureCorsPolicy();
 
+// Register Background Services
+builder.Services.AddHostedService<Movie88.WebApi.Services.BookingExpirationService>();
+
 var app = builder.Build();
 
 // Create database if not exists
