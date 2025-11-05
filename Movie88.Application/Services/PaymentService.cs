@@ -160,17 +160,25 @@ public class PaymentService : IPaymentService
             // 7. Send booking confirmation email with QR code (don't block callback)
             if (responseCode == "00" && !string.IsNullOrEmpty(bookingCode))
             {
+                _logger.LogInformation("✅ Payment callback successful. Starting background email sending task for booking {BookingId}, bookingCode: {BookingCode}", payment.Bookingid, bookingCode);
+                
                 _ = Task.Run(async () =>
                 {
                     try
                     {
+                        _logger.LogInformation("📧 Background task started: Sending booking confirmation email for booking {BookingId}", payment.Bookingid);
                         await SendBookingConfirmationEmailAsync(payment.Bookingid, bookingCode, txnRef);
+                        _logger.LogInformation("✅ Background task completed: Email sent for booking {BookingId}", payment.Bookingid);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to send booking confirmation email for booking {BookingId}", payment.Bookingid);
+                        _logger.LogError(ex, "❌ Background task failed: Could not send booking confirmation email for booking {BookingId}", payment.Bookingid);
                     }
                 });
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ Email not sent: ResponseCode={ResponseCode}, BookingCode={BookingCode} (empty or null)", responseCode, bookingCode ?? "null");
             }
             
             return (true, "Payment successful", payment.Bookingid);
@@ -245,16 +253,22 @@ public class PaymentService : IPaymentService
     {
         try
         {
+            _logger.LogInformation("📧 Step 1: Fetching booking details for booking {BookingId}", bookingId);
+            
             // Get full booking details with all includes
             var booking = await _bookingRepository.GetByIdWithDetailsAsync(bookingId);
             if (booking == null)
             {
-                _logger.LogWarning("Booking {BookingId} not found for email confirmation", bookingId);
+                _logger.LogWarning("❌ Booking {BookingId} not found for email confirmation", bookingId);
                 return;
             }
+            
+            _logger.LogInformation("✅ Step 1 complete: Booking found. CustomerId={CustomerId}", booking.Customerid);
 
+            _logger.LogInformation("📧 Step 2: Generating QR code for {BookingCode}", bookingCode);
             // Generate QR code
             var qrCodeBase64 = await _qrCodeService.GenerateQRCodeBase64Async(bookingCode);
+            _logger.LogInformation("✅ Step 2 complete: QR code generated (length: {Length} chars)", qrCodeBase64.Length);
             
             // Calculate discount amount
             decimal discountAmount = 0;
@@ -286,15 +300,27 @@ public class PaymentService : IPaymentService
                 Price = bc.Combo?.Price ?? 0
             }).ToList() ?? new List<ComboItemDTO>();
 
+            _logger.LogInformation("📧 Step 3: Extracting customer email from booking data");
             // ✅ Get real customer email from User table (included in booking)
             var customerEmail = booking.Customer?.User?.Email ?? booking.Customer?.Email ?? "";
             var customerName = booking.Customer?.User?.Fullname ?? booking.Customer?.Fullname ?? "Khách Hàng";
             
+            _logger.LogInformation("Customer info: Email={Email}, Name={Name}, HasCustomer={HasCustomer}, HasUser={HasUser}", 
+                customerEmail, 
+                customerName, 
+                booking.Customer != null,
+                booking.Customer?.User != null);
+            
             if (string.IsNullOrEmpty(customerEmail))
             {
-                _logger.LogWarning("Customer email not found for booking {BookingId}, skipping email", bookingId);
+                _logger.LogError("❌ Customer email not found for booking {BookingId}, skipping email. Customer={Customer}, User={User}", 
+                    bookingId,
+                    booking.Customer != null ? "exists" : "null",
+                    booking.Customer?.User != null ? "exists" : "null");
                 return;
             }
+            
+            _logger.LogInformation("✅ Step 3 complete: Email found: {Email}", customerEmail);
             
             // Prepare email DTO
             var emailDto = new BookingConfirmationEmailDTO
@@ -316,21 +342,22 @@ public class PaymentService : IPaymentService
                 PaymentTime = DateTime.Now // Payment just completed
             };
 
+            _logger.LogInformation("📧 Step 4: Calling email service to send confirmation to {Email}", customerEmail);
             // Send email
             var emailSent = await _emailService.SendBookingConfirmationAsync(emailDto);
             
             if (emailSent)
             {
                 _logger.LogInformation(
-                    "Booking confirmation email sent successfully to {Email} for booking {BookingCode}",
+                    "✅✅✅ SUCCESS! Booking confirmation email sent to {Email} for booking {BookingCode}",
                     emailDto.CustomerEmail,
                     bookingCode
                 );
             }
             else
             {
-                _logger.LogWarning(
-                    "Failed to send booking confirmation email to {Email} for booking {BookingCode}",
+                _logger.LogError(
+                    "❌❌❌ FAILED! Could not send booking confirmation email to {Email} for booking {BookingCode}",
                     emailDto.CustomerEmail,
                     bookingCode
                 );
