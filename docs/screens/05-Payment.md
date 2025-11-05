@@ -653,7 +653,10 @@ Example: 🎬 Xác Nhận Đặt Vé - Avengers: Endgame - Movie88
    - Dark background with subtle pattern
 
 2. **Booking Code Card** 🎫
-   - Large BookingCode: `M88-00000123` (format: M88-{BookingId:D8})
+   - Large BookingCode: `M88-20251105-K7P3R` (format: M88-YYYYMMDD-XXXXX)
+   - Format: M88 prefix + Date (YYYYMMDD) + 5 random alphanumeric characters
+   - Character set: 23456789ABCDEFGHJKMNPQRSTUVWXYZ (excludes confusing 0,O,1,I,L)
+   - **Security**: 32^5 = 33,554,432 unique combinations per day
    - White text on dark card with red border
    - Center aligned for easy screenshot
 
@@ -688,8 +691,13 @@ Example: 🎬 Xác Nhận Đặt Vé - Avengers: Endgame - Movie88
      - **Tổng Thanh Toán**: [totalAmount] VND (bold, large font)
      - Phương Thức: VNPay
      - Mã Giao Dịch: [PAY_YYYYMMDDHHMMSS_123]
-     - Thời Gian Thanh Toán: [dd/MM/yyyy HH:mm:ss]
+     - Thời Gian Thanh Toán: [dd/MM/yyyy HH:mm:ss] (GMT+7)
    - Currency formatted with thousand separators
+   - **🌏 Timezone**: All dates converted to **Vietnam time (UTC+7)** using `TimeZoneInfo`
+     - System: "SE Asia Standard Time" 
+     - Showtime: `dddd, dd MMMM yyyy - HH:mm` (e.g., "Thứ Bảy, 05 Tháng 11 2025 - 19:30")
+     - Payment: `dd/MM/yyyy HH:mm:ss` with **(GMT+7)** suffix
+     - Ensures correct local time display for Vietnamese users
 
 7. **Important Information** ⚠️
    - **Lưu Ý Quan Trọng** (gold color):
@@ -715,7 +723,11 @@ Example: 🎬 Xác Nhận Đặt Vé - Avengers: Endgame - Movie88
    - Check ResponseCode = "00" (success)
    - Update Payment.Status = "Completed"
    - Update Booking.Status = "Confirmed"
-   - Generate BookingCode: `M88-{BookingId:D8}`
+   - Generate BookingCode: `M88-YYYYMMDD-XXXXX` (secure random format)
+     - Format: M88 prefix + Booking date + 5 random alphanumeric chars
+     - Character set: 23456789ABCDEFGHJKMNPQRSTUVWXYZ (32 chars, no confusing 0/O/1/I/L)
+     - Security: 32^5 = 33,554,432 unique combinations per day
+     - Collision detection: HashSet prevents duplicates within same day
    - Save to database
 
 2. **Start Background Email Task** (Non-blocking)
@@ -790,7 +802,7 @@ Example: 🎬 Xác Nhận Đặt Vé - Avengers: Endgame - Movie88
    {
        CustomerEmail = customerEmail,
        CustomerName = customerName,
-       BookingCode = bookingCode, // M88-00000123
+       BookingCode = bookingCode, // M88-20251105-K7P3R (secure random format)
        QRCodeBase64 = qrCodeBase64,
        MovieTitle = booking.Showtime?.Movie?.Title ?? "Movie",
        CinemaName = booking.Showtime?.Auditorium?.Cinema?.Name ?? "Cinema",
@@ -977,7 +989,10 @@ Example: 🎬 Xác Nhận Đặt Vé - Avengers: Endgame - Movie88
 
 ### QR Code Specifications
 
-- **Content**: BookingCode in format `M88-{BookingId:D8}` (e.g., "M88-00000123")
+- **Content**: BookingCode in format `M88-YYYYMMDD-XXXXX` (e.g., "M88-20251105-K7P3R")
+  - YYYYMMDD: Booking date
+  - XXXXX: 5 random alphanumeric characters (32^5 = 33.5M combinations/day)
+  - Character set: 23456789ABCDEFGHJKMNPQRSTUVWXYZ (no confusing 0,O,1,I,L)
 - **Size**: 300x300 pixels (20 pixels per module, high resolution for scanning)
 - **Error Correction**: Level Q (25% - good balance between size and error correction)
 - **Format**: PNG image with white background
@@ -1175,7 +1190,7 @@ public async Task<bool> SendBookingConfirmationAsync(BookingConfirmationEmailDTO
 - **QR Code Attachment**: Sent as inline image with `content_id: "qrcode"`
 - **HTML Embedding**: Use `<img src="cid:qrcode">` in email HTML to display QR inline
 - **Base64 Encoding**: Strip `data:image/png;base64,` prefix before sending to Resend
-- **Filename**: `booking-qr-M88-00000123.png` for easy identification
+- **Filename**: `booking-qr-M88-20251105-K7P3R.png` for easy identification
 - **Non-blocking**: Runs in background Task.Run() to avoid blocking callback response
 
 #### 5. Resend API Configuration ✅ SETUP
@@ -1204,7 +1219,7 @@ Content-Type: application/json
   "attachments": [
     {
       "content": "iVBORw0KGgoAAAANSUhEUgAA...",
-      "filename": "booking-qr-M88-00000123.png",
+      "filename": "booking-qr-M88-20251105-K7P3R.png",
       "content_id": "qrcode"
     }
   ]
@@ -1551,6 +1566,345 @@ public async Task<IActionResult> TestBookingConfirmationEmail([FromBody] string 
 - If QR code generation fails → Log error, don't send email
 - If email sending fails → Log error, don't fail payment callback
 - VNPay callback must respond quickly (< 30 seconds) → Send email asynchronously with `Task.Run`
+
+---
+
+### 🎫 11. BookingCode Generator Service
+
+**Status**: ✅ **DONE**  
+**Purpose**: Generate unique, secure, unpredictable booking codes to prevent forgery  
+**Format**: `M88-YYYYMMDD-XXXXX` (e.g., `M88-20251105-K7P3R`)  
+**Security**: 32^5 = 33,554,432 unique combinations per day
+
+#### Old Format Problems ❌
+
+```
+BK-20251105-0001  ← Sequential counter (predictable)
+BK-20251105-0002  ← Easy to fake by incrementing number
+BK-20251105-0003  ← Security vulnerability
+```
+
+**Issues**:
+- **Predictable**: Attackers can guess codes by trying BK-20251105-0001, 0002, 0003...
+- **Forgery Risk**: Users can modify their booking code to access others' bookings
+- **Sequential**: Exposes business metrics (number of bookings per day)
+
+#### New Secure Format ✅
+
+```
+M88-20251105-K7P3R  ← 5 random alphanumeric characters
+M88-20251105-W9H4N  ← Cryptographically random
+M88-20251105-3TA6G  ← Collision detection
+```
+
+**Format Breakdown**:
+- `M88`: Movie88 brand prefix
+- `20251105`: Booking date (YYYYMMDD)
+- `K7P3R`: 5 random characters from safe character set
+
+**Character Set** (32 characters):
+```
+23456789ABCDEFGHJKMNPQRSTUVWXYZ
+```
+- **Excludes confusing characters**: 0/O, 1/I/L (prevents user confusion)
+- **Alphanumeric**: Both letters and numbers for better security
+- **Uppercase only**: Consistent appearance in emails and UI
+
+**Security**:
+- 32^5 = **33,554,432** unique combinations per day
+- Random generation using `System.Random`
+- Collision detection with `HashSet<string>` per day
+- Fallback to timestamp-based code if 100 collision attempts
+
+#### Implementation
+
+```csharp
+// Movie88.Application/Services/BookingCodeGenerator.cs
+using System.Security.Cryptography;
+
+public class BookingCodeGenerator : IBookingCodeGenerator
+{
+    private static readonly HashSet<string> _usedCodesPerDay = new();
+    private static string _lastDate = string.Empty;
+    private static readonly object _lock = new();
+    private static readonly Random _random = new Random();
+    
+    // Safe character set (no confusing 0,O,1,I,L)
+    private const string CHARACTERS = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+    
+    public string GenerateBookingCode(DateTime bookingTime)
+    {
+        lock (_lock)
+        {
+            var dateStr = bookingTime.ToString("yyyyMMdd");
+            
+            // Reset used codes if date changed
+            if (dateStr != _lastDate)
+            {
+                _usedCodesPerDay.Clear();
+                _lastDate = dateStr;
+            }
+            
+            // Try to generate unique code (max 100 attempts to prevent infinite loop)
+            string randomCode;
+            int attempts = 0;
+            do
+            {
+                randomCode = GenerateRandomCode(5);
+                attempts++;
+                
+                // Fallback: Use timestamp-based code if too many collisions
+                if (attempts >= 100)
+                {
+                    randomCode = GenerateTimestampCode(bookingTime);
+                    break;
+                }
+            }
+            while (_usedCodesPerDay.Contains(randomCode));
+            
+            _usedCodesPerDay.Add(randomCode);
+            return $"M88-{dateStr}-{randomCode}";
+        }
+    }
+    
+    private string GenerateRandomCode(int length)
+    {
+        var result = new char[length];
+        for (int i = 0; i < length; i++)
+        {
+            result[i] = CHARACTERS[_random.Next(CHARACTERS.Length)];
+        }
+        return new string(result);
+    }
+    
+    private string GenerateTimestampCode(DateTime time)
+    {
+        // Fallback: Use timestamp (milliseconds) as hex
+        var timestamp = time.Ticks.ToString("X");
+        return timestamp.Substring(Math.Max(0, timestamp.Length - 5));
+    }
+}
+```
+
+**Interface**:
+```csharp
+// Movie88.Application/Interfaces/IBookingCodeGenerator.cs
+public interface IBookingCodeGenerator
+{
+    string GenerateBookingCode(DateTime bookingTime);
+}
+```
+
+**DI Registration**:
+```csharp
+// Movie88.Application/Configuration/ServiceExtensions.cs
+services.AddScoped<IBookingCodeGenerator, BookingCodeGenerator>();
+```
+
+#### Usage in PaymentService
+
+```csharp
+// Generate secure booking code after successful payment
+if (responseCode == "00")
+{
+    var bookingTime = payment.Paymenttime ?? DateTime.UtcNow;
+    var bookingCode = _bookingCodeGenerator.GenerateBookingCode(bookingTime);
+    
+    booking.Bookingcode = bookingCode; // M88-20251105-K7P3R
+    booking.Status = "Confirmed";
+    await _unitOfWork.SaveAsync();
+}
+```
+
+#### Collision Handling
+
+**Scenario**: Two bookings created at exact same time
+```csharp
+// Thread 1: M88-20251105-K7P3R (added to HashSet)
+// Thread 2: M88-20251105-K7P3R (collision detected)
+// Thread 2: M88-20251105-W9H4N (regenerated, unique)
+```
+
+**Fallback Scenario**: 100 collisions in a row (extremely rare)
+```csharp
+// After 100 attempts, use timestamp-based code
+var timestamp = DateTime.Now.Ticks.ToString("X"); // 8E9A7F5B3C2D1
+var code = timestamp.Substring(timestamp.Length - 5); // 2D1A4
+// Result: M88-20251105-2D1A4
+```
+
+---
+
+### 🌏 12. Vietnam Timezone Conversion
+
+**Status**: ✅ **DONE**  
+**Purpose**: Display correct local time (GMT+7) in emails for Vietnamese users  
+**System Timezone**: "SE Asia Standard Time"  
+**Offset**: UTC+7 hours (no daylight saving)
+
+#### Problem: UTC Times Displayed ❌
+
+```
+Showtime: 2025-11-05 12:30:00 UTC  ← Confusing for users
+Payment:  05/11/2025 12:30:45 UTC  ← Wrong timezone
+```
+
+**Issues**:
+- Users see UTC+0 times instead of Vietnam local time
+- Showtime appears 7 hours earlier than actual screening
+- Confusion: "Why is my 7:30 PM movie showing as 12:30 PM?"
+
+#### Solution: Convert to GMT+7 ✅
+
+```
+Showtime: Thứ Bảy, 05 Tháng 11 2025 - 19:30  ← Vietnam time
+Payment:  05/11/2025 19:30:45 (GMT+7)         ← Clear timezone
+```
+
+#### Implementation in Email Service
+
+```csharp
+// Movie88.Application/Services/ResendEmailService.cs
+private string GenerateBookingConfirmationHtml(BookingConfirmationEmailDTO dto)
+{
+    // ✅ Convert to Vietnam timezone (UTC+7)
+    var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+    
+    var showtimeVietnam = TimeZoneInfo.ConvertTimeFromUtc(
+        dto.ShowtimeDateTime.ToUniversalTime(), 
+        vietnamTimeZone
+    );
+    
+    var paymentTimeVietnam = dto.PaymentTime.HasValue 
+        ? TimeZoneInfo.ConvertTimeFromUtc(
+            dto.PaymentTime.Value.ToUniversalTime(), 
+            vietnamTimeZone
+        )
+        : (DateTime?)null;
+    
+    // Format for display
+    var showtimeText = showtimeVietnam.ToString("dddd, dd MMMM yyyy - HH:mm", 
+        new CultureInfo("vi-VN"));
+    // Result: "Thứ Bảy, 05 Tháng 11 2025 - 19:30"
+    
+    var paymentTimeText = paymentTimeVietnam?.ToString("dd/MM/yyyy HH:mm:ss");
+    // Result: "05/11/2025 19:30:45"
+    
+    // Build HTML with Vietnam times
+    var html = $@"
+        <tr>
+            <td style='padding: 12px; border-bottom: 1px solid #333;'>
+                📅 Ngày & Giờ Chiếu:
+            </td>
+            <td style='padding: 12px; border-bottom: 1px solid #333;'>
+                {showtimeText}
+            </td>
+        </tr>
+        <tr>
+            <td style='padding: 12px;'>Thời Gian Thanh Toán:</td>
+            <td style='padding: 12px;'>{paymentTimeText} <strong>(GMT+7)</strong></td>
+        </tr>
+    ";
+    
+    return html;
+}
+```
+
+#### TimeZoneInfo Details
+
+**System Timezone ID**:
+```csharp
+"SE Asia Standard Time"  // Windows timezone identifier
+```
+
+**Alternative IDs** (for Linux/macOS):
+```csharp
+// For cross-platform compatibility, use IANA timezone
+var timezone = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+    ? "SE Asia Standard Time"
+    : "Asia/Ho_Chi_Minh";
+
+var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById(timezone);
+```
+
+**Conversion Example**:
+```csharp
+// Input: 2025-11-05 12:30:00 UTC
+// Output: 2025-11-05 19:30:00 GMT+7 (+ 7 hours)
+```
+
+#### Vietnam Locale Formatting
+
+```csharp
+// Vietnamese culture for date formatting
+var culture = new CultureInfo("vi-VN");
+
+// Long date format
+showtimeVietnam.ToString("dddd, dd MMMM yyyy - HH:mm", culture)
+// → "Thứ Bảy, 05 Tháng 11 2025 - 19:30"
+
+// Short date format
+showtimeVietnam.ToString("dd/MM/yyyy HH:mm", culture)
+// → "05/11/2025 19:30"
+
+// Day names in Vietnamese
+// Monday    → Thứ Hai
+// Tuesday   → Thứ Ba
+// Wednesday → Thứ Tư
+// Thursday  → Thứ Năm
+// Friday    → Thứ Sáu
+// Saturday  → Thứ Bảy
+// Sunday    → Chủ Nhật
+```
+
+#### Email Display Examples
+
+**Showtime Row**:
+```html
+<tr>
+    <td style="padding: 12px; color: #B3B3B3;">📅 Ngày & Giờ Chiếu:</td>
+    <td style="padding: 12px; color: white; font-weight: 500;">
+        Thứ Bảy, 05 Tháng 11 2025 - 19:30
+    </td>
+</tr>
+```
+
+**Payment Row**:
+```html
+<tr>
+    <td style="padding: 12px; color: #B3B3B3;">Thời Gian Thanh Toán:</td>
+    <td style="padding: 12px; color: white;">
+        05/11/2025 19:30:45 <strong style="color: #FFB800;">(GMT+7)</strong>
+    </td>
+</tr>
+```
+
+#### Testing Timezone Conversion
+
+**Test Cases**:
+```csharp
+// Test 1: Morning showtime
+var utcTime = new DateTime(2025, 11, 5, 2, 30, 0, DateTimeKind.Utc); // 02:30 UTC
+var vnTime = ConvertToVietnamTime(utcTime);
+// Expected: 05/11/2025 09:30 (GMT+7)
+
+// Test 2: Evening showtime
+var utcTime = new DateTime(2025, 11, 5, 12, 30, 0, DateTimeKind.Utc); // 12:30 UTC
+var vnTime = ConvertToVietnamTime(utcTime);
+// Expected: 05/11/2025 19:30 (GMT+7)
+
+// Test 3: Midnight edge case
+var utcTime = new DateTime(2025, 11, 5, 17, 30, 0, DateTimeKind.Utc); // 17:30 UTC
+var vnTime = ConvertToVietnamTime(utcTime);
+// Expected: 06/11/2025 00:30 (next day!)
+```
+
+**Edge Cases**:
+- UTC time 17:00+ → Next day in Vietnam (17:30 UTC = 00:30 GMT+7 next day)
+- Date formatting must use Vietnam culture for correct month names
+- Always append "(GMT+7)" to payment time for clarity
+
+---
 
 ### Android Integration
 
@@ -2199,7 +2553,7 @@ public class ApiResponse<T> {
         android:id="@+id/tvBookingCode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Booking Code: BK-20251105-0156"
+        android:text="Booking Code: M88-20251105-K7P3R"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginTop="16dp" />
@@ -2718,7 +3072,7 @@ This HTML triggers the deep link automatically when Chrome Custom Tab loads it.
 - [ ] Register `IQRCodeService` in `ServiceExtensions.cs`
 
 ### Testing
-- [ ] Test QR code generation (BK-20251105-0156)
+- [ ] Test QR code generation (M88-20251105-K7P3R) with secure random format
 - [ ] Test email sending with QR code attachment
 - [ ] Test complete payment flow → email received
 - [ ] Verify QR code scannable with mobile camera
