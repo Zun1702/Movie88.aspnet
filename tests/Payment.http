@@ -15,10 +15,10 @@ Content-Type: application/json
   "password": "123321"
 }
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiMDM0NDE3ZjItYjU0MC00YWM2LTk3NzYtNGZiNjc0MzBmZTk5IiwibmJmIjoxNzYyMjg5ODY0LCJleHAiOjE3NjIyOTM0NjQsImlhdCI6MTc2MjI4OTg2NCwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.81IDq6RLUgPKHA4AzE2p9VKdUn1Ib6mrBlMoSVizlRg
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiMTM3YzIwNmQtODI5OC00ZWIzLWJjZDYtODllMGQ1YzU0OTNiIiwibmJmIjoxNzYyMjkxNzg1LCJleHAiOjE3NjIyOTUzODUsImlhdCI6MTc2MjI5MTc4NSwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.r4V435EdJVP3BNEWNC9_V-CLgP1HaSFi3d_H_BD9XlU
 @bookingId = 17
 @voucherCode = MOVIE50k
-@paymentId = 2
+@paymentId = 3
 
 ###############################################
 # 💰 PHASE 1: VOUCHER MANAGEMENT

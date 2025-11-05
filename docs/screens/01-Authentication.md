@@ -130,7 +130,8 @@
 ## 🎯 3. POST /api/auth/forgot-password
 
 **Screen**: ForgotPasswordActivity  
-**Auth Required**: ❌ No
+**Auth Required**: ❌ No  
+**Updated**: November 5, 2025 - ✅ Fixed email validation (returns error for non-existent emails)
 
 ### Request Body
 ```json
@@ -139,21 +140,37 @@
 }
 ```
 
-### Response 200 OK
+### Response 200 OK (Email Exists)
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "Password reset email sent. Please check your inbox.",
+  "message": "OTP đã được gửi đến email của bạn",
+  "data": {
+    "email": "customer@example.com",
+    "otpType": "PasswordReset",
+    "expiresAt": "2025-11-05T10:30:00Z",
+    "message": "OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư (kể cả thư mục spam)."
+  }
+}
+```
+
+### Response 400 Bad Request (Email Not Found)
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Email không tồn tại trong hệ thống. Vui lòng kiểm tra lại hoặc đăng ký tài khoản mới.",
   "data": null
 }
 ```
 
 ### Business Logic
-- Validates email exists in database
-- Generates password reset token (JWT with 1 hour expiry)
-- Sends email with reset link (mock implementation)
-- Frontend will implement reset password screen separately
+- ✅ **VALIDATES email exists in database** (returns 400 if not found)
+- ✅ Sends OTP only for existing emails (prevents sending OTP to fake emails)
+- ✅ Returns structured response with email, otpType, expiresAt
+- ✅ OTP expires in 10 minutes
+- Frontend should check status code and show appropriate error message
 
 ### Related Entities
 - **User**: `userid`, `email`

@@ -1,4 +1,5 @@
 using Movie88.Application.DTOs.Auth;
+using Movie88.Application.DTOs.Authentication;
 using Movie88.Application.Interfaces;
 using Movie88.Domain.Models;
 using Movie88.Domain.Interfaces;
@@ -285,31 +286,33 @@ namespace Movie88.Application.Services
             return true;
         }
 
-        public async Task<bool> ForgotPasswordAsync(ForgotPasswordRequestDTO request, CancellationToken cancellationToken = default)
+        public async Task<ForgotPasswordResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request, CancellationToken cancellationToken = default)
         {
             var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            
+            // Check if email exists in the system
             if (user == null)
             {
-                // Don't reveal if email exists or not for security
-                return true;
+                throw new InvalidOperationException("Email không tồn tại trong hệ thống. Vui lòng kiểm tra lại hoặc đăng ký tài khoản mới.");
             }
 
             // Send OTP for password reset
-            try
+            await _otpService.SendOtpAsync(new SendOtpRequestDTO
             {
-                await _otpService.SendOtpAsync(new SendOtpRequestDTO
-                {
-                    Email = request.Email,
-                    OtpType = OtpTypeConstants.PasswordReset
-                });
-            }
-            catch (Exception)
+                Email = request.Email,
+                OtpType = OtpTypeConstants.PasswordReset
+            });
+            
+            // Return response with OTP information
+            var response = new ForgotPasswordResponseDTO
             {
-                // Log error but don't fail - for security don't reveal if email exists
-                // User can try again or use resend OTP
-            }
+                Email = request.Email,
+                OtpType = OtpTypeConstants.PasswordReset,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                Message = "OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư (kể cả thư mục spam)."
+            };
 
-            return true;
+            return response;
         }
 
         public async Task<ResetPasswordResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default)

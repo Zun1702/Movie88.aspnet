@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Movie88.Application.DTOs.Auth;
+using Movie88.Application.DTOs.Authentication;
 using Movie88.Application.HandlerResponse;
 using Movie88.Application.Interfaces;
 using System.Security.Claims;
@@ -126,14 +127,26 @@ namespace Movie88.WebApi.Controllers
         /// Request password reset OTP (sends OTP to email)
         /// </summary>
         [HttpPost("forgot-password")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Response<ForgotPasswordResponseDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Response), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDTO request, CancellationToken cancellationToken)
         {
-            await _authService.ForgotPasswordAsync(request, cancellationToken);
-            return Ok(new Response(
-                message: "If the email exists, an OTP has been sent. Please check your email.",
-                status: 200
-            ));
+            try
+            {
+                var result = await _authService.ForgotPasswordAsync(request, cancellationToken);
+                return Ok(new Response<ForgotPasswordResponseDTO>(
+                    message: "OTP đã được gửi đến email của bạn",
+                    status: 200,
+                    data: result
+                ));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new Response(
+                    message: ex.Message,
+                    status: 400
+                ));
+            }
         }
 
         /// <summary>

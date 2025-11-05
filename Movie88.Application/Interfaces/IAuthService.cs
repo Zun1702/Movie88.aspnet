@@ -1,4 +1,5 @@
 using Movie88.Application.DTOs.Auth;
+using Movie88.Application.DTOs.Authentication;
 
 namespace Movie88.Application.Interfaces
 {
@@ -8,7 +9,7 @@ namespace Movie88.Application.Interfaces
         Task<RegisterResponseDTO> RegisterAsync(RegisterRequestDTO request, CancellationToken cancellationToken = default);
         Task<LoginResponseDTO> RefreshTokenAsync(RefreshTokenRequestDTO request, CancellationToken cancellationToken = default);
         Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequestDTO request, CancellationToken cancellationToken = default);
-        Task<bool> ForgotPasswordAsync(ForgotPasswordRequestDTO request, CancellationToken cancellationToken = default);
+        Task<ForgotPasswordResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request, CancellationToken cancellationToken = default);
         Task<ResetPasswordResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default);
         Task<bool> LogoutAsync(string refreshToken, CancellationToken cancellationToken = default);
     }
