@@ -4,6 +4,7 @@ using Movie88.Application.Interfaces;
 using Movie88.Domain.Interfaces;
 using Movie88.Domain.Enums;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Movie88.Application.Services;
 
@@ -17,6 +18,7 @@ public class PaymentService : IPaymentService
     private readonly IQRCodeService _qrCodeService;
     private readonly IEmailService _emailService;
     private readonly ILogger<PaymentService> _logger;
+    private readonly IServiceProvider _serviceProvider; // ✅ For creating scoped services in background task
 
     public PaymentService(
         IPaymentRepository paymentRepository,
@@ -26,7 +28,8 @@ public class PaymentService : IPaymentService
         IBookingCodeGenerator bookingCodeGenerator,
         IQRCodeService qrCodeService,
         IEmailService emailService,
-        ILogger<PaymentService> logger)
+        ILogger<PaymentService> logger,
+        IServiceProvider serviceProvider)
     {
         _paymentRepository = paymentRepository;
         _paymentmethodRepository = paymentmethodRepository;
@@ -36,6 +39,7 @@ public class PaymentService : IPaymentService
         _qrCodeService = qrCodeService;
         _emailService = emailService;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
 
     public async Task<CreatePaymentResponseDTO?> CreateVNPayPaymentAsync(
@@ -162,12 +166,27 @@ public class PaymentService : IPaymentService
             {
                 _logger.LogInformation("✅ Payment callback successful. Starting background email sending task for booking {BookingId}, bookingCode: {BookingCode}", payment.Bookingid, bookingCode);
                 
+                // ✅ Create new scope for background task to avoid disposed context
                 _ = Task.Run(async () =>
                 {
                     try
                     {
                         _logger.LogInformation("📧 Background task started: Sending booking confirmation email for booking {BookingId}", payment.Bookingid);
-                        await SendBookingConfirmationEmailAsync(payment.Bookingid, bookingCode, txnRef);
+                        
+                        // Create new scope to get fresh DbContext
+                        using var scope = _serviceProvider.CreateScope();
+                        var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+                        var qrCodeService = scope.ServiceProvider.GetRequiredService<IQRCodeService>();
+                        var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                        
+                        await SendBookingConfirmationEmailAsync(
+                            payment.Bookingid, 
+                            bookingCode, 
+                            txnRef,
+                            bookingRepository,
+                            qrCodeService,
+                            emailService);
+                            
                         _logger.LogInformation("✅ Background task completed: Email sent for booking {BookingId}", payment.Bookingid);
                     }
                     catch (Exception ex)
@@ -249,14 +268,20 @@ public class PaymentService : IPaymentService
         };
     }
 
-    private async Task SendBookingConfirmationEmailAsync(int bookingId, string bookingCode, string transactionCode)
+    private async Task SendBookingConfirmationEmailAsync(
+        int bookingId, 
+        string bookingCode, 
+        string transactionCode,
+        IBookingRepository bookingRepository,
+        IQRCodeService qrCodeService,
+        IEmailService emailService)
     {
         try
         {
             _logger.LogInformation("📧 Step 1: Fetching booking details for booking {BookingId}", bookingId);
             
             // Get full booking details with all includes
-            var booking = await _bookingRepository.GetByIdWithDetailsAsync(bookingId);
+            var booking = await bookingRepository.GetByIdWithDetailsAsync(bookingId);
             if (booking == null)
             {
                 _logger.LogWarning("❌ Booking {BookingId} not found for email confirmation", bookingId);
@@ -267,7 +292,7 @@ public class PaymentService : IPaymentService
 
             _logger.LogInformation("📧 Step 2: Generating QR code for {BookingCode}", bookingCode);
             // Generate QR code
-            var qrCodeBase64 = await _qrCodeService.GenerateQRCodeBase64Async(bookingCode);
+            var qrCodeBase64 = await qrCodeService.GenerateQRCodeBase64Async(bookingCode);
             _logger.LogInformation("✅ Step 2 complete: QR code generated (length: {Length} chars)", qrCodeBase64.Length);
             
             // Calculate discount amount
@@ -344,7 +369,7 @@ public class PaymentService : IPaymentService
 
             _logger.LogInformation("📧 Step 4: Calling email service to send confirmation to {Email}", customerEmail);
             // Send email
-            var emailSent = await _emailService.SendBookingConfirmationAsync(emailDto);
+            var emailSent = await emailService.SendBookingConfirmationAsync(emailDto);
             
             if (emailSent)
             {
