@@ -18,6 +18,7 @@ public class BookingConfirmationEmailDTO
     public string MovieTitle { get; set; } = string.Empty;
     public string CinemaName { get; set; } = string.Empty;
     public string CinemaAddress { get; set; } = string.Empty;
+    public string AuditoriumName { get; set; } = string.Empty; // Tên phòng chiếu
     public DateTime ShowtimeDateTime { get; set; }
     public string SeatNumbers { get; set; } = string.Empty; // e.g., "A5, A6, A7"
     

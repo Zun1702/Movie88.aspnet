@@ -512,6 +512,10 @@ public class ResendEmailService : IEmailService
                     <td style=""padding: 12px 0; color: #FFFFFF; font-size: 15px;"">{dto.CinemaName}</td>
                 </tr>
                 <tr>
+                    <td style=""padding: 12px 0; color: #B3B3B3; font-size: 14px;"">Phòng Chiếu</td>
+                    <td style=""padding: 12px 0; color: #FFFFFF; font-weight: bold; font-size: 15px;"">{dto.AuditoriumName}</td>
+                </tr>
+                <tr>
                     <td style=""padding: 12px 0; color: #B3B3B3; font-size: 14px;"">Địa Chỉ</td>
                     <td style=""padding: 12px 0; color: #B3B3B3; font-size: 14px;"">{dto.CinemaAddress}</td>
                 </tr>

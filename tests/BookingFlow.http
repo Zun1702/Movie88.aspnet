@@ -15,14 +15,14 @@ Content-Type: application/json
   "password": "123321"
 }
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjIwMjIyYTUzLTdiNzMtNGQxYy04YTQxLWZjZDEwMjE4ZTBiOCIsIm5iZiI6MTc2MjM1MDAxMSwiZXhwIjoxNzYyMzUzNjExLCJpYXQiOjE3NjIzNTAwMTEsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.4P7NdFCOfQm8ByTPZU3dQR_Aw9fmh_NUkfs46aKQyuk
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjJlYmE4MDljLWRkZWUtNGI1MS04NWUxLTlhOTc5MGY5Y2E2NyIsIm5iZiI6MTc2MjM3MDMyOCwiZXhwIjoxNzYyMzczOTI4LCJpYXQiOjE3NjIzNzAzMjgsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.uKf3_mGzkC5s5f1m2guX8Y6g_914ubbGuLs9F8w5las
 @movieId = 1
 @cinemaId = 1
 @showtimeId = 1
 @auditoriumId = 1
 @bookingId = 19
-@seatId1 = 26
-@seatId2 = 27
+@seatId1 = 1
+@seatId2 = 2
 
 ###############################################
 # 🎬 PHASE 1: CINEMA & SHOWTIME SELECTION
@@ -310,7 +310,7 @@ Content-Type: application/json
 GET {{baseUrl}}/cinemas?city=Tp.HCM
 
 # 2. Get showtimes for "Avengers" at CGV Vincom on Nov 5
-GET {{baseUrl}}/showtimes/by-movie/1?date=2025-11-05&cinemaid=1
+GET {{baseUrl}}/showtimes/by-movie/1?date=2025-11-07&cinemaid=1
 
 # 3. Get available seats for selected showtime
 GET {{baseUrl}}/showtimes/1/available-seats
@@ -326,7 +326,7 @@ Content-Type: application/json
 
 {
   "showtimeid": 1,
-  "seatids": [3, 12]
+  "seatids": [3, 4]
 }
 
 # 5. Add combo to booking (use bookingId from response)
