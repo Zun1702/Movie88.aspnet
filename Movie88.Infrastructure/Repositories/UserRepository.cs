@@ -73,5 +73,14 @@ namespace Movie88.Infrastructure.Repositories
         {
             return await _context.Users.AnyAsync(u => u.Email == email, cancellationToken);
         }
+
+        public async Task<UserModel?> GetUserWithRoleByIdAsync(int userId)
+        {
+            var entity = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Userid == userId);
+            
+            return entity?.ToModel();
+        }
     }
 }

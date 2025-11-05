@@ -44,6 +44,10 @@ namespace Movie88.Application.Configuration
             
             // Showtime Service
             services.AddScoped<IShowtimeService, ShowtimeService>();
+
+            //User Service
+            services.AddScoped<IUserService, UserService>();
+
         }
     }
 }
