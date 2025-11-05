@@ -1,6 +1,6 @@
-# 🎫 Screen 4: Booking Flow (10 Endpoints)
+# 🎫 Screen 4: Booking Flow (11 Endpoints)
 
-**Status**: ✅ **COMPLETED** (10/10 endpoints - 100%)  
+**Status**: ✅ **COMPLETED** (11/11 endpoints - 100%)  
 **Assigned**: Trung  
 **Completed**: November 5, 2025
 
@@ -10,7 +10,7 @@
 
 ## 📋 Endpoints Overview
 
-Chia thành **3 giai đoạn** để dev hiệu quả:
+Chia thành **4 giai đoạn** để dev hiệu quả:
 
 ### 🎬 Phase 1: Cinema & Showtime Selection (4 endpoints) ✅
 | # | Method | Endpoint | Purpose | Auth | Status | Assign |
@@ -32,6 +32,11 @@ Chia thành **3 giai đoạn** để dev hiệu quả:
 |---|--------|----------|---------|------|--------|--------|
 | 8 | GET | `/api/combos` | Danh sách combo | ❌ | ✅ DONE | Trung |
 | 9 | POST | `/api/bookings/{id}/add-combos` | Thêm combo vào booking | ✅ | ✅ DONE | Trung |
+
+### 🔄 Phase 4: Booking Management (1 endpoint) ✅
+| # | Method | Endpoint | Purpose | Auth | Status | Assign |
+|---|--------|----------|---------|------|--------|--------|
+| 11 | POST | `/api/bookings/{id}/cancel` | **HỦY BOOKING** | ✅ | ✅ DONE | Trung |
 
 ### 📽️ Reference
 | # | Method | Endpoint | Purpose | Auth | Status | Assign |
@@ -717,6 +722,192 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 
 ---
 
+## 🎯 11. POST /api/bookings/{id}/cancel
+
+**Screen**: My Bookings / Booking Details  
+**Auth Required**: ✅ Yes  
+**Status**: ✅ **DONE** (November 5, 2025)
+
+### Purpose
+- Allow users to manually cancel their pending bookings
+- Release seats back to available pool
+- Prevent payment for unwanted bookings
+
+### Request
+```http
+POST /api/bookings/156/cancel
+Authorization: Bearer {token}
+```
+
+### Validation Rules
+- Booking must exist
+- Booking must belong to authenticated user
+- Booking status must be "Pending" (cannot cancel Confirmed/Completed/Cancelled bookings)
+- Authentication required
+
+### Response 200 OK
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Booking cancelled successfully",
+  "data": {
+    "bookingid": 156,
+    "bookingcode": null,
+    "status": "Cancelled",
+    "message": "Booking cancelled successfully. Seats have been released.",
+    "releasedSeats": ["A5", "A6"],
+    "cancelledAt": "2025-11-05T15:45:30"
+  }
+}
+```
+
+### Business Logic
+
+1. **Validate Ownership**:
+   ```csharp
+   var userId = GetUserIdFromJwt();
+   var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Userid == userId);
+   var booking = await _bookingRepository.GetByIdWithDetailsAsync(bookingId);
+   
+   if (booking.Customerid != customer.Customerid)
+       throw new UnauthorizedAccessException("This booking does not belong to you");
+   ```
+
+2. **Validate Status**:
+   ```csharp
+   if (booking.Status?.ToLower() != "pending")
+       throw new InvalidOperationException($"Cannot cancel booking with status: {booking.Status}");
+   ```
+
+3. **Cancel and Release Seats** (Transaction):
+   ```csharp
+   var strategy = _context.Database.CreateExecutionStrategy();
+   await strategy.ExecuteAsync(async () =>
+   {
+       using var transaction = await _context.Database.BeginTransactionAsync();
+       try
+       {
+           // Update booking status
+           booking.Status = "Cancelled";
+           _context.Bookings.Update(booking);
+           
+           // Release all seats
+           foreach (var bookingSeat in booking.Bookingseats)
+           {
+               var seat = await _context.Seats.FindAsync(bookingSeat.Seatid);
+               if (seat != null)
+               {
+                   seat.Isavailable = true; // 🔓 Release seat
+                   _context.Seats.Update(seat);
+               }
+           }
+           
+           await _context.SaveChangesAsync();
+           await transaction.CommitAsync();
+       }
+       catch
+       {
+           await transaction.RollbackAsync();
+           throw;
+       }
+   });
+   ```
+
+4. **Return Response**:
+   - Include list of released seat names (e.g., "A5", "A6")
+   - Include cancellation timestamp
+
+### Error Cases
+- 401 Unauthorized - No valid token
+- 403 Forbidden - Booking doesn't belong to user
+- 404 Not Found - Booking not found
+- 400 Bad Request - Booking status is not "Pending"
+
+### Related Background Service
+
+**Auto-Cancel Expired Bookings** (Background Service):
+- Runs every **5 minutes**
+- Auto-cancels bookings in "Pending" status older than **15 minutes**
+- Releases seats automatically
+- Prevents indefinite seat locking
+
+```csharp
+// BookingExpirationService.cs
+protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+{
+    while (!stoppingToken.IsCancellationRequested)
+    {
+        // Find pending bookings older than 15 minutes
+        var expiredBookings = await _bookingRepository
+            .GetPendingBookingsOlderThanAsync(15, stoppingToken);
+        
+        foreach (var booking in expiredBookings)
+        {
+            await _bookingRepository.CancelBookingAndReleaseSeatsAsync(
+                booking.Bookingid, stoppingToken);
+        }
+        
+        // Wait 5 minutes before next check
+        await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+    }
+}
+```
+
+### Implementation Files
+
+**New Files Created**:
+```
+✅ CancelBookingResponseDTO.cs       - Response DTO
+✅ BookingExpirationService.cs       - Background service (auto-cancel)
+```
+
+**Modified Files**:
+```
+✅ IBookingRepository.cs             - Added CancelBookingAndReleaseSeatsAsync()
+✅ BookingRepository.cs              - Implemented cancel + seat release logic
+✅ IBookingService.cs                - Added CancelBookingAsync()
+✅ BookingService.cs                 - Implemented cancel business logic
+✅ BookingsController.cs             - Added POST {id}/cancel endpoint
+✅ Program.cs                        - Registered BookingExpirationService
+```
+
+### Critical Changes
+
+**🔒 Seat Locking Fix** (Also in this update):
+- **Problem**: Seats remained `isAvailable = true` after booking creation
+- **Impact**: Multiple users could book the same seat
+- **Fix**: Added seat locking in `CreateBookingAsync`:
+  ```csharp
+  // In BookingRepository.CreateBookingAsync()
+  foreach (var (seatid, seatprice) in seats)
+  {
+      var bookingSeat = new Bookingseat { /* ... */ };
+      _context.Bookingseats.Add(bookingSeat);
+      
+      // 🔒 CRITICAL: Mark seat as unavailable
+      var seat = await _context.Seats.FindAsync(seatid);
+      if (seat != null)
+      {
+          seat.Isavailable = false;
+          _context.Seats.Update(seat);
+      }
+  }
+  ```
+
+### Testing Checklist
+
+- [x] Manual cancel works for Pending bookings
+- [x] Cannot cancel Confirmed/Completed bookings
+- [x] Cannot cancel other user's bookings
+- [x] Seats released correctly (isAvailable = true)
+- [x] Background service runs every 5 minutes
+- [x] Auto-cancel works for 15+ minute old bookings
+- [x] Transaction rollback on errors
+- [x] Seat locking works on booking creation
+
+---
+
 ## 📊 Implementation Summary
 
 ### ✅ Already Created (Entity Models)
@@ -1149,10 +1340,77 @@ services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionString, npgsq
 }));
 ```
 
+**6. Seat Locking Bug Fix** ✅ (November 5, 2025)
+- **Critical Bug**: Seats remained `isAvailable = true` after booking creation
+- **Impact**: Multiple users could book the same seat simultaneously
+- **Root Cause**: `CreateBookingAsync` created `Bookingseat` records but never updated `Seat.Isavailable`
+- **Solution**: Added seat locking in transaction:
+  ```csharp
+  foreach (var (seatid, seatprice) in seats)
+  {
+      var bookingSeat = new Bookingseat { /* ... */ };
+      _context.Bookingseats.Add(bookingSeat);
+      
+      // 🔒 CRITICAL FIX: Mark seat as unavailable
+      var seat = await _context.Seats.FindAsync(new object[] { seatid }, cancellationToken);
+      if (seat != null)
+      {
+          seat.Isavailable = false;
+          _context.Seats.Update(seat);
+      }
+  }
+  ```
+- **Files Modified**: `BookingRepository.cs` line 175-182
+
+**7. Booking Cancellation Feature** ✅ (November 5, 2025)
+- **Missing Feature**: No way to cancel pending bookings or release seats
+- **Business Problem**: 
+  - Users couldn't cancel unwanted bookings
+  - Seats locked forever if user didn't complete payment
+  - Poor user experience and wasted inventory
+- **Solutions Implemented**:
+  
+  **a) Manual Cancel API** (`POST /api/bookings/{id}/cancel`):
+  - User can cancel their own Pending bookings
+  - Validates ownership and status
+  - Releases seats atomically (sets `Isavailable = true`)
+  - Returns cancelled booking details with released seat list
+  
+  **b) Auto-Cancel Background Service** (`BookingExpirationService`):
+  - Runs every **5 minutes** continuously
+  - Finds Pending bookings older than **15 minutes**
+  - Auto-cancels expired bookings
+  - Releases seats back to available pool
+  - Logs all operations for monitoring
+  
+- **Business Rules**:
+  - Only "Pending" bookings can be cancelled
+  - User must own the booking (JWT validation)
+  - Seats released immediately in same transaction
+  - Auto-cancel timer: 15 minutes from `bookingtime`
+  - Transaction safety with `ExecutionStrategy`
+
+- **Files Created/Modified**:
+  ```
+  NEW: CancelBookingResponseDTO.cs
+  NEW: BookingExpirationService.cs
+  MOD: IBookingRepository.cs (added CancelBookingAndReleaseSeatsAsync, GetPendingBookingsOlderThanAsync)
+  MOD: BookingRepository.cs (implemented cancel logic)
+  MOD: IBookingService.cs (added CancelBookingAsync, AutoCancelExpiredBookingsAsync)
+  MOD: BookingService.cs (implemented cancel business logic)
+  MOD: BookingsController.cs (added POST {id}/cancel endpoint)
+  MOD: Program.cs (registered background service)
+  ```
+
 ---
 
 **Created**: November 3, 2025  
 **Last Updated**: November 5, 2025  
-**Progress**: ✅ 10/10 endpoints (100%) - **COMPLETED**  
+**Progress**: ✅ 11/11 endpoints (100%) - **COMPLETED**  
 **Test File**: `tests/BookingFlow.http` ✅  
 **Completion Date**: November 5, 2025
+
+**Critical Fixes** (November 5, 2025):
+- ✅ Seat locking bug (seats now locked on booking creation)
+- ✅ Booking cancellation feature (manual + auto-cancel after 15 min)
+- ✅ Background service for expired booking cleanup
