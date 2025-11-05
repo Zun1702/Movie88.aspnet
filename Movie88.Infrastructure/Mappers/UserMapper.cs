@@ -16,6 +16,7 @@ namespace Movie88.Infrastructure.Mappers
                 Phone = entity.Phone,
                 Roleid = entity.Roleid,
                 Createdat = entity.Createdat,
+                Updatedat = entity.Updatedat,
                 Role = entity.Role != null ? new RoleModel
                 {
                     Roleid = entity.Role.Roleid,
@@ -35,6 +36,7 @@ namespace Movie88.Infrastructure.Mappers
                 Phone = model.Phone,
                 Roleid = model.Roleid,
                 Createdat = model.Createdat,
+                Updatedat = model.Updatedat,
                 Isverified = model.IsVerified,
                 Isactive = model.IsActive,
                 Verifiedat = model.VerifiedAt

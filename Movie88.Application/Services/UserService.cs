@@ -39,7 +39,8 @@ public class UserService : IUserService
             Phone = user.Phone,
             Roleid = user.Roleid,
             Rolename = user.Role?.Rolename ?? string.Empty,
-            Createdat = user.Createdat
+            Createdat = user.Createdat,
+            Updatedat = user.Updatedat
         };
 
         return Result<UserProfileGetDto>.Success(

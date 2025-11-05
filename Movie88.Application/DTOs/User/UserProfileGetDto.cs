@@ -9,4 +9,5 @@ public class UserProfileGetDto
     public int Roleid { get; set; }
     public string Rolename { get; set; } = string.Empty;
     public DateTime? Createdat { get; set; }
+    public DateTime? Updatedat { get; set; }
 }

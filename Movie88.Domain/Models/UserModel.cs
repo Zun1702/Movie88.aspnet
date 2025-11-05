@@ -9,6 +9,7 @@ namespace Movie88.Domain.Models
         public string? Phone { get; set; }
         public int Roleid { get; set; }
         public DateTime? Createdat { get; set; }
+        public DateTime? Updatedat { get; set; }
         
         // OTP Verification fields
         public bool IsVerified { get; set; } = false;
