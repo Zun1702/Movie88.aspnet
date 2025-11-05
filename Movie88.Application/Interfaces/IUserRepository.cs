@@ -11,5 +11,6 @@ namespace Movie88.Application.Interfaces
         void Update(UserModel user);
         void Delete(UserModel user);
         Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default);
+        Task<UserModel?> GetUserWithRoleByIdAsync(int userId);
     }
 }

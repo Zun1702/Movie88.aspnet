@@ -60,6 +60,10 @@ namespace Movie88.Application.Configuration
             // Payment Services
             services.AddScoped<IPaymentService, PaymentService>();
             services.AddScoped<IVNPayService, VNPayService>();
+
+            //User Service
+            services.AddScoped<IUserService, UserService>();
+
         }
     }
 }

@@ -24,4 +24,9 @@ public interface ICustomerRepository
     /// Check if email exists
     /// </summary>
     Task<bool> EmailExistsAsync(string email);
+    
+    /// <summary>
+    /// Get customer with user data by user ID
+    /// </summary>
+    Task<CustomerModel?> GetCustomerWithUserByUserIdAsync(int userId);
 }

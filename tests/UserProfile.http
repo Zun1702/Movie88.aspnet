@@ -1,0 +1,455 @@
+### Movie88 API Testing - User Profile Management
+### Base URL
+# @baseUrl = https://movie88aspnet-app.up.railway.app/api
+@baseUrl = https://localhost:7238/api
+# @baseUrl = http://localhost:5203/api
+
+### Variables
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIzNyIsImVtYWlsIjoidHJpQGV4YW1wbGUuY29tIiwidW5pcXVlX25hbWUiOiJ0cml0cml0cmkiLCJyb2xlIjoiQ3VzdG9tZXIiLCJqdGkiOiI4NmFjMjI3MC0wZjE2LTQzNzMtYjEwNS00MmE1ZjA1Njg0YTYiLCJuYmYiOjE3NjIzMjQzOTAsImV4cCI6MTc2MjMyNzk5MCwiaWF0IjoxNzYyMzI0MzkwLCJpc3MiOiJNb3ZpZTg4QVBJIiwiYXVkIjoiTW92aWU4OENsaWVudCJ9.vRxsHSoeh3VqkjHJ-vI8OsL5TJtoh2FEiGmjC1reX40
+@userId = 37
+
+###############################################
+# 0. AUTHENTICATION - Login & Register
+###############################################
+
+### Test 0.1: Login to get access token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "tri@example.com",
+  "password": "asdf123"
+}
+
+### Test 0.2: Extract token from login response (manual copy)
+# After running Test 0.1, copy the "accessToken" value from response
+# and paste it into @accessToken variable above
+
+###############################################
+# 1. GET /api/users/me - Get current user profile
+###############################################
+
+### Test 1.1: Get current user profile (authenticated)
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Test 1.2: Get profile without token (should fail - 401)
+GET {{baseUrl}}/users/me
+Accept: application/json
+
+### Test 1.3: Get profile with invalid token (should fail - 401)
+GET {{baseUrl}}/users/me
+Authorization: Bearer invalid_token_here
+Accept: application/json
+
+### Test 1.4: Get profile with expired token (should fail - 401)
+GET {{baseUrl}}/users/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.expired_token
+Accept: application/json
+
+###############################################
+# 2. PUT /api/users/{id} - Update user basic information
+###############################################
+
+### Test 2.1: Update user profile with all fields
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "Updated Customer Name",
+  "phone": "0912345678"
+}
+
+### Test 2.2: Update user profile with only fullname
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "New Name Only",
+  "phone": null
+}
+
+### Test 2.3: Update user profile with only phone
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "Updated Customer Name",
+  "phone": "0987654321"
+}
+
+### Test 2.4: Try to update another user's profile (should fail - 403)
+PUT {{baseUrl}}/users/999
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "Hacker Name",
+  "phone": "0999999999"
+}
+
+### Test 2.5: Update with empty fullname (should fail - 400)
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "",
+  "phone": "0912345678"
+}
+
+### Test 2.6: Update with fullname exceeding max length (should fail - 400)
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "This is a very long name that exceeds one hundred characters limit and should be rejected by validation rules",
+  "phone": "0912345678"
+}
+
+### Test 2.7: Update with phone exceeding max length (should fail - 400)
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "Valid Name",
+  "phone": "123456789012345678901"
+}
+
+### Test 2.8: Update without authentication (should fail - 401)
+PUT {{baseUrl}}/users/{{userId}}
+Content-Type: application/json
+
+{
+  "fullname": "Unauthorized Update",
+  "phone": "0912345678"
+}
+
+### Test 2.9: Update non-existent user (should fail - 404)
+PUT {{baseUrl}}/users/99999
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "Non Existent",
+  "phone": "0912345678"
+}
+
+### Test 2.10: Update with missing required fields (should fail - 400)
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "phone": "0912345678"
+}
+
+###############################################
+# 3. PUT /api/customers/profile - Update customer profile
+###############################################
+
+### Test 3.1: Update customer profile with all fields
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "123 Nguyen Hue St, District 1, HCMC",
+  "dateofbirth": "1995-05-15",
+  "gender": "Male"
+}
+
+### Test 3.2: Update customer profile with only address
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "456 Le Loi St, District 3, HCMC",
+  "dateofbirth": null,
+  "gender": null
+}
+
+### Test 3.3: Update customer profile with only dateofbirth
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": null,
+  "dateofbirth": "1990-01-01",
+  "gender": null
+}
+
+### Test 3.4: Update customer profile with only gender
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": null,
+  "dateofbirth": null,
+  "gender": "Female"
+}
+
+### Test 3.5: Update with all null values (clear profile)
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": null,
+  "dateofbirth": null,
+  "gender": null
+}
+
+### Test 3.6: Update with gender "Other"
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "789 Tran Hung Dao St",
+  "dateofbirth": "1992-12-25",
+  "gender": "Other"
+}
+
+### Test 3.7: Update with invalid date format (should fail - 400)
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "123 Street",
+  "dateofbirth": "15-05-1995",
+  "gender": "Male"
+}
+
+### Test 3.8: Update with future date of birth (should fail - 400)
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "123 Street",
+  "dateofbirth": "2030-01-01",
+  "gender": "Male"
+}
+
+### Test 3.9: Update with address exceeding max length (should fail - 400)
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "This is a very long address that exceeds the maximum allowed length of 255 characters. It should be rejected by the validation rules. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.",
+  "dateofbirth": "1995-05-15",
+  "gender": "Male"
+}
+
+### Test 3.10: Update with gender exceeding max length (should fail - 400)
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "123 Street",
+  "dateofbirth": "1995-05-15",
+  "gender": "VeryLongGenderValue"
+}
+
+### Test 3.11: Update without authentication (should fail - 401)
+PUT {{baseUrl}}/customers/profile
+Content-Type: application/json
+
+{
+  "address": "Unauthorized Address",
+  "dateofbirth": "1995-05-15",
+  "gender": "Male"
+}
+
+### Test 3.12: Update with invalid token (should fail - 401)
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer invalid_token
+Content-Type: application/json
+
+{
+  "address": "Invalid Token Address",
+  "dateofbirth": "1995-05-15",
+  "gender": "Male"
+}
+
+### Test 3.13: Update when customer profile doesn't exist (should fail - 404)
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "No Profile Address",
+  "dateofbirth": "1995-05-15",
+  "gender": "Male"
+}
+
+###############################################
+# 4. INTEGRATION TESTS - Combined workflows
+###############################################
+
+### Test 4.1: Complete profile update workflow
+# Step 1: Get current profile
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Step 2: Update user basic info
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullname": "Nguyen Van A",
+  "phone": "0901234567"
+}
+
+### Step 3: Update customer extended profile
+PUT {{baseUrl}}/customers/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "123 Nguyen Hue St, District 1, HCMC",
+  "dateofbirth": "1995-05-15",
+  "gender": "Male"
+}
+
+### Step 4: Verify updated profile
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###############################################
+# Expected Response Formats
+###############################################
+
+### GET /api/users/me Response Format:
+# {
+#   "isSuccess": true,
+#   "message": "User information retrieved successfully",
+#   "statusCode": 200,
+#   "data": {
+#     "userid": 6,
+#     "fullname": "Customer User",
+#     "email": "customer@example.com",
+#     "phone": "0901234567",
+#     "roleid": 3,
+#     "rolename": "Customer",
+#     "createdat": "2025-10-01T08:00:00"
+#   },
+#   "errors": []
+# }
+
+### PUT /api/users/{id} Response Format:
+# {
+#   "isSuccess": true,
+#   "message": "User information updated successfully",
+#   "statusCode": 200,
+#   "data": {
+#     "userid": 6,
+#     "fullname": "Updated Name",
+#     "email": "customer@example.com",
+#     "phone": "0912345678",
+#     "rolename": "Customer",
+#     "updatedat": "2025-11-03T16:30:00"
+#   },
+#   "errors": []
+# }
+
+### PUT /api/customers/profile Response Format:
+# {
+#   "isSuccess": true,
+#   "message": "Customer profile updated successfully",
+#   "statusCode": 200,
+#   "data": {
+#     "customerid": 3,
+#     "userid": 6,
+#     "fullname": "Updated Name",
+#     "email": "customer@example.com",
+#     "phone": "0912345678",
+#     "address": "123 Nguyen Hue St, District 1",
+#     "dateofbirth": "1995-05-15",
+#     "gender": "Male"
+#   },
+#   "errors": []
+# }
+
+###############################################
+# Test Checklist
+###############################################
+
+### ✅ Test Cases to Verify:
+
+# GET /api/users/me:
+# 1. ✅ Returns user profile with role information
+# 2. ✅ Includes createdat, excludes updatedat
+# 3. ✅ Does not return passwordhash
+# 4. ❌ No token returns 401
+# 5. ❌ Invalid token returns 401
+
+# PUT /api/users/{id}:
+# 1. ✅ Updates fullname and phone
+# 2. ✅ Returns updatedat, excludes createdat
+# 3. ❌ Cannot update another user (403)
+# 4. ❌ Empty fullname returns 400
+# 5. ❌ Fullname > 100 chars returns 400
+# 6. ❌ Phone > 20 chars returns 400
+# 7. ❌ User not found returns 404
+# 8. ❌ No token returns 401
+
+# PUT /api/customers/profile:
+# 1. ✅ Updates address, dateofbirth, gender
+# 2. ✅ All fields are optional
+# 3. ✅ Returns user + customer info combined
+# 4. ❌ Invalid date format returns 400
+# 5. ❌ Address > 255 chars returns 400
+# 6. ❌ Gender > 10 chars returns 400
+# 7. ❌ Customer not found returns 404
+# 8. ❌ No token returns 401
+
+###############################################
+# Notes
+###############################################
+
+### 📝 Before running tests:
+# 1. Make sure API is running: dotnet run --project Movie88.WebApi
+# 2. Login as Customer first (Test 0.1) to get customer token
+# 3. Copy token from response and paste to @customerToken variable
+# 4. Update @baseUrl if using different environment
+# 5. Update @userId with your actual user ID
+# 6. Check Swagger UI: https://localhost:7238/swagger
+# 7. Install REST Client extension in VS Code
+
+### 📝 Test Data Requirements:
+# - At least 1 Customer user in database
+# - Customer user should have associated customer profile record
+# - Valid JWT token with customer role
+# - Test database with users and customers tables
+
+### 📝 Business Rules:
+# - Users can only edit their own profile
+# - Email cannot be changed via profile update
+# - Password cannot be changed via profile update (separate endpoint)
+# - Customer profile is optional (can be null)
+# - Date of birth format: yyyy-MM-dd
+# - Gender values: Male, Female, Other
+
+### 📝 Security Notes:
+# - All endpoints require authentication
+# - JWT token must be valid and not expired
+# - Users can only access their own profile
+# - Attempting to edit another user returns 403 Forbidden

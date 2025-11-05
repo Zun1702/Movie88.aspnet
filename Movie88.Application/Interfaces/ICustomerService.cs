@@ -9,4 +9,9 @@ public interface ICustomerService
     /// Get customer profile by user ID (from JWT token)
     /// </summary>
     Task<Result<CustomerProfileDTO>> GetProfileByUserIdAsync(int userId);
+    
+    /// <summary>
+    /// Update customer profile information
+    /// </summary>
+    Task<Result<CustomerProfileResponseDto>> UpdateCustomerProfileAsync(int userId, UpdateCustomerProfileDto request);
 }

@@ -90,4 +90,14 @@ public class CustomerRepository : ICustomerRepository
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<CustomerModel?> GetCustomerWithUserByUserIdAsync(int userId)
+    {
+        var customer = await _context.Customers
+            .Include(c => c.User)
+            .ThenInclude(u => u.Role)
+            .FirstOrDefaultAsync(c => c.Userid == userId);
+        
+        return customer != null ? _mapper.Map<CustomerModel>(customer) : null;
+    }
 }
