@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using Movie88.Application.DTOs.Email;
 using Movie88.Application.Interfaces;
 using Movie88.Domain.Models;
+using System.Globalization;
+
 
 namespace Movie88.Application.Services;
 
@@ -409,6 +411,7 @@ public class ResendEmailService : IEmailService
     private string GenerateBookingConfirmationHtml(BookingConfirmationEmailDTO dto)
     {
         // Convert to Vietnam timezone (UTC+7)
+        var culture = new CultureInfo("vi-VN");
         var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
         var showtimeVietnam = TimeZoneInfo.ConvertTimeFromUtc(dto.ShowtimeDateTime.ToUniversalTime(), vietnamTimeZone);
         var paymentTimeVietnam = dto.PaymentTime.HasValue 
@@ -416,7 +419,7 @@ public class ResendEmailService : IEmailService
             : (DateTime?)null;
         
         // Format showtime
-        var showtimeText = showtimeVietnam.ToString("dddd, dd MMMM yyyy - HH:mm");
+        var showtimeText = showtimeVietnam.ToString("dddd, dd MMMM yyyy - HH:mm", culture);
         
         // Calculate prices
         var comboPrice = dto.ComboItems.Sum(c => c.Price * c.Quantity);
