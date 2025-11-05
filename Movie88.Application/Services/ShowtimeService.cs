@@ -58,6 +58,7 @@ public class ShowtimeService : IShowtimeService
                             Price = s.Price,
                             Format = s.Format,
                             Languagetype = s.Languagetype,
+                            Auditoriumid = s.Auditoriumid,
                             AuditoriumName = s.Auditorium?.Name,
                             AvailableSeats = availableSeatsDict.GetValueOrDefault(s.Showtimeid, 0)
                         }).OrderBy(s => s.Starttime).ToList()
@@ -170,6 +171,7 @@ public class ShowtimeService : IShowtimeService
                             Price = s.Price,
                             Format = s.Format,
                             Languagetype = s.Languagetype,
+                            Auditoriumid = s.Auditoriumid,
                             AuditoriumName = s.Auditorium?.Name,
                             AvailableSeats = availableSeatsDict.GetValueOrDefault(s.Showtimeid, 0)
                         }).OrderBy(s => s.Starttime).ToList()

@@ -10,6 +10,7 @@ public class ShowtimeMapper : Profile
     {
         // Model -> DTO
         CreateMap<ShowtimeModel, ShowtimeItemDTO>()
+            .ForMember(dest => dest.Auditoriumid, opt => opt.MapFrom(src => src.Auditoriumid))
             .ForMember(dest => dest.AuditoriumName, opt => opt.MapFrom(src => 
                 src.Auditorium != null ? src.Auditorium.Name : null))
             .ForMember(dest => dest.AvailableSeats, opt => opt.Ignore()); // Will be set manually

@@ -27,6 +27,7 @@ public class ShowtimeItemDTO
     public decimal? Price { get; set; }
     public string? Format { get; set; }
     public string? Languagetype { get; set; }
+    public int? Auditoriumid { get; set; }
     public string? AuditoriumName { get; set; }
     public int AvailableSeats { get; set; }
 }
