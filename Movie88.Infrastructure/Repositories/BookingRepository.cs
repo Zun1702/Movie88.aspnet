@@ -64,6 +64,8 @@ public class BookingRepository : IBookingRepository
     public async Task<BookingModel?> GetByIdWithDetailsAsync(int bookingId)
     {
         var booking = await _context.Bookings
+            .Include(b => b.Customer)
+                .ThenInclude(c => c!.User) // ✅ Include User to get email
             .Include(b => b.Showtime)
                 .ThenInclude(s => s!.Movie)
             .Include(b => b.Showtime)

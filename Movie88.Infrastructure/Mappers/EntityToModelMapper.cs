@@ -12,8 +12,13 @@ public class EntityToModelMapper : Profile
         CreateMap<Movie, MovieModel>();
         CreateMap<Promotion, PromotionModel>();
         
+        // ✅ User mapping (needed for Customer.User navigation)
+        CreateMap<User, UserModel>()
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Userid))
+            .ForMember(dest => dest.Role, opt => opt.Ignore()); // Ignore role navigation to avoid circular reference
+        
         CreateMap<Customer, CustomerModel>()
-            .ForMember(dest => dest.User, opt => opt.Ignore()) // ✅ Ignore User navigation property - already flattened
+            // ✅ Allow User navigation property to be mapped (for email sending)
             .ForMember(dest => dest.Fullname, 
                 opt => opt.MapFrom(src => src.User != null ? src.User.Fullname : string.Empty))
             .ForMember(dest => dest.Email, 

@@ -286,10 +286,15 @@ public class PaymentService : IPaymentService
                 Price = bc.Combo?.Price ?? 0
             }).ToList() ?? new List<ComboItemDTO>();
 
-            // TODO: Add ICustomerRepository/IUserRepository to get real customer email
-            // For now, using placeholder - will be enhanced in next iteration
-            var customerEmail = $"customer{booking.Customerid}@movie88.com"; // Placeholder
-            var customerName = "Valued Customer";
+            // ✅ Get real customer email from User table (included in booking)
+            var customerEmail = booking.Customer?.User?.Email ?? booking.Customer?.Email ?? "";
+            var customerName = booking.Customer?.User?.Fullname ?? booking.Customer?.Fullname ?? "Khách Hàng";
+            
+            if (string.IsNullOrEmpty(customerEmail))
+            {
+                _logger.LogWarning("Customer email not found for booking {BookingId}, skipping email", bookingId);
+                return;
+            }
             
             // Prepare email DTO
             var emailDto = new BookingConfirmationEmailDTO
