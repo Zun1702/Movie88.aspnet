@@ -338,10 +338,11 @@ public class BookingRepository : IBookingRepository
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                // Get booking with seats
+                // Get booking with seats and combos
                 var booking = await _context.Bookings
                     .Include(b => b.Bookingseats)
                     .ThenInclude(bs => bs.Seat)
+                    .Include(b => b.Bookingcombos)
                     .FirstOrDefaultAsync(b => b.Bookingid == bookingId, cancellationToken);
 
                 if (booking == null)
@@ -362,6 +363,12 @@ public class BookingRepository : IBookingRepository
                         seatIds.Add(bookingSeat.Seatid);
                     }
                 }
+
+                // 🔥 CRITICAL FIX: Hard delete bookingseat and bookingcombo records
+                // This allows the same seats to be rebooked without constraint violations
+                // The booking record is preserved with Status='Cancelled' for audit purposes
+                _context.Bookingseats.RemoveRange(booking.Bookingseats);
+                _context.Bookingcombos.RemoveRange(booking.Bookingcombos);
 
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);

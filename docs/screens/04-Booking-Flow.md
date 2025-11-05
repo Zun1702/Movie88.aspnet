@@ -788,6 +788,12 @@ Authorization: Bearer {token}
        using var transaction = await _context.Database.BeginTransactionAsync();
        try
        {
+           // Get booking with seats and combos
+           var booking = await _context.Bookings
+               .Include(b => b.Bookingseats).ThenInclude(bs => bs.Seat)
+               .Include(b => b.Bookingcombos)
+               .FirstOrDefaultAsync(b => b.Bookingid == bookingId);
+           
            // Update booking status
            booking.Status = "Cancelled";
            _context.Bookings.Update(booking);
@@ -795,13 +801,19 @@ Authorization: Bearer {token}
            // Release all seats
            foreach (var bookingSeat in booking.Bookingseats)
            {
-               var seat = await _context.Seats.FindAsync(bookingSeat.Seatid);
-               if (seat != null)
+               if (bookingSeat.Seat != null)
                {
-                   seat.Isavailable = true; // 🔓 Release seat
-                   _context.Seats.Update(seat);
+                   bookingSeat.Seat.Isavailable = true; // 🔓 Release seat
+                   _context.Seats.Update(bookingSeat.Seat);
                }
            }
+           
+           // 🔥 CRITICAL: Hard delete bookingseat and bookingcombo records
+           // This prevents UNIQUE constraint violations when rebooking same seats
+           // Database has: UNIQUE INDEX (showtimeid, seatid) on bookingseats table
+           // Booking record preserved with Status='Cancelled' for audit
+           _context.Bookingseats.RemoveRange(booking.Bookingseats);
+           _context.Bookingcombos.RemoveRange(booking.Bookingcombos);
            
            await _context.SaveChangesAsync();
            await transaction.CommitAsync();
@@ -813,6 +825,12 @@ Authorization: Bearer {token}
        }
    });
    ```
+   
+   **Why Hard Delete?**
+   - Database has UNIQUE constraint: `[Index("Showtimeid", "Seatid", Name = "uq_showtimeseat", IsUnique = true)]`
+   - Soft delete would keep old Bookingseat records → Constraint violation on rebook
+   - Solution: Delete Bookingseat/Bookingcombo records to allow clean rebooking
+   - Booking record still preserved for audit trail (Status='Cancelled')
 
 4. **Return Response**:
    - Include list of released seat names (e.g., "A5", "A6")
@@ -874,9 +892,9 @@ protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 
 ### Critical Changes
 
-**🔒 Seat Locking Fix** (Also in this update):
+**🔒 Fix #6: Seat Locking** (Issue: Seats not locked after booking creation):
 - **Problem**: Seats remained `isAvailable = true` after booking creation
-- **Impact**: Multiple users could book the same seat
+- **Impact**: Multiple users could book the same seat (double-booking possible)
 - **Fix**: Added seat locking in `CreateBookingAsync`:
   ```csharp
   // In BookingRepository.CreateBookingAsync()
@@ -894,6 +912,19 @@ protected override async Task ExecuteAsync(CancellationToken stoppingToken)
       }
   }
   ```
+
+**🔥 Fix #8: Rebook Constraint Violation** (Issue: 500 error when rebooking cancelled seats):
+- **Problem**: After cancelling booking, rebooking same seats returned 500 Internal Server Error
+- **Root Cause**: UNIQUE constraint on `(showtimeid, seatid)` in bookingseats table
+- **Why**: Soft delete kept old Bookingseat records → Constraint violation on INSERT
+- **Fix**: Hard delete Bookingseat and Bookingcombo records on cancel:
+  ```csharp
+  // In CancelBookingAndReleaseSeatsAsync()
+  _context.Bookingseats.RemoveRange(booking.Bookingseats);
+  _context.Bookingcombos.RemoveRange(booking.Bookingcombos);
+  ```
+- **Result**: Booking record preserved for audit (Status='Cancelled'), but junction records deleted
+- **Impact**: Clean rebooking now possible without constraint violations
 
 ### Testing Checklist
 
