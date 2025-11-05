@@ -5,8 +5,8 @@
 # @baseUrl = http://localhost:5203/api
 
 ### Variables
-@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyOSIsImVtYWlsIjoiaG9hbmd2aWV0QGV4YW1wbGUuY29tIiwidW5pcXVlX25hbWUiOiJIb2FuZyBWaWV0Iiwicm9sZSI6IkFkbWluIiwianRpIjoiZTg3NDc0OWUtOTBhOC00MzNjLTgxYzAtYjAwZGU1OGIyYTMyIiwibmJmIjoxNzYyMjc3MTI1LCJleHAiOjE3NjIyODA3MjUsImlhdCI6MTc2MjI3NzEyNSwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.SCt9xjfgAYCDipQRkadly7Y42YF_WOsFs-4R0gk9quo
-@userId = 29
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIzOCIsImVtYWlsIjoiYmllYmVyQGV4YW1wbGUuY29tIiwidW5pcXVlX25hbWUiOiJKdXN0aW4gQmllYmVyIiwicm9sZSI6IkFkbWluIiwianRpIjoiOTlmMzRmOGYtMzEwZC00ZTZhLWFlOTEtMjZkYmRjMzJhMTVkIiwibmJmIjoxNzYyMzQ3Nzg4LCJleHAiOjE3NjIzNTEzODgsImlhdCI6MTc2MjM0Nzc4OCwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.8HcbxOGHwYNKLIjOB3QG1ZIIwo6BOgGZtE3mDerTYrk
+@userId = 38
 
 ###############################################
 # 0. AUTHENTICATION - Login as Admin
@@ -452,3 +452,444 @@ Content-Type: application/json
 # - Customer role cannot be created via this endpoint (use register instead)
 # - Password must be strong (8+ chars, uppercase, number, special char)
 # - All timestamps are stored as "timestamp without time zone" in PostgreSQL
+
+###############################################
+# 5. REPORTS & ANALYTICS - Dashboard Stats
+###############################################
+
+### Test 5.1: Get dashboard overview
+GET {{baseUrl}}/admin/dashboard/stats
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 5.2: Dashboard without auth (should fail - 401)
+GET {{baseUrl}}/admin/dashboard/stats
+Accept: application/json
+
+###############################################
+# 6. REPORTS - Daily Revenue
+###############################################
+
+### Test 6.1: Get revenue for today
+GET {{baseUrl}}/admin/reports/revenue/daily?date=2025-11-05
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 6.2: Get revenue for specific date
+GET {{baseUrl}}/admin/reports/revenue/daily?date=2025-11-04
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+
+### Test 6.5: Missing date parameter (should fail - 400)
+GET {{baseUrl}}/admin/reports/revenue/daily
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 6.6: Invalid date format (should fail - 400)
+GET {{baseUrl}}/admin/reports/revenue/daily?date=invalid-date
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+###############################################
+# 7. REPORTS - Monthly Revenue
+###############################################
+
+### Test 7.1: Get revenue for current month
+GET {{baseUrl}}/admin/reports/revenue/monthly?month=11&year=2025
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 7.2: Get revenue for previous month
+GET {{baseUrl}}/admin/reports/revenue/monthly?month=10&year=2025
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 7.3: Get revenue for specific month/year
+GET {{baseUrl}}/admin/reports/revenue/monthly?month=9&year=2025
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 7.4: Get revenue for January
+GET {{baseUrl}}/admin/reports/revenue/monthly?month=1&year=2025
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 7.5: Get revenue for December
+GET {{baseUrl}}/admin/reports/revenue/monthly?month=12&year=2024
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 7.6: Invalid month (should fail - 400)
+GET {{baseUrl}}/admin/reports/revenue/monthly?month=13&year=2025
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 7.7: Invalid year (should fail - 400)
+GET {{baseUrl}}/admin/reports/revenue/monthly?month=11&year=1999
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 7.8: Missing parameters (should fail - 400)
+GET {{baseUrl}}/admin/reports/revenue/monthly
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+###############################################
+# 8. REPORTS - Booking Statistics
+###############################################
+
+### Test 8.1: Get statistics for last 7 days
+GET {{baseUrl}}/admin/reports/bookings/statistics?startDate=2025-10-29&endDate=2025-11-05
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 8.2: Get statistics for last 30 days
+GET {{baseUrl}}/admin/reports/bookings/statistics?startDate=2025-10-06&endDate=2025-11-05
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 8.3: Get statistics for specific week
+GET {{baseUrl}}/admin/reports/bookings/statistics?startDate=2025-11-01&endDate=2025-11-07
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 8.4: Get statistics for single day
+GET {{baseUrl}}/admin/reports/bookings/statistics?startDate=2025-11-05&endDate=2025-11-05
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 8.5: Get statistics for entire year
+GET {{baseUrl}}/admin/reports/bookings/statistics?startDate=2025-01-01&endDate=2025-12-31
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 8.6: Invalid date range (end before start - should fail - 400)
+GET {{baseUrl}}/admin/reports/bookings/statistics?startDate=2025-11-05&endDate=2025-11-01
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 8.7: Missing parameters (should fail - 400)
+GET {{baseUrl}}/admin/reports/bookings/statistics?startDate=2025-11-01
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+###############################################
+# 9. REPORTS - Popular Movies
+###############################################
+
+### Test 9.1: Get top 10 popular movies (last month)
+GET {{baseUrl}}/admin/reports/popular-movies?period=month&limit=10
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 9.2: Get top 5 popular movies (last week)
+GET {{baseUrl}}/admin/reports/popular-movies?period=week&limit=5
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 9.3: Get top 20 popular movies (last year)
+GET {{baseUrl}}/admin/reports/popular-movies?period=year&limit=20
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 9.4: Get top 3 popular movies (default period)
+GET {{baseUrl}}/admin/reports/popular-movies?limit=3
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 9.5: Get popular movies with default limit
+GET {{baseUrl}}/admin/reports/popular-movies?period=month
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 9.6: Get all popular movies (high limit)
+GET {{baseUrl}}/admin/reports/popular-movies?period=year&limit=50
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 9.7: Invalid period value
+GET {{baseUrl}}/admin/reports/popular-movies?period=invalid&limit=10
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 9.8: Limit exceeds max (should cap at 50)
+GET {{baseUrl}}/admin/reports/popular-movies?period=month&limit=100
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+###############################################
+# 10. REPORTS - Customer Analytics
+###############################################
+
+### Test 10.1: Get customer analytics for last month
+GET {{baseUrl}}/admin/reports/customers/analytics?period=month&topCustomersLimit=10
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 10.2: Get customer analytics for last week
+GET {{baseUrl}}/admin/reports/customers/analytics?period=week&topCustomersLimit=5
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 10.3: Get customer analytics for last year
+GET {{baseUrl}}/admin/reports/customers/analytics?period=year&topCustomersLimit=20
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 10.4: Get all-time customer analytics
+GET {{baseUrl}}/admin/reports/customers/analytics?period=all&topCustomersLimit=10
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 10.5: Get top 3 customers only
+GET {{baseUrl}}/admin/reports/customers/analytics?period=month&topCustomersLimit=3
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 10.6: Get with default parameters
+GET {{baseUrl}}/admin/reports/customers/analytics
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 10.7: Check demographics breakdown (age groups)
+# Should return age distribution: 18-24, 25-34, 35-44, 45+
+GET {{baseUrl}}/admin/reports/customers/analytics?period=all
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Test 10.8: Check demographics breakdown (gender)
+# Should return gender distribution: male, female
+GET {{baseUrl}}/admin/reports/customers/analytics?period=year
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+###############################################
+# Expected Response Formats - Reports
+###############################################
+
+### Dashboard Stats Response:
+# {
+#   "success": true,
+#   "data": {
+#     "todayRevenue": 45000000,
+#     "todayBookings": 450,
+#     "activeMovies": 25,
+#     "activeCustomers": 3200,
+#     "popularMovies": [
+#       {
+#         "movieId": 1,
+#         "title": "Avengers: Endgame",
+#         "posterUrl": "https://...",
+#         "totalBookings": 1250,
+#         "revenue": 185000000
+#       }
+#     ],
+#     "upcomingShowtimes": [
+#       {
+#         "showtimeId": 123,
+#         "movieTitle": "Avatar 2",
+#         "cinemaName": "CGV Vincom",
+#         "auditoriumName": "Screen 1",
+#         "startTime": "2025-11-05T19:00:00",
+#         "price": 100000,
+#         "format": "3D",
+#         "totalSeats": 200,
+#         "availableSeats": 45
+#       }
+#     ]
+#   }
+# }
+
+### Daily Revenue Response:
+# {
+#   "success": true,
+#   "data": {
+#     "period": "2025-11-04",
+#     "totalRevenue": 45000000,
+#     "totalBookings": 450,
+#     "averageTicketPrice": 100000,
+#     "breakdown": {
+#       "ticketSales": 42000000,
+#       "concessions": 3000000
+#     },
+#     "byMovie": [
+#       {
+#         "movieId": 1,
+#         "movieTitle": "Avengers",
+#         "revenue": 18500000,
+#         "bookings": 185
+#       }
+#     ],
+#     "byCinema": [
+#       {
+#         "cinemaId": 1,
+#         "cinemaName": "CGV Vincom",
+#         "revenue": 25000000,
+#         "bookings": 250
+#       }
+#     ],
+#     "byHour": [
+#       {
+#         "hour": "10:00-11:00",
+#         "revenue": 2000000,
+#         "bookings": 20
+#       }
+#     ]
+#   }
+# }
+
+### Booking Statistics Response:
+# {
+#   "success": true,
+#   "data": {
+#     "totalBookings": 12500,
+#     "completedBookings": 11800,
+#     "canceledBookings": 700,
+#     "checkedInBookings": 11200,
+#     "cancellationRate": 5.6,
+#     "checkInRate": 94.9,
+#     "averageBookingValue": 180000,
+#     "peakHours": ["19:00-20:00", "20:00-21:00"],
+#     "peakDays": ["Saturday", "Sunday"],
+#     "conversionRate": 94.4
+#   }
+# }
+
+### Popular Movies Response:
+# {
+#   "success": true,
+#   "data": [
+#     {
+#       "rank": 1,
+#       "movieId": 1,
+#       "title": "Avengers: Endgame",
+#       "totalBookings": 1250,
+#       "revenue": 185000000,
+#       "averageOccupancy": 92.5,
+#       "rating": 4.8,
+#       "trend": "up"
+#     }
+#   ]
+# }
+
+### Customer Analytics Response:
+# {
+#   "success": true,
+#   "data": {
+#     "totalCustomers": 8500,
+#     "newCustomers": 250,
+#     "activeCustomers": 3200,
+#     "retentionRate": 78.0,
+#     "churnRate": 12.0,
+#     "averageLifetimeValue": 2400000,
+#     "topCustomers": [
+#       {
+#         "customerId": 123,
+#         "fullname": "Nguyen Van A",
+#         "email": "customer@example.com",
+#         "totalBookings": 45,
+#         "totalSpent": 8500000,
+#         "memberSince": "2024-01-15T00:00:00"
+#       }
+#     ],
+#     "demographics": {
+#       "age": {
+#         "18-24": 35.5,
+#         "25-34": 40.2,
+#         "35-44": 20.1,
+#         "45+": 4.2
+#       },
+#       "gender": {
+#         "male": 55.0,
+#         "female": 45.0
+#       }
+#     }
+#   }
+# }
+
+###############################################
+# Test Checklist - Reports & Analytics
+###############################################
+
+### ✅ Dashboard Stats Tests:
+# 1. ✅ Returns today's revenue correctly
+# 2. ✅ Returns today's booking count
+# 3. ✅ Returns active movies count
+# 4. ✅ Returns active customers count
+# 5. ✅ Returns top 5 popular movies
+# 6. ✅ Returns upcoming showtimes (next 24h)
+# 7. ✅ Shows available seats calculation
+# 8. ❌ Unauthorized access returns 401
+#
+### ✅ Daily Revenue Tests:
+# 1. ✅ Returns correct revenue for specific date
+# 2. ✅ Breakdown shows ticket sales vs concessions
+# 3. ✅ Revenue grouped by movie
+# 4. ✅ Revenue grouped by cinema
+# 5. ✅ Revenue grouped by hour (only for daily)
+# 6. ✅ Returns zero for dates with no data
+# 7. ❌ Invalid date returns 400
+# 8. ❌ Missing date parameter returns 400
+#
+### ✅ Monthly Revenue Tests:
+# 1. ✅ Returns correct revenue for month/year
+# 2. ✅ Breakdown shows ticket sales vs concessions
+# 3. ✅ Revenue grouped by movie
+# 4. ✅ Revenue grouped by cinema
+# 5. ✅ No byHour field (monthly report)
+# 6. ❌ Invalid month (>12 or <1) returns 400
+# 7. ❌ Invalid year returns 400
+#
+### ✅ Booking Statistics Tests:
+# 1. ✅ Total bookings count correct
+# 2. ✅ Completed bookings (Status = "Completed")
+# 3. ✅ Canceled bookings (Status = "Cancelled")
+# 4. ✅ Checked-in bookings (Checkedintime != null)
+# 5. ✅ Cancellation rate calculated correctly
+# 6. ✅ Check-in rate uses Checkedintime field
+# 7. ✅ Average booking value from Totalamount
+# 8. ✅ Peak hours from Showtime.Starttime
+# 9. ✅ Peak days from Bookingtime
+# 10. ✅ Conversion rate calculated
+#
+### ✅ Popular Movies Tests:
+# 1. ✅ Movies ranked by revenue
+# 2. ✅ Total bookings count correct
+# 3. ✅ Occupancy rate calculated correctly
+# 4. ✅ Average rating from Reviews table
+# 5. ✅ Trend comparison (up/down/stable)
+# 6. ✅ Period filter works (week/month/year)
+# 7. ✅ Limit parameter works
+# 8. ✅ Returns empty array if no data
+#
+### ✅ Customer Analytics Tests:
+# 1. ✅ Total customers count
+# 2. ✅ New customers (User.Createdat in period)
+# 3. ✅ Active customers (with bookings in period)
+# 4. ✅ Retention rate calculated
+# 5. ✅ Churn rate calculated
+# 6. ✅ Average lifetime value from Payments
+# 7. ✅ Top customers by totalSpent
+# 8. ✅ Age demographics from Dateofbirth
+# 9. ✅ Gender demographics from Gender field
+# 10. ✅ Period filter works (week/month/year/all)
+
+###############################################
+# Performance Notes
+###############################################
+
+### 📝 Query Performance:
+# - Dashboard stats: Multiple aggregations, may take 1-2 seconds
+# - Daily revenue: JOIN 5+ tables, optimize with indexes
+# - Monthly revenue: Larger date range, may take 2-3 seconds
+# - Booking statistics: Calculates percentages, fast query
+# - Popular movies: Complex JOIN with trend calculation
+# - Customer analytics: Demographics grouping, may take 2-3 seconds
+#
+### 📝 Optimization Tips:
+# - Add indexes on: Paymenttime, Bookingtime, Status fields
+# - Cache dashboard stats (refresh every 5 minutes)
+# - Use pagination for large result sets
+# - Consider materialized views for monthly reports
+# - Run reports during off-peak hours for best performance

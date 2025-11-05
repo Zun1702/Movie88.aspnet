@@ -36,9 +36,9 @@
 | # | Method | Endpoint | Description | Auth | Status | Assign |
 |---|--------|----------|-------------|------|--------|--------|
 | 15 | GET | `/api/admin/dashboard/stats` | Dashboard overview | ✅ Admin | ⏳ TODO | Việt |
-| 16 | GET | `/api/admin/reports/revenue/daily` | Báo cáo doanh thu ngày | ✅ Admin | ⏳ TODO | Việt |
-| 17 | GET | `/api/admin/reports/revenue/monthly` | Báo cáo doanh thu tháng | ✅ Admin | ⏳ TODO | Việt |
-| 18 | GET | `/api/admin/reports/bookings/statistics` | Thống kê booking | ✅ Admin | ⏳ TODO | Việt |
+| 16 | GET | `/api/admin/reports/revenue/daily` | Báo cáo doanh thu ngày | ✅ Admin | ✅ DONE | Việt |
+| 17 | GET | `/api/admin/reports/revenue/monthly` | Báo cáo doanh thu tháng | ✅ Admin | ✅ DONE | Việt |
+| 18 | GET | `/api/admin/reports/bookings/statistics` | Thống kê booking | ✅ Admin | ✅ DONE | Việt |
 | 19 | GET | `/api/admin/reports/popular-movies` | Phim phổ biến | ✅ Admin | ⏳ TODO | Việt |
 | 20 | GET | `/api/admin/reports/customers/analytics` | Phân tích khách hàng | ✅ Admin | ⏳ TODO | Việt |
 
@@ -766,7 +766,7 @@ PUT /api/admin/users/{id}/ban      # Ban/unban user with reason
 
 **Description**: Báo cáo doanh thu theo ngày  
 **Auth Required**: ✅ Admin  
-**Status**: ⏳ TODO
+**Status**: ✅ IMPLEMENTED
 
 ### Request
 ```http
@@ -779,7 +779,7 @@ Authorization: Bearer {admin_token}
 {
   "success": true,
   "data": {
-    "date": "2025-11-04",
+    "period": "2025-11-04",
     "totalRevenue": 45000000,
     "totalBookings": 450,
     "averageTicketPrice": 100000,
@@ -789,6 +789,7 @@ Authorization: Bearer {admin_token}
     },
     "byMovie": [
       {
+        "movieId": 1,
         "movieTitle": "Avengers",
         "revenue": 18500000,
         "bookings": 185
@@ -796,14 +797,15 @@ Authorization: Bearer {admin_token}
     ],
     "byCinema": [
       {
+        "cinemaId": 1,
         "cinemaName": "CGV Vincom",
         "revenue": 25000000,
         "bookings": 250
       }
     ],
     "byHour": [
-      { "hour": "10:00-11:00", "revenue": 2000000 },
-      { "hour": "19:00-20:00", "revenue": 8500000 }
+      { "hour": "10:00-11:00", "revenue": 2000000, "bookings": 20 },
+      { "hour": "19:00-20:00", "revenue": 8500000, "bookings": 85 }
     ]
   }
 }
@@ -819,7 +821,7 @@ Authorization: Bearer {admin_token}
 ## 🎯 16. GET /api/admin/reports/revenue/monthly
 
 **Description**: Báo cáo doanh thu theo tháng  
-**Status**: ⏳ TODO
+**Status**: ✅ IMPLEMENTED
 
 ```http
 GET /api/admin/reports/revenue/monthly?month=11&year=2025
@@ -831,7 +833,7 @@ GET /api/admin/reports/revenue/monthly?month=11&year=2025
 
 **Description**: Thống kê booking (completion rate, peak hours, etc.)  
 **Auth Required**: ✅ Admin  
-**Status**: ⏳ TODO
+**Status**: ✅ IMPLEMENTED
 
 ### Request
 ```http
@@ -855,6 +857,12 @@ GET /api/admin/reports/bookings/statistics?startDate=2025-11-01&endDate=2025-11-
     "conversionRate": "78%"
   }
 }
+```
+
+> **💡 Note**: 
+> - Percentage fields (`cancellationRate`, `checkInRate`, `conversionRate`) are returned as **strings with % symbol** (e.g., "5.6%")
+> - `peakDays` returns day names in English (e.g., "Saturday", "Sunday", "Monday") based on DayOfWeek enum
+> - `peakHours` returns top 2 hours with most bookings in format "HH:00-HH:00"
 ```
 
 ### Response includes

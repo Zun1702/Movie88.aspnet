@@ -74,6 +74,10 @@ namespace Movie88.Infrastructure
             
             // Staff Booking Verification Service
             services.AddScoped<IBookingVerificationService, BookingVerificationService>();
+            
+            // Report Repository & Service (Admin Reports & Analytics)
+            services.AddScoped<Domain.Interfaces.IReportRepository, ReportRepository>();
+            services.AddScoped<IReportService, ReportService>();
         }
     }
 }
