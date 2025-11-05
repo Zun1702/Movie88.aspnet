@@ -357,6 +357,7 @@ public class PaymentService : IPaymentService
                 MovieTitle = booking.Showtime?.Movie?.Title ?? "Movie",
                 CinemaName = booking.Showtime?.Auditorium?.Cinema?.Name ?? "Cinema",
                 CinemaAddress = booking.Showtime?.Auditorium?.Cinema?.Address ?? "",
+                AuditoriumName = booking.Showtime?.Auditorium?.Name ?? "Phòng Chiếu",
                 ShowtimeDateTime = booking.Showtime?.Starttime ?? DateTime.Now,
                 SeatNumbers = seatNumbers,
                 ComboItems = comboItems,
