@@ -15,7 +15,7 @@ Content-Type: application/json
   "password": "123321"
 }
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjdiNjE2YmY5LTA3ZjAtNGIwMC1hMmVjLTljZGQzZGY1NzM0NCIsIm5iZiI6MTc2MjM0Mzg2MywiZXhwIjoxNzYyMzQ3NDYzLCJpYXQiOjE3NjIzNDM4NjMsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.IL4aMwMgypi0MDJwxx068uv0WCfsxsLAegR2KWEs2yQ
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjIwMjIyYTUzLTdiNzMtNGQxYy04YTQxLWZjZDEwMjE4ZTBiOCIsIm5iZiI6MTc2MjM1MDAxMSwiZXhwIjoxNzYyMzUzNjExLCJpYXQiOjE3NjIzNTAwMTEsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.4P7NdFCOfQm8ByTPZU3dQR_Aw9fmh_NUkfs46aKQyuk
 @movieId = 1
 @cinemaId = 1
 @showtimeId = 1
@@ -326,11 +326,11 @@ Content-Type: application/json
 
 {
   "showtimeid": 1,
-  "seatids": [20, 21]
+  "seatids": [3, 12]
 }
 
 # 5. Add combo to booking (use bookingId from response)
-POST {{baseUrl}}/bookings/24/add-combos
+POST {{baseUrl}}/bookings/26/add-combos
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -344,7 +344,7 @@ Content-Type: application/json
 }
 
 ### 6. POST Cancel Booking (REQUIRES AUTH)
-POST {{baseUrl}}/bookings/23/cancel
+POST {{baseUrl}}/bookings/25/cancel
 Authorization: Bearer {{token}}
 Content-Type: application/json
 

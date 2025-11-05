@@ -18,7 +18,7 @@ public class PaymentService : IPaymentService
     private readonly IQRCodeService _qrCodeService;
     private readonly IEmailService _emailService;
     private readonly ILogger<PaymentService> _logger;
-    private readonly IServiceProvider _serviceProvider; // ✅ For creating scoped services in background task
+    private readonly IServiceScopeFactory _serviceScopeFactory; // ✅ Use ScopeFactory instead of ServiceProvider
 
     public PaymentService(
         IPaymentRepository paymentRepository,
@@ -29,7 +29,7 @@ public class PaymentService : IPaymentService
         IQRCodeService qrCodeService,
         IEmailService emailService,
         ILogger<PaymentService> logger,
-        IServiceProvider serviceProvider)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _paymentRepository = paymentRepository;
         _paymentmethodRepository = paymentmethodRepository;
@@ -39,7 +39,7 @@ public class PaymentService : IPaymentService
         _qrCodeService = qrCodeService;
         _emailService = emailService;
         _logger = logger;
-        _serviceProvider = serviceProvider;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public async Task<CreatePaymentResponseDTO?> CreateVNPayPaymentAsync(
@@ -174,7 +174,7 @@ public class PaymentService : IPaymentService
                         _logger.LogInformation("📧 Background task started: Sending booking confirmation email for booking {BookingId}", payment.Bookingid);
                         
                         // Create new scope to get fresh DbContext
-                        using var scope = _serviceProvider.CreateScope();
+                        using var scope = _serviceScopeFactory.CreateScope();
                         var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
                         var qrCodeService = scope.ServiceProvider.GetRequiredService<IQRCodeService>();
                         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
