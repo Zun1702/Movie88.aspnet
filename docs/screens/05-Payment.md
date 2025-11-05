@@ -32,6 +32,12 @@ Chia thành **3 giai đoạn** để dev hiệu quả:
 | 7 | GET | `/api/bookings/{id}` | Get booking summary | ✅ | ✅ DONE | Trung |
 | 8 | GET | `/api/bookings/{id}` | Get booking details | ✅ | ✅ DONE | Trung |
 
+### 📧 Phase 4: Email Confirmation & QR Code (NEW - In Development)
+| # | Feature | Trigger | Purpose | Status | Assign |
+|---|---------|---------|---------|--------|--------|
+| 9 | Booking Confirmation Email | After VNPay success | Send invoice with QR code | 🔄 DEV | Trung |
+| 10 | QR Code Generation | On payment confirmed | Generate QR from BookingCode | 🔄 DEV | Trung |
+
 ---
 
 ## 💰 PHASE 1: VOUCHER MANAGEMENT
@@ -580,6 +586,656 @@ Returns full booking details including:
 This endpoint is reused in both payment screens:
 1. **BookingSummaryActivity**: Shows booking summary before payment
 2. **PaymentResultActivity**: Shows confirmed booking after payment with BookingCode
+
+---
+
+## 📧 PHASE 4: EMAIL CONFIRMATION & QR CODE
+
+### 🎯 9. Booking Confirmation Email (Auto-triggered)
+
+**Trigger**: Automatically sent after VNPay payment success  
+**Sent From**: `Movie88 <movie88@ezyfix.site>` (via Resend API)  
+**Sent To**: Customer's email address  
+**Auth Required**: N/A (Internal service)
+
+### Email Content Structure
+
+#### Email Subject
+```
+🎬 Booking Confirmed - [Movie Title] - Movie88
+```
+
+#### Email Template (HTML)
+Professional invoice-style email with:
+1. **Header Section**
+   - Movie88 logo with gradient background
+   - "Booking Confirmed" title
+   - BookingCode displayed prominently
+
+2. **QR Code Section**
+   - Large QR code (300x300px) encoding BookingCode
+   - Text: "Show this QR code at cinema entrance"
+   - Note: "Screenshot and save for offline access"
+
+3. **Booking Details Section**
+   - 🎬 Movie title and poster thumbnail
+   - 🏢 Cinema name and address
+   - 📅 Showtime date and time
+   - 🪑 Seat numbers (e.g., "A5, A6")
+   - 🍿 Combo items (if any)
+
+4. **Payment Summary**
+   - Ticket prices breakdown
+   - Combo prices (if any)
+   - Voucher discount (if applied)
+   - **Total Amount Paid**
+   - Payment method: VNPay
+   - Transaction code
+   - Payment time
+
+5. **Important Information**
+   - ⏰ "Please arrive 15 minutes before showtime"
+   - 🎫 "Present QR code or Booking Code at entrance"
+   - ❌ "No refund after 24 hours before showtime"
+   - 📞 "Contact support: support@movie88.com"
+
+6. **Footer Section**
+   - Movie88 branding
+   - Social media links
+   - "This is an automated email, please do not reply"
+   - Unsubscribe link
+
+### Business Logic
+
+**When to Send**:
+```csharp
+// Triggered in VNPayCallback and VNPayIPN after successful payment
+if (vnp_ResponseCode == "00" && booking.Status == "Confirmed")
+{
+    // Generate QR Code
+    var qrCodeBase64 = await _qrCodeService.GenerateQRCodeAsync(booking.Bookingcode);
+    
+    // Send confirmation email
+    await _emailService.SendBookingConfirmationAsync(new BookingConfirmationEmailDTO
+    {
+        CustomerEmail = customer.Email,
+        CustomerName = customer.User.Fullname,
+        BookingCode = booking.Bookingcode,
+        QRCodeBase64 = qrCodeBase64,
+        MovieTitle = showtime.Movie.Title,
+        CinemaName = showtime.Room.Cinema.Name,
+        ShowtimeDateTime = showtime.Showtime,
+        SeatNumbers = string.Join(", ", booking.Tickets.Select(t => t.Seat.Seatnumber)),
+        ComboItems = booking.Bookingcombos.Select(bc => new ComboItemDTO 
+        { 
+            Name = bc.Combo.Name, 
+            Quantity = bc.Quantity 
+        }).ToList(),
+        TotalAmount = payment.Amount,
+        DiscountAmount = originalAmount - payment.Amount,
+        VoucherCode = booking.Voucher?.Code,
+        TransactionCode = payment.Transactioncode,
+        PaymentTime = payment.Paymenttime
+    });
+}
+```
+
+### Email Template Example
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmation - Movie88</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f5f5;">
+    
+    <!-- Header with Gradient -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 32px; font-weight: bold;">🎬 Movie88</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">Booking Confirmation</p>
+    </div>
+    
+    <!-- Main Content -->
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; margin-top: -20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        
+        <!-- BookingCode Section -->
+        <div style="padding: 30px 20px; text-align: center; border-bottom: 2px dashed #e0e0e0;">
+            <h2 style="color: #333; margin: 0 0 10px 0;">Booking Code</h2>
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; font-size: 28px; font-weight: bold; letter-spacing: 2px;">
+                {{BOOKING_CODE}}
+            </div>
+        </div>
+        
+        <!-- QR Code Section -->
+        <div style="padding: 30px 20px; text-align: center; background-color: #f9f9f9;">
+            <h3 style="color: #333; margin: 0 0 20px 0;">Your QR Code</h3>
+            <img src="cid:qrcode" alt="Booking QR Code" style="width: 300px; height: 300px; border: 4px solid #667eea; border-radius: 8px; padding: 10px; background: white;">
+            <p style="color: #666; margin: 20px 0 0 0; font-size: 14px;">
+                📱 Show this QR code at cinema entrance<br>
+                💾 Screenshot and save for offline access
+            </p>
+        </div>
+        
+        <!-- Booking Details -->
+        <div style="padding: 30px 20px;">
+            <h3 style="color: #333; margin: 0 0 20px 0; border-bottom: 2px solid #667eea; padding-bottom: 10px;">Booking Details</h3>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 10px 0; color: #666; width: 30%;">🎬 Movie</td>
+                    <td style="padding: 10px 0; color: #333; font-weight: bold;">{{MOVIE_TITLE}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; color: #666;">🏢 Cinema</td>
+                    <td style="padding: 10px 0; color: #333;">{{CINEMA_NAME}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; color: #666;">📅 Date & Time</td>
+                    <td style="padding: 10px 0; color: #333;">{{SHOWTIME_DATETIME}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; color: #666;">🪑 Seats</td>
+                    <td style="padding: 10px 0; color: #333; font-weight: bold;">{{SEAT_NUMBERS}}</td>
+                </tr>
+                {{#if COMBO_ITEMS}}
+                <tr>
+                    <td style="padding: 10px 0; color: #666;">🍿 Combos</td>
+                    <td style="padding: 10px 0; color: #333;">{{COMBO_ITEMS}}</td>
+                </tr>
+                {{/if}}
+            </table>
+        </div>
+        
+        <!-- Payment Summary -->
+        <div style="padding: 30px 20px; background-color: #f9f9f9;">
+            <h3 style="color: #333; margin: 0 0 20px 0; border-bottom: 2px solid #667eea; padding-bottom: 10px;">Payment Summary</h3>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; color: #666;">Ticket Price</td>
+                    <td style="padding: 8px 0; color: #333; text-align: right;">{{TICKET_PRICE}} VND</td>
+                </tr>
+                {{#if COMBO_PRICE}}
+                <tr>
+                    <td style="padding: 8px 0; color: #666;">Combo</td>
+                    <td style="padding: 8px 0; color: #333; text-align: right;">{{COMBO_PRICE}} VND</td>
+                </tr>
+                {{/if}}
+                {{#if DISCOUNT_AMOUNT}}
+                <tr>
+                    <td style="padding: 8px 0; color: #e74c3c;">Discount ({{VOUCHER_CODE}})</td>
+                    <td style="padding: 8px 0; color: #e74c3c; text-align: right;">-{{DISCOUNT_AMOUNT}} VND</td>
+                </tr>
+                {{/if}}
+                <tr style="border-top: 2px solid #ddd;">
+                    <td style="padding: 15px 0 0 0; color: #333; font-size: 18px; font-weight: bold;">Total Paid</td>
+                    <td style="padding: 15px 0 0 0; color: #667eea; font-size: 20px; font-weight: bold; text-align: right;">{{TOTAL_AMOUNT}} VND</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #999; font-size: 12px;">Payment Method</td>
+                    <td style="padding: 8px 0; color: #999; font-size: 12px; text-align: right;">VNPay - {{TRANSACTION_CODE}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #999; font-size: 12px;">Payment Time</td>
+                    <td style="padding: 8px 0; color: #999; font-size: 12px; text-align: right;">{{PAYMENT_TIME}}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Important Information -->
+        <div style="padding: 30px 20px; border-top: 2px dashed #e0e0e0;">
+            <h3 style="color: #333; margin: 0 0 15px 0;">⚠️ Important Information</h3>
+            <ul style="color: #666; line-height: 1.8; padding-left: 20px; margin: 0;">
+                <li>Please arrive <strong>15 minutes before showtime</strong></li>
+                <li>Present this <strong>QR code or Booking Code</strong> at cinema entrance</li>
+                <li>No refund after <strong>24 hours before showtime</strong></li>
+                <li>Contact support: <a href="mailto:support@movie88.com" style="color: #667eea;">support@movie88.com</a></li>
+            </ul>
+        </div>
+        
+        <!-- Call to Action -->
+        <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <p style="color: white; margin: 0 0 15px 0; font-size: 16px;">Enjoy your movie! 🍿🎬</p>
+            <a href="https://movie88.com/my-bookings" style="display: inline-block; background-color: white; color: #667eea; padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: bold;">View My Bookings</a>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div style="max-width: 600px; margin: 20px auto; padding: 20px; text-align: center; color: #999; font-size: 12px;">
+        <p style="margin: 0 0 10px 0;">This is an automated email from Movie88. Please do not reply.</p>
+        <p style="margin: 0;">© 2025 Movie88. All rights reserved.</p>
+        <p style="margin: 10px 0 0 0;">
+            <a href="#" style="color: #667eea; text-decoration: none; margin: 0 10px;">Facebook</a>
+            <a href="#" style="color: #667eea; text-decoration: none; margin: 0 10px;">Instagram</a>
+            <a href="#" style="color: #667eea; text-decoration: none; margin: 0 10px;">Twitter</a>
+        </p>
+    </div>
+    
+</body>
+</html>
+```
+
+---
+
+### 🎯 10. QR Code Generation Service
+
+**Purpose**: Generate QR code from BookingCode for easy cinema check-in  
+**Library**: QRCoder (NuGet package)  
+**Format**: PNG image, Base64 encoded for email embedding
+
+### QR Code Specifications
+
+- **Content**: BookingCode only (e.g., "BK-20251105-0156")
+- **Size**: 300x300 pixels (high resolution for printing)
+- **Error Correction**: Level Q (25% - good balance)
+- **Format**: PNG with transparent background
+- **Encoding**: Base64 for email embedding or binary for API response
+
+### Implementation
+
+#### 1. QR Code Service Interface
+
+```csharp
+// Movie88.Application/Interfaces/IQRCodeService.cs
+public interface IQRCodeService
+{
+    /// <summary>
+    /// Generate QR code as Base64 string for email embedding
+    /// </summary>
+    Task<string> GenerateQRCodeBase64Async(string bookingCode);
+    
+    /// <summary>
+    /// Generate QR code as byte array for API response
+    /// </summary>
+    Task<byte[]> GenerateQRCodeBytesAsync(string bookingCode);
+    
+    /// <summary>
+    /// Generate QR code and save to file (optional, for debugging)
+    /// </summary>
+    Task<string> GenerateQRCodeFileAsync(string bookingCode, string filePath);
+}
+```
+
+#### 2. QR Code Service Implementation
+
+```csharp
+// Movie88.Application/Services/QRCodeService.cs
+using QRCoder;
+using System.Drawing;
+using System.Drawing.Imaging;
+
+public class QRCodeService : IQRCodeService
+{
+    public async Task<string> GenerateQRCodeBase64Async(string bookingCode)
+    {
+        return await Task.Run(() =>
+        {
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(
+                bookingCode, 
+                QRCodeGenerator.ECCLevel.Q
+            );
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            
+            var qrCodeBytes = qrCode.GetGraphic(20); // 20 pixels per module
+            return Convert.ToBase64String(qrCodeBytes);
+        });
+    }
+    
+    public async Task<byte[]> GenerateQRCodeBytesAsync(string bookingCode)
+    {
+        return await Task.Run(() =>
+        {
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(
+                bookingCode, 
+                QRCodeGenerator.ECCLevel.Q
+            );
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            
+            return qrCode.GetGraphic(20);
+        });
+    }
+    
+    public async Task<string> GenerateQRCodeFileAsync(string bookingCode, string filePath)
+    {
+        return await Task.Run(() =>
+        {
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(
+                bookingCode, 
+                QRCodeGenerator.ECCLevel.Q
+            );
+            using var qrCode = new QRCode(qrCodeData);
+            using var qrCodeImage = qrCode.GetGraphic(20);
+            
+            qrCodeImage.Save(filePath, ImageFormat.Png);
+            return filePath;
+        });
+    }
+}
+```
+
+#### 3. Email Service Extension
+
+```csharp
+// Movie88.Application/DTOs/Email/BookingConfirmationEmailDTO.cs
+public class BookingConfirmationEmailDTO
+{
+    public string CustomerEmail { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string BookingCode { get; set; } = string.Empty;
+    public string QRCodeBase64 { get; set; } = string.Empty;
+    
+    public string MovieTitle { get; set; } = string.Empty;
+    public string CinemaName { get; set; } = string.Empty;
+    public string CinemaAddress { get; set; } = string.Empty;
+    public DateTime ShowtimeDateTime { get; set; }
+    public string SeatNumbers { get; set; } = string.Empty;
+    public List<ComboItemDTO> ComboItems { get; set; } = new();
+    
+    public decimal TotalAmount { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public string? VoucherCode { get; set; }
+    public string TransactionCode { get; set; } = string.Empty;
+    public DateTime? PaymentTime { get; set; }
+}
+
+public class ComboItemDTO
+{
+    public string Name { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+}
+```
+
+```csharp
+// Movie88.Application/Services/ResendEmailService.cs - ADD METHOD
+public async Task<bool> SendBookingConfirmationAsync(BookingConfirmationEmailDTO dto)
+{
+    try
+    {
+        // Generate email HTML from template
+        var emailHtml = GenerateBookingConfirmationHtml(dto);
+        
+        // Convert Base64 QR code to bytes for attachment
+        var qrCodeBytes = Convert.FromBase64String(dto.QRCodeBase64);
+        
+        // Create Resend email request with inline QR code
+        var emailRequest = new
+        {
+            from = "Movie88 <movie88@ezyfix.site>",
+            to = new[] { dto.CustomerEmail },
+            subject = $"🎬 Booking Confirmed - {dto.MovieTitle} - Movie88",
+            html = emailHtml,
+            attachments = new[]
+            {
+                new
+                {
+                    content = dto.QRCodeBase64,
+                    filename = $"booking-qr-{dto.BookingCode}.png",
+                    content_id = "qrcode" // For inline embedding
+                }
+            }
+        };
+        
+        var jsonContent = JsonSerializer.Serialize(emailRequest);
+        var httpContent = new StringContent(
+            jsonContent, 
+            Encoding.UTF8, 
+            "application/json"
+        );
+        
+        var response = await _httpClient.PostAsync("emails", httpContent);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            _logger.LogInformation(
+                "Booking confirmation email sent to {Email} for booking {BookingCode}", 
+                dto.CustomerEmail, 
+                dto.BookingCode
+            );
+            return true;
+        }
+        
+        var errorContent = await response.Content.ReadAsStringAsync();
+        _logger.LogError(
+            "Failed to send booking confirmation email: {StatusCode} - {Error}", 
+            response.StatusCode, 
+            errorContent
+        );
+        return false;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error sending booking confirmation email to {Email}", dto.CustomerEmail);
+        return false;
+    }
+}
+
+private string GenerateBookingConfirmationHtml(BookingConfirmationEmailDTO dto)
+{
+    // Use the HTML template above, replace placeholders with actual data
+    var html = GetBookingConfirmationTemplate();
+    
+    html = html.Replace("{{BOOKING_CODE}}", dto.BookingCode);
+    html = html.Replace("{{CUSTOMER_NAME}}", dto.CustomerName);
+    html = html.Replace("{{MOVIE_TITLE}}", dto.MovieTitle);
+    html = html.Replace("{{CINEMA_NAME}}", dto.CinemaName);
+    html = html.Replace("{{CINEMA_ADDRESS}}", dto.CinemaAddress);
+    html = html.Replace("{{SHOWTIME_DATETIME}}", dto.ShowtimeDateTime.ToString("dddd, dd MMMM yyyy - HH:mm"));
+    html = html.Replace("{{SEAT_NUMBERS}}", dto.SeatNumbers);
+    
+    // Combo items
+    if (dto.ComboItems.Any())
+    {
+        var comboText = string.Join(", ", dto.ComboItems.Select(c => $"{c.Name} x{c.Quantity}"));
+        html = html.Replace("{{COMBO_ITEMS}}", comboText);
+    }
+    else
+    {
+        html = html.Replace("{{#if COMBO_ITEMS}}.*?{{/if}}", "", RegexOptions.Singleline);
+    }
+    
+    // Pricing
+    var ticketPrice = dto.TotalAmount + dto.DiscountAmount;
+    var comboPrice = dto.ComboItems.Sum(c => c.Price * c.Quantity);
+    
+    html = html.Replace("{{TICKET_PRICE}}", ticketPrice.ToString("N0"));
+    html = html.Replace("{{COMBO_PRICE}}", comboPrice.ToString("N0"));
+    html = html.Replace("{{DISCOUNT_AMOUNT}}", dto.DiscountAmount.ToString("N0"));
+    html = html.Replace("{{VOUCHER_CODE}}", dto.VoucherCode ?? "");
+    html = html.Replace("{{TOTAL_AMOUNT}}", dto.TotalAmount.ToString("N0"));
+    html = html.Replace("{{TRANSACTION_CODE}}", dto.TransactionCode);
+    html = html.Replace("{{PAYMENT_TIME}}", dto.PaymentTime?.ToString("dd/MM/yyyy HH:mm:ss") ?? "");
+    
+    return html;
+}
+```
+
+#### 4. Update VNPay Callback to Send Email
+
+```csharp
+// Movie88.WebApi/Controllers/PaymentsController.cs - VNPayCallback method
+[HttpGet("vnpay/callback")]
+public async Task<IActionResult> VNPayCallback()
+{
+    // ... existing validation and payment update code ...
+    
+    if (vnp_ResponseCode == "00")
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Update payment and generate BookingCode
+                payment.Status = "Completed";
+                payment.Paymenttime = DateTime.Now;
+                
+                var bookingTime = DateTime.Now;
+                var bookingCode = _bookingCodeGenerator.GenerateBookingCode(bookingTime);
+                
+                var booking = payment.Booking;
+                booking.Status = "Confirmed";
+                booking.Bookingcode = bookingCode;
+                
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                
+                // ✨ NEW: Generate QR Code and send confirmation email
+                try
+                {
+                    var qrCodeBase64 = await _qrCodeService.GenerateQRCodeBase64Async(bookingCode);
+                    
+                    // Get full booking details with includes
+                    var fullBooking = await _context.Bookings
+                        .Include(b => b.Customer)
+                            .ThenInclude(c => c.User)
+                        .Include(b => b.Tickets)
+                            .ThenInclude(t => t.Seat)
+                        .Include(b => b.Bookingcombos)
+                            .ThenInclude(bc => bc.Combo)
+                        .Include(b => b.Showtime)
+                            .ThenInclude(s => s.Movie)
+                        .Include(b => b.Showtime)
+                            .ThenInclude(s => s.Room)
+                            .ThenInclude(r => r.Cinema)
+                        .Include(b => b.Voucher)
+                        .FirstOrDefaultAsync(b => b.Bookingid == booking.Bookingid);
+                    
+                    var emailDto = new BookingConfirmationEmailDTO
+                    {
+                        CustomerEmail = fullBooking.Customer.User.Email,
+                        CustomerName = fullBooking.Customer.User.Fullname,
+                        BookingCode = bookingCode,
+                        QRCodeBase64 = qrCodeBase64,
+                        MovieTitle = fullBooking.Showtime.Movie.Title,
+                        CinemaName = fullBooking.Showtime.Room.Cinema.Name,
+                        CinemaAddress = fullBooking.Showtime.Room.Cinema.Address,
+                        ShowtimeDateTime = fullBooking.Showtime.Showtime,
+                        SeatNumbers = string.Join(", ", fullBooking.Tickets.Select(t => t.Seat.Seatnumber)),
+                        ComboItems = fullBooking.Bookingcombos.Select(bc => new ComboItemDTO
+                        {
+                            Name = bc.Combo.Name,
+                            Quantity = bc.Quantity,
+                            Price = bc.Combo.Price ?? 0
+                        }).ToList(),
+                        TotalAmount = payment.Amount,
+                        DiscountAmount = fullBooking.Voucher != null ? CalculateDiscount(fullBooking) : 0,
+                        VoucherCode = fullBooking.Voucher?.Code,
+                        TransactionCode = payment.Transactioncode,
+                        PaymentTime = payment.Paymenttime
+                    };
+                    
+                    // Send email asynchronously (don't block callback response)
+                    _ = Task.Run(async () => await _emailService.SendBookingConfirmationAsync(emailDto));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send booking confirmation email for booking {BookingId}", booking.Bookingid);
+                    // Don't fail the payment if email fails
+                }
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
+    }
+    
+    // ... existing redirect code ...
+}
+```
+
+### NuGet Packages Required
+
+```xml
+<!-- Movie88.Application/Movie88.Application.csproj -->
+<ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.4.3" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+</ItemGroup>
+```
+
+### Service Registration
+
+```csharp
+// Movie88.Application/Configuration/ServiceExtensions.cs
+public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+{
+    // ... existing services ...
+    
+    // ✨ NEW: QR Code Service
+    services.AddScoped<IQRCodeService, QRCodeService>();
+    
+    return services;
+}
+```
+
+### Testing
+
+#### Manual Test Email Send
+
+```csharp
+// Test controller endpoint (optional, for debugging)
+[HttpPost("test/booking-confirmation-email")]
+[Authorize(Roles = "Admin")]
+public async Task<IActionResult> TestBookingConfirmationEmail([FromBody] string bookingCode)
+{
+    // Get booking by code
+    var booking = await _context.Bookings
+        .Include(b => b.Customer).ThenInclude(c => c.User)
+        .Include(b => b.Tickets).ThenInclude(t => t.Seat)
+        .Include(b => b.Bookingcombos).ThenInclude(bc => bc.Combo)
+        .Include(b => b.Showtime).ThenInclude(s => s.Movie)
+        .Include(b => b.Showtime).ThenInclude(s => s.Room).ThenInclude(r => r.Cinema)
+        .Include(b => b.Voucher)
+        .Include(b => b.Payment)
+        .FirstOrDefaultAsync(b => b.Bookingcode == bookingCode);
+    
+    if (booking == null)
+        return NotFound("Booking not found");
+    
+    // Generate QR code
+    var qrCodeBase64 = await _qrCodeService.GenerateQRCodeBase64Async(bookingCode);
+    
+    // Send email
+    var emailDto = new BookingConfirmationEmailDTO
+    {
+        // ... populate from booking ...
+    };
+    
+    var result = await _emailService.SendBookingConfirmationAsync(emailDto);
+    
+    return Ok(new { success = result, message = "Email sent" });
+}
+```
+
+### Error Handling
+
+- If QR code generation fails → Log error, don't send email
+- If email sending fails → Log error, don't fail payment callback
+- VNPay callback must respond quickly (< 30 seconds) → Send email asynchronously with `Task.Run`
+
+### Android Integration
+
+```kotlin
+// Display QR code from booking details
+fun displayBookingQRCode(bookingCode: String) {
+    // Option 1: Generate QR locally (offline support)
+    val qrCodeBitmap = QRCode.from(bookingCode).bitmap()
+    ivQRCode.setImageBitmap(qrCodeBitmap)
+    
+    // Option 2: Get from email attachment (user screenshots)
+    // User can show screenshot of email QR code
+}
+```
 
 ---
 
@@ -1695,6 +2351,81 @@ This HTML triggers the deep link automatically when Chrome Custom Tab loads it.
 
 **Created**: November 3, 2025  
 **Last Updated**: November 5, 2025  
-**Progress**: ✅ 8/8 endpoints (100%) - All phases complete  
+**Progress**: 🔄 Phase 4 in development - Email Confirmation & QR Code  
+**Completed Phases**: ✅ Phase 1-3 (8/8 endpoints - 100%)  
 **Test File**: `tests/Payment.http` ✅  
 **Android Guide**: ✅ Complete with Java + XML examples
+
+---
+
+## 📦 Phase 4 Implementation Checklist
+
+### NuGet Packages
+- [ ] Install `QRCoder` version 1.4.3
+- [ ] Install `System.Drawing.Common` version 8.0.0
+
+### New Files to Create
+
+#### Domain Layer
+- [ ] No new domain models needed (reuse existing)
+
+#### Application Layer
+- [ ] `Movie88.Application/Interfaces/IQRCodeService.cs`
+- [ ] `Movie88.Application/Services/QRCodeService.cs`
+- [ ] `Movie88.Application/DTOs/Email/BookingConfirmationEmailDTO.cs`
+- [ ] `Movie88.Application/DTOs/Email/ComboItemDTO.cs`
+
+#### Infrastructure Layer
+- [ ] No new infrastructure needed
+
+#### WebApi Layer
+- [ ] Update `Movie88.WebApi/Controllers/PaymentsController.cs` - VNPayCallback method
+- [ ] Update `Movie88.WebApi/Controllers/PaymentsController.cs` - VNPayIPN method
+
+### Service Updates
+- [ ] Extend `IEmailService` with `SendBookingConfirmationAsync` method
+- [ ] Implement `ResendEmailService.SendBookingConfirmationAsync`
+- [ ] Create email HTML template with professional design
+- [ ] Register `IQRCodeService` in `ServiceExtensions.cs`
+
+### Testing
+- [ ] Test QR code generation (BK-20251105-0156)
+- [ ] Test email sending with QR code attachment
+- [ ] Test complete payment flow → email received
+- [ ] Verify QR code scannable with mobile camera
+- [ ] Test email rendering in Gmail, Outlook, Apple Mail
+- [ ] Test with/without voucher discount
+- [ ] Test with/without combo items
+- [ ] Verify all dynamic placeholders replaced correctly
+
+### Email Template Checklist
+- [ ] Header with Movie88 gradient branding
+- [ ] BookingCode displayed prominently
+- [ ] QR code embedded inline (300x300px)
+- [ ] Movie details (title, cinema, showtime, seats)
+- [ ] Payment summary with breakdown
+- [ ] Voucher discount shown if applied
+- [ ] Transaction code and payment time
+- [ ] Important information section
+- [ ] Professional footer with unsubscribe
+- [ ] Mobile-responsive design
+- [ ] Test on multiple email clients
+
+### Integration Points
+- [ ] VNPayCallback → Generate QR → Send Email (success case)
+- [ ] VNPayIPN → Same logic as callback
+- [ ] Error handling: Email failure doesn't block payment
+- [ ] Async email sending (don't block VNPay response)
+- [ ] Logging for debugging
+
+### Documentation
+- [x] Update Phase 4 in 05-Payment.md
+- [ ] Add email template examples
+- [ ] Document QR code specifications
+- [ ] Android integration guide for QR display
+
+---
+
+**Phase 4 Status**: 🔄 Ready to implement  
+**Estimated Time**: 3-4 hours  
+**Priority**: HIGH (improves customer experience significantly)

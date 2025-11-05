@@ -1,7 +1,9 @@
 using Movie88.Application.DTOs.Payments;
+using Movie88.Application.DTOs.Email;
 using Movie88.Application.Interfaces;
 using Movie88.Domain.Interfaces;
 using Movie88.Domain.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Movie88.Application.Services;
 
@@ -12,19 +14,28 @@ public class PaymentService : IPaymentService
     private readonly IBookingRepository _bookingRepository;
     private readonly IVNPayService _vnPayService;
     private readonly IBookingCodeGenerator _bookingCodeGenerator;
+    private readonly IQRCodeService _qrCodeService;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<PaymentService> _logger;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
         IPaymentmethodRepository paymentmethodRepository,
         IBookingRepository bookingRepository,
         IVNPayService vnPayService,
-        IBookingCodeGenerator bookingCodeGenerator)
+        IBookingCodeGenerator bookingCodeGenerator,
+        IQRCodeService qrCodeService,
+        IEmailService emailService,
+        ILogger<PaymentService> logger)
     {
         _paymentRepository = paymentRepository;
         _paymentmethodRepository = paymentmethodRepository;
         _bookingRepository = bookingRepository;
         _vnPayService = vnPayService;
         _bookingCodeGenerator = bookingCodeGenerator;
+        _qrCodeService = qrCodeService;
+        _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<CreatePaymentResponseDTO?> CreateVNPayPaymentAsync(
@@ -146,6 +157,22 @@ public class PaymentService : IPaymentService
 
         if (success)
         {
+            // 7. Send booking confirmation email with QR code (don't block callback)
+            if (responseCode == "00" && !string.IsNullOrEmpty(bookingCode))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await SendBookingConfirmationEmailAsync(payment.Bookingid, bookingCode, txnRef);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send booking confirmation email for booking {BookingId}", payment.Bookingid);
+                    }
+                });
+            }
+            
             return (true, "Payment successful", payment.Bookingid);
         }
         else
@@ -212,6 +239,102 @@ public class PaymentService : IPaymentService
                 Totalamount = payment.Booking.Totalamount
             }
         };
+    }
+
+    private async Task SendBookingConfirmationEmailAsync(int bookingId, string bookingCode, string transactionCode)
+    {
+        try
+        {
+            // Get full booking details with all includes
+            var booking = await _bookingRepository.GetByIdWithDetailsAsync(bookingId);
+            if (booking == null)
+            {
+                _logger.LogWarning("Booking {BookingId} not found for email confirmation", bookingId);
+                return;
+            }
+
+            // Generate QR code
+            var qrCodeBase64 = await _qrCodeService.GenerateQRCodeBase64Async(bookingCode);
+            
+            // Calculate discount amount
+            decimal discountAmount = 0;
+            if (booking.Voucherid.HasValue && booking.Voucher != null && booking.Voucher.Discountvalue.HasValue)
+            {
+                // Voucher was applied, estimate discount
+                if (booking.Voucher.Discounttype == "percentage")
+                {
+                    var totalAmount = booking.Totalamount ?? 0;
+                    var originalAmount = totalAmount / (1 - booking.Voucher.Discountvalue.Value / 100);
+                    discountAmount = originalAmount - totalAmount;
+                }
+                else
+                {
+                    discountAmount = booking.Voucher.Discountvalue.Value;
+                }
+            }
+
+            // Extract seat numbers from BookingSeats (Row + Number format)
+            var seatNumbers = string.Join(", ", 
+                booking.BookingSeats?.Select(bs => 
+                    $"{bs.Seat?.Row ?? ""}{bs.Seat?.Number ?? 0}") ?? Enumerable.Empty<string>());
+
+            // Extract combo items from BookingCombos
+            var comboItems = booking.BookingCombos?.Select(bc => new ComboItemDTO
+            {
+                Name = bc.Combo?.Name ?? "",
+                Quantity = bc.Quantity,
+                Price = bc.Combo?.Price ?? 0
+            }).ToList() ?? new List<ComboItemDTO>();
+
+            // TODO: Add ICustomerRepository/IUserRepository to get real customer email
+            // For now, using placeholder - will be enhanced in next iteration
+            var customerEmail = $"customer{booking.Customerid}@movie88.com"; // Placeholder
+            var customerName = "Valued Customer";
+            
+            // Prepare email DTO
+            var emailDto = new BookingConfirmationEmailDTO
+            {
+                CustomerEmail = customerEmail,
+                CustomerName = customerName,
+                BookingCode = bookingCode,
+                QRCodeBase64 = qrCodeBase64,
+                MovieTitle = booking.Showtime?.Movie?.Title ?? "Movie",
+                CinemaName = booking.Showtime?.Auditorium?.Cinema?.Name ?? "Cinema",
+                CinemaAddress = booking.Showtime?.Auditorium?.Cinema?.Address ?? "",
+                ShowtimeDateTime = booking.Showtime?.Starttime ?? DateTime.Now,
+                SeatNumbers = seatNumbers,
+                ComboItems = comboItems,
+                TotalAmount = booking.Totalamount ?? 0,
+                DiscountAmount = discountAmount,
+                VoucherCode = booking.Voucher?.Code,
+                TransactionCode = transactionCode,
+                PaymentTime = DateTime.Now // Payment just completed
+            };
+
+            // Send email
+            var emailSent = await _emailService.SendBookingConfirmationAsync(emailDto);
+            
+            if (emailSent)
+            {
+                _logger.LogInformation(
+                    "Booking confirmation email sent successfully to {Email} for booking {BookingCode}",
+                    emailDto.CustomerEmail,
+                    bookingCode
+                );
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Failed to send booking confirmation email to {Email} for booking {BookingCode}",
+                    emailDto.CustomerEmail,
+                    bookingCode
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending booking confirmation email for booking {BookingId}", bookingId);
+        }
     }
 
     private string GetVNPayErrorMessage(string responseCode)

@@ -20,4 +20,11 @@ public interface IBookingRepository
     // Voucher methods
     Task<BookingModel?> GetByIdAsync(int bookingId, CancellationToken cancellationToken = default);
     Task ApplyVoucherAsync(int bookingId, int voucherId, decimal newTotalAmount, CancellationToken cancellationToken = default);
+    
+    // Verification methods - Staff check-in
+    /// <summary>
+    /// Lấy booking theo BookingCode với tất cả thông tin liên quan.
+    /// Dùng cho verify QR code và check-in tại rạp.
+    /// </summary>
+    Task<BookingModel?> GetByBookingCodeWithDetailsAsync(string bookingCode, CancellationToken cancellationToken = default);
 }

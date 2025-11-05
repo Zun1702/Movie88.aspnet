@@ -8,7 +8,10 @@ public class CustomerModel
     public DateOnly? Dateofbirth { get; set; }
     public string? Gender { get; set; }
     
-    // From User table (navigation)
+    // Navigation property
+    public UserModel? User { get; set; }
+    
+    // From User table (for flat queries)
     public string Fullname { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }

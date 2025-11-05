@@ -25,6 +25,7 @@ namespace Movie88.Application.Configuration
             services.AddScoped<IPasswordHashingService, PasswordHashingService>();
             services.AddScoped<IOtpService, OtpService>();
             services.AddScoped<IEmailService, ResendEmailService>();
+            services.AddScoped<IQRCodeService, QRCodeService>();
             services.AddSingleton<IBookingCodeGenerator, BookingCodeGenerator>();
             
             // Movie Service
@@ -38,6 +39,7 @@ namespace Movie88.Application.Configuration
             
             // Booking Service
             services.AddScoped<IBookingService, BookingService>();
+            services.AddScoped<IBookingVerificationService, BookingVerificationService>();
             
             // Review Service
             services.AddScoped<IReviewService, ReviewService>();

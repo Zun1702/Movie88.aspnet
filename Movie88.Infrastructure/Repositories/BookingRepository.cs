@@ -275,4 +275,45 @@ public class BookingRepository : IBookingRepository
             }
         });
     }
+
+    public async Task<BookingModel?> GetByBookingCodeWithDetailsAsync(
+        string bookingCode, 
+        CancellationToken cancellationToken = default)
+    {
+        var booking = await _context.Bookings
+            // Customer & User
+            .Include(b => b.Customer)
+                .ThenInclude(c => c!.User)
+            
+            // Showtime details
+            .Include(b => b.Showtime)
+                .ThenInclude(s => s!.Movie)
+            .Include(b => b.Showtime)
+                .ThenInclude(s => s!.Auditorium)
+                    .ThenInclude(a => a!.Cinema)
+            
+            // Seats
+            .Include(b => b.Bookingseats)
+                .ThenInclude(bs => bs.Seat)
+            
+            // Combos
+            .Include(b => b.Bookingcombos)
+                .ThenInclude(bc => bc.Combo)
+            
+            // Voucher
+            .Include(b => b.Voucher)
+            
+            // Payments
+            .Include(b => b.Payments)
+            
+            // Staff who checked in (if any)
+            .Include(b => b.CheckedInByUser)
+            
+            .FirstOrDefaultAsync(
+                b => b.Bookingcode != null && b.Bookingcode == bookingCode, 
+                cancellationToken
+            );
+
+        return booking == null ? null : _mapper.Map<BookingModel>(booking);
+    }
 }
