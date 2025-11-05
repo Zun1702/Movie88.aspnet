@@ -316,7 +316,7 @@ GET {{baseUrl}}/showtimes/by-movie/1?date=2025-11-05&cinemaid=1
 GET {{baseUrl}}/showtimes/1/available-seats
 
 ### 3.1. GET Auditorium Seat Layout
-GET {{baseUrl}}/auditoriums/{{auditoriumId}}/seats
+GET {{baseUrl}}/auditoriums/{{auditoriumId}}/seats?showtimeId=1
 Content-Type: application/json
 
 # 4. Create booking with 2 seats (A5, A6)
@@ -326,7 +326,7 @@ Content-Type: application/json
 
 {
   "showtimeid": 1,
-  "seatids": [30, 31]
+  "seatids": [20, 21]
 }
 
 # 5. Add combo to booking (use bookingId from response)
@@ -359,7 +359,7 @@ GET {{baseUrl}}/showtimes/by-date?date=2025-11-05
 # Should only return showtimes with starttime >= now
 
 ### TEST: Seat availability accuracy
-GET {{baseUrl}}/showtimes/{{showtimeId}}/available-seats
+GET {{baseUrl}}/showtimes/1/available-seats
 # Compare with actual bookingseats in database
 
 ### TEST: Booking code generation

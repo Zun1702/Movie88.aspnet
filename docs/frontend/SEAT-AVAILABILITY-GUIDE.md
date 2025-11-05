@@ -144,19 +144,38 @@ GET /api/auditoriums/1/seats?showtimeId=123
 
 ## 🎨 **Frontend Implementation Guide**
 
-### **Kotlin Code Example**:
-```kotlin
-// SelectSeatActivity.kt
+### **Java Code Example**:
+```java
+// SelectSeatActivity.java
 
-data class SeatUIModel(
-    val seatId: Int,
-    val row: String,
-    val number: Int,
-    val type: String,
-    val state: SeatState
-)
+// Model class
+public class SeatUIModel {
+    private int seatId;
+    private String row;
+    private int number;
+    private String type;
+    private SeatState state;
+    
+    public SeatUIModel(int seatId, String row, int number, String type, SeatState state) {
+        this.seatId = seatId;
+        this.row = row;
+        this.number = number;
+        this.type = type;
+        this.state = state;
+    }
+    
+    // Getters and Setters
+    public int getSeatId() { return seatId; }
+    public String getRow() { return row; }
+    public int getNumber() { return number; }
+    public String getDisplayName() { return row + number; }
+    public String getType() { return type; }
+    public SeatState getState() { return state; }
+    public void setState(SeatState state) { this.state = state; }
+}
 
-enum class SeatState {
+// Enum for seat states
+public enum SeatState {
     AVAILABLE,    // 🟢 Xanh - Có thể đặt
     BOOKED,       // 🔴 Đỏ - Đã có người đặt
     SELECTED,     // 💙 Xanh dương - User đang chọn
@@ -164,46 +183,56 @@ enum class SeatState {
 }
 
 // Parse API response
-val response = api.getAuditoriumSeats(
-    auditoriumId = 1,
-    showtimeId = 123  // ⚠️ BẮT BUỘC phải truyền showtimeId
-)
+AuditoriumSeatsResponse response = api.getAuditoriumSeats(
+    1,    // auditoriumId
+    123   // ⚠️ BẮT BUỘC phải truyền showtimeId
+);
 
 // Render seats
-val seatUIModels = response.data.seats.map { seat ->
-    SeatUIModel(
-        seatId = seat.seatid,
-        row = seat.row,
-        number = seat.number,
-        type = seat.seattype ?: "Standard",
-        state = when {
-            // ✅ Check field "isAvailableForShowtime" trong response
-            !seat.isAvailableForShowtime -> SeatState.BOOKED     // Đã đặt
-            seat.seattype == "VIP" -> SeatState.VIP              // VIP
-            else -> SeatState.AVAILABLE                           // Còn trống
-        }
-    )
+List<SeatUIModel> seatUIModels = new ArrayList<>();
+for (SeatDTO seat : response.getData().getSeats()) {
+    SeatState state;
+    
+    // ✅ Check field "isAvailableForShowtime" trong response
+    if (!seat.isAvailableForShowtime()) {
+        state = SeatState.BOOKED;  // Đã đặt
+    } else if ("VIP".equalsIgnoreCase(seat.getSeattype())) {
+        state = SeatState.VIP;     // VIP
+    } else {
+        state = SeatState.AVAILABLE;  // Còn trống
+    }
+    
+    seatUIModels.add(new SeatUIModel(
+        seat.getSeatid(),
+        seat.getRow(),
+        seat.getNumber(),
+        seat.getSeattype() != null ? seat.getSeattype() : "Standard",
+        state
+    ));
 }
 
 // Handle click event
-fun onSeatClicked(seat: SeatUIModel) {
-    when (seat.state) {
-        SeatState.AVAILABLE, SeatState.VIP -> {
+public void onSeatClicked(SeatUIModel seat) {
+    switch (seat.getState()) {
+        case AVAILABLE:
+        case VIP:
             // ✅ Cho phép chọn ghế
-            toggleSeatSelection(seat.seatId)
-        }
-        SeatState.BOOKED -> {
+            toggleSeatSelection(seat.getSeatId());
+            break;
+            
+        case BOOKED:
             // ❌ Ghế đã có người đặt
             Toast.makeText(
                 this,
-                "Ghế ${seat.row}${seat.number} đã được đặt",
+                "Ghế " + seat.getDisplayName() + " đã được đặt",
                 Toast.LENGTH_SHORT
-            ).show()
-        }
-        SeatState.SELECTED -> {
+            ).show();
+            break;
+            
+        case SELECTED:
             // Bỏ chọn ghế
-            deselectSeat(seat.seatId)
-        }
+            deselectSeat(seat.getSeatId());
+            break;
     }
 }
 ```
@@ -213,9 +242,9 @@ fun onSeatClicked(seat: SeatUIModel) {
 ## 🚨 **LỖI THƯỜNG GẶP**
 
 ### **❌ Lỗi 1: Không truyền showtimeId**
-```kotlin
+```java
 // SAI:
-api.getAuditoriumSeats(auditoriumId = 1)  // Thiếu showtimeId
+api.getAuditoriumSeats(1);  // Thiếu showtimeId
 
 // KẾT QUẢ:
 // → Backend không biết check suất chiếu nào
@@ -224,28 +253,28 @@ api.getAuditoriumSeats(auditoriumId = 1)  // Thiếu showtimeId
 ```
 
 **✅ Cách fix**:
-```kotlin
+```java
 // ĐÚNG:
 api.getAuditoriumSeats(
-    auditoriumId = 1,
-    showtimeId = 123  // ⚠️ BẮT BUỘC
-)
+    1,    // auditoriumId
+    123   // ⚠️ BẮT BUỘC - showtimeId
+);
 ```
 
 ### **❌ Lỗi 2: Parse sai tên field**
-```kotlin
+```java
 // SAI:
-val isAvailable = seat.isAvailable  // Field cũ, không tồn tại
+boolean isAvailable = seat.isAvailable();  // Method cũ, không tồn tại
 
 // KẾT QUẢ:
-// → Crash: Property 'isAvailable' not found
+// → Crash: Method 'isAvailable()' not found
 
 // ĐÚNG:
-val isAvailable = seat.isAvailableForShowtime  // ✅ Field mới
+boolean isAvailable = seat.isAvailableForShowtime();  // ✅ Method mới
 ```
 
 ### **❌ Lỗi 3: Nhầm lẫn giữa 2 khái niệm**
-```kotlin
+```java
 // SAI - Tư duy:
 "Ghế A5 có isAvailable = false trong database 
 → Ghế A5 không thể đặt cho bất kỳ suất nào"
