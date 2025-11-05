@@ -9,13 +9,16 @@ namespace Movie88.Application.Services;
 public class CustomerService : ICustomerService
 {
     private readonly ICustomerRepository _customerRepository;
+    private readonly Movie88.Application.Interfaces.IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
     public CustomerService(
         ICustomerRepository customerRepository,
+        Movie88.Application.Interfaces.IUnitOfWork unitOfWork,
         IMapper mapper)
     {
         _customerRepository = customerRepository;
+        _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
 
@@ -33,5 +36,57 @@ public class CustomerService : ICustomerService
         return Result<CustomerProfileDTO>.Success(
             customerDto, 
             "Customer profile retrieved successfully");
+    }
+
+    public async Task<Result<CustomerProfileResponseDto>> UpdateCustomerProfileAsync(int userId, UpdateCustomerProfileDto request)
+    {
+        var customer = await _customerRepository.GetCustomerWithUserByUserIdAsync(userId);
+
+        if (customer == null)
+        {
+            return Result<CustomerProfileResponseDto>.NotFound("Customer profile not found");
+        }
+
+        customer.Address = request.Address;
+
+        if (!string.IsNullOrEmpty(request.DateOfBirth))
+        {
+            try
+            {
+                var dateOfBirth = DateOnly.Parse(request.DateOfBirth);
+                
+                if (dateOfBirth > DateOnly.FromDateTime(DateTime.UtcNow))
+                {
+                    return Result<CustomerProfileResponseDto>.BadRequest("Date of birth cannot be in the future");
+                }
+                
+                customer.Dateofbirth = dateOfBirth;
+            }
+            catch (FormatException)
+            {
+                return Result<CustomerProfileResponseDto>.BadRequest("Invalid date format");
+            }
+        }
+
+        customer.Gender = request.Gender;
+
+        await _customerRepository.UpdateAsync(customer);
+
+        var customerProfile = new CustomerProfileResponseDto
+        {
+            Customerid = customer.Customerid,
+            Userid = customer.Userid,
+            Fullname = customer.Fullname,
+            Email = customer.Email,
+            Phone = customer.Phone,
+            Address = customer.Address,
+            DateOfBirth = customer.Dateofbirth?.ToString("yyyy-MM-dd"),
+            Gender = customer.Gender
+        };
+
+        return Result<CustomerProfileResponseDto>.Success(
+            customerProfile,
+            "Customer profile updated successfully"
+        );
     }
 }

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Movie88.Application.DTOs.Customers;
+using Movie88.Application.DTOs.User;
 using Movie88.Application.Interfaces;
 using System.Security.Claims;
 
@@ -8,25 +8,19 @@ namespace Movie88.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Requires JWT authentication
-public class CustomersController : ControllerBase
+[Authorize]
+public class UsersController : ControllerBase
 {
-    private readonly ICustomerService _customerService;
+    private readonly IUserService _userService;
 
-    public CustomersController(ICustomerService customerService)
+    public UsersController(IUserService userService)
     {
-        _customerService = customerService;
+        _userService = userService;
     }
 
-    /// <summary>
-    /// Get current customer profile
-    /// Requires JWT authentication
-    /// </summary>
-    /// <returns>Customer profile information</returns>
-    [HttpGet("profile")]
-    public async Task<IActionResult> GetProfile()
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
     {
-        // Extract user ID from JWT token claims
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
@@ -34,7 +28,7 @@ public class CustomersController : ControllerBase
             return Unauthorized(new { message = "Invalid or missing user ID in token" });
         }
 
-        var result = await _customerService.GetProfileByUserIdAsync(userId);
+        var result = await _userService.GetCurrentUserAsync(userId);
 
         if (!result.IsSuccess)
         {
@@ -44,8 +38,8 @@ public class CustomersController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPut("profile")]
-    public async Task<IActionResult> UpdateCustomerProfile(UpdateCustomerProfileDto request)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateUser(int id, UpdateUserDto request)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         
@@ -54,10 +48,15 @@ public class CustomersController : ControllerBase
             return Unauthorized(new { message = "Invalid or missing user ID in token" });
         }
 
-        var result = await _customerService.UpdateCustomerProfileAsync(userId, request);
+        var result = await _userService.UpdateUserAsync(id, userId, request);
 
         if (!result.IsSuccess)
         {
+            if (result.StatusCode == 403)
+            {
+                return Forbid();
+            }
+
             return StatusCode(result.StatusCode, result);
         }
 
