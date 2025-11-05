@@ -39,8 +39,13 @@ public class BookingVerificationService : IBookingVerificationService
         }
 
         // IMPORTANT: Check payment status via Payments collection (NOT Booking.paymentStatus)
-        var hasCompletedPayment = booking.Payments?.Any(p => p.Status == "Completed") ?? false;
-        var completedPayment = booking.Payments?.FirstOrDefault(p => p.Status == "Completed");
+        // Accept both "Success" and "Completed" as valid payment status
+        var hasCompletedPayment = booking.Payments?.Any(p => 
+            p.Status?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true || 
+            p.Status?.Equals("Success", StringComparison.OrdinalIgnoreCase) == true) ?? false;
+        var completedPayment = booking.Payments?.FirstOrDefault(p => 
+            p.Status?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true || 
+            p.Status?.Equals("Success", StringComparison.OrdinalIgnoreCase) == true);
 
         // Calculate if can check-in
         var canCheckIn = hasCompletedPayment && booking.Checkedintime == null;
@@ -146,22 +151,43 @@ public class BookingVerificationService : IBookingVerificationService
             return Result<CheckInResponseDTO>.NotFound($"Booking with ID {bookingId} not found");
         }
 
-        // Validate: Booking must be Confirmed
-        if (booking.Status?.ToLower() != nameof(BookingStatus.Confirmed).ToLower())
+        // Validate: Only "Confirmed" status can check-in
+        // - Pending: not paid yet → cannot check-in
+        // - Confirmed: paid, not checked-in yet → CAN check-in
+        // - Completed: already checked-in → cannot check-in again
+        var bookingStatus = booking.Status?.ToLower();
+        
+        if (bookingStatus == nameof(BookingStatus.Pending).ToLower())
+        {
+            return Result<CheckInResponseDTO>.BadRequest(
+                "Cannot check-in. Booking is still Pending. Please complete payment first.");
+        }
+        
+        if (bookingStatus == nameof(BookingStatus.Completed).ToLower())
+        {
+            return Result<CheckInResponseDTO>.BadRequest(
+                "Cannot check-in. Booking is already Completed (checked-in previously).");
+        }
+        
+        if (bookingStatus != nameof(BookingStatus.Confirmed).ToLower())
         {
             return Result<CheckInResponseDTO>.BadRequest(
                 $"Booking must be in 'Confirmed' status to check-in. Current status: {booking.Status}");
         }
 
         // IMPORTANT: Validate payment completed via Payments collection
-        var hasCompletedPayment = booking.Payments?.Any(p => p.Status == "Completed") ?? false;
+        // Accept both "Success" and "Completed" as valid payment status
+        var hasCompletedPayment = booking.Payments?.Any(p => 
+            p.Status?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true || 
+            p.Status?.Equals("Success", StringComparison.OrdinalIgnoreCase) == true) ?? false;
+        
         if (!hasCompletedPayment)
         {
             return Result<CheckInResponseDTO>.BadRequest(
                 "Payment not completed. No completed payment found in Payments collection.");
         }
 
-        // Validate: Not already checked in
+        // Validate: Not already checked in (double check via Checkedintime)
         if (booking.Checkedintime != null)
         {
             return Result<CheckInResponseDTO>.BadRequest(
@@ -215,8 +241,14 @@ public class BookingVerificationService : IBookingVerificationService
         // Map to DTOs
         var items = bookings.Select(b =>
         {
-            var hasCompletedPayment = b.Payments?.Any(p => p.Status == "Completed") ?? false;
-            var canCheckIn = hasCompletedPayment && b.Checkedintime == null;
+            var hasCompletedPayment = b.Payments?.Any(p => 
+                p.Status?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true || 
+                p.Status?.Equals("Success", StringComparison.OrdinalIgnoreCase) == true) ?? false;
+            
+            // Can check-in only if: Status = "Confirmed" AND has completed payment AND not checked-in yet
+            var canCheckIn = b.Status?.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) == true 
+                && hasCompletedPayment 
+                && b.Checkedintime == null;
 
             return new TodayBookingDTO
             {

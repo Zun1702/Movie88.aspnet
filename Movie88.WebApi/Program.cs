@@ -88,13 +88,25 @@ builder.Services.AddSwaggerGen(options =>
 // Configure CORS
 builder.Services.ConfigureCorsPolicy();
 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendCors", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "https://localhost:5173") // React (dev)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 // Create database if not exists
 CreateDatabase(app);
 
 // Allow CORS
-app.UseCors();
+app.UseCors("FrontendCors");
 
 // Configure the HTTP request pipeline.
 // Enable Swagger in all environments for Railway deployment
