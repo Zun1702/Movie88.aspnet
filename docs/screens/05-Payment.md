@@ -32,11 +32,11 @@ Chia thành **3 giai đoạn** để dev hiệu quả:
 | 7 | GET | `/api/bookings/{id}` | Get booking summary | ✅ | ✅ DONE | Trung |
 | 8 | GET | `/api/bookings/{id}` | Get booking details | ✅ | ✅ DONE | Trung |
 
-### 📧 Phase 4: Email Confirmation & QR Code (NEW - In Development)
+### 📧 Phase 4: Email Confirmation & QR Code ✅ DONE
 | # | Feature | Trigger | Purpose | Status | Assign |
 |---|---------|---------|---------|--------|--------|
-| 9 | Booking Confirmation Email | After VNPay success | Send invoice with QR code | 🔄 DEV | Trung |
-| 10 | QR Code Generation | On payment confirmed | Generate QR from BookingCode | 🔄 DEV | Trung |
+| 9 | Booking Confirmation Email | After VNPay success | Send invoice with QR code (Vietnamese) | ✅ DONE | Trung |
+| 10 | QR Code Generation | On payment confirmed | Generate QR from BookingCode (M88-XXXXXXXX) | ✅ DONE | Trung |
 
 ---
 
@@ -589,96 +589,243 @@ This endpoint is reused in both payment screens:
 
 ---
 
-## 📧 PHASE 4: EMAIL CONFIRMATION & QR CODE
+## 📧 PHASE 4: EMAIL CONFIRMATION & QR CODE ✅ DONE
 
 ### 🎯 9. Booking Confirmation Email (Auto-triggered)
 
-**Trigger**: Automatically sent after VNPay payment success  
+**Status**: ✅ **DONE**  
+**Trigger**: Automatically sent after VNPay payment success (ResponseCode = "00")  
 **Sent From**: `Movie88 <movie88@ezyfix.site>` (via Resend API)  
-**Sent To**: Customer's email address  
-**Auth Required**: N/A (Internal service)
+**Sent To**: Customer's email from `User` table (e.g., ngoctrungtsn111@gmail.com)  
+**Auth Required**: N/A (Internal background service)  
+**Language**: **Vietnamese** 🇻🇳
+
+### Technical Implementation
+
+**Background Task Pattern**:
+```csharp
+// In PaymentService.ProcessVNPayCallbackAsync()
+if (responseCode == "00" && !string.IsNullOrEmpty(bookingCode))
+{
+    // ✅ Create new scope to avoid DbContext disposed issue
+    _ = Task.Run(async () =>
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+        var qrCodeService = scope.ServiceProvider.GetRequiredService<IQRCodeService>();
+        var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+        
+        await SendBookingConfirmationEmailAsync(
+            bookingId, bookingCode, transactionCode,
+            bookingRepository, qrCodeService, emailService);
+    });
+}
+```
+
+**Why New Scope?**
+- Callback returns immediately → ASP.NET Core disposes `AppDbContext`
+- Background task needs fresh DbContext to query booking details
+- `IServiceProvider.CreateScope()` creates isolated DI scope with new context
 
 ### Email Content Structure
 
 #### Email Subject
 ```
-🎬 Booking Confirmed - [Movie Title] - Movie88
+🎬 Xác Nhận Đặt Vé - [Tên Phim] - Movie88
+Example: 🎬 Xác Nhận Đặt Vé - Avengers: Endgame - Movie88
 ```
 
-#### Email Template (HTML)
-Professional invoice-style email with:
-1. **Header Section**
-   - Movie88 logo with gradient background
-   - "Booking Confirmed" title
-   - BookingCode displayed prominently
+#### Email Template (HTML) - Vietnamese Version
 
-2. **QR Code Section**
-   - Large QR code (300x300px) encoding BookingCode
-   - Text: "Show this QR code at cinema entrance"
-   - Note: "Screenshot and save for offline access"
+**Design**: Netflix-inspired with dark theme  
+**Colors**:
+- Primary Red: `#E50914` (Netflix red)
+- Background: `#141414` (Dark black)
+- Card Background: `#1F1F1F` (Dark gray)
+- Secondary Text: `#B3B3B3` (Light gray)
+- Accent: `#FFB800` (Gold for important info)
 
-3. **Booking Details Section**
-   - 🎬 Movie title and poster thumbnail
-   - 🏢 Cinema name and address
-   - 📅 Showtime date and time
-   - 🪑 Seat numbers (e.g., "A5, A6")
-   - 🍿 Combo items (if any)
+**Sections**:
 
-4. **Payment Summary**
-   - Ticket prices breakdown
-   - Combo prices (if any)
-   - Voucher discount (if applied)
-   - **Total Amount Paid**
-   - Payment method: VNPay
-   - Transaction code
-   - Payment time
+1. **Header Section** 🎬
+   - Movie88 logo with red gradient: `linear-gradient(135deg, #E50914 0%, #831010 100%)`
+   - "Xác Nhận Đặt Vé" title (white)
+   - Dark background with subtle pattern
 
-5. **Important Information**
-   - ⏰ "Please arrive 15 minutes before showtime"
-   - 🎫 "Present QR code or Booking Code at entrance"
-   - ❌ "No refund after 24 hours before showtime"
-   - 📞 "Contact support: support@movie88.com"
+2. **Booking Code Card** 🎫
+   - Large BookingCode: `M88-00000123` (format: M88-{BookingId:D8})
+   - White text on dark card with red border
+   - Center aligned for easy screenshot
 
-6. **Footer Section**
-   - Movie88 branding
-   - Social media links
-   - "This is an automated email, please do not reply"
-   - Unsubscribe link
+3. **QR Code Section** 📱
+   - QR code image (300x300px) encoding BookingCode
+   - Vietnamese text: "Mã QR Của Bạn"
+   - Instruction: "Vui lòng xuất trình mã này tại rạp"
+   - Note: "Chụp màn hình để sử dụng offline"
+   - Attached as inline image with `content_id: "qrcode"`
 
-### Business Logic
+4. **Booking Details Section** 📋
+   - **Thông Tin Đặt Vé**:
+     - 🎬 Phim: [Movie Title]
+     - 🏢 Rạp Chiếu: [Cinema Name]
+     - 📍 Địa Chỉ: [Cinema Address]
+     - 📅 Ngày & Giờ Chiếu: [dd/MM/yyyy HH:mm]
+     - 🪑 Ghế Ngồi: [A5, A6, B3]
+   - Dark cards with white text
+   - Icons for visual clarity
 
-**When to Send**:
-```csharp
-// Triggered in VNPayCallback and VNPayIPN after successful payment
-if (vnp_ResponseCode == "00" && booking.Status == "Confirmed")
-{
-    // Generate QR Code
-    var qrCodeBase64 = await _qrCodeService.GenerateQRCodeAsync(booking.Bookingcode);
-    
-    // Send confirmation email
-    await _emailService.SendBookingConfirmationAsync(new BookingConfirmationEmailDTO
-    {
-        CustomerEmail = customer.Email,
-        CustomerName = customer.User.Fullname,
-        BookingCode = booking.Bookingcode,
-        QRCodeBase64 = qrCodeBase64,
-        MovieTitle = showtime.Movie.Title,
-        CinemaName = showtime.Room.Cinema.Name,
-        ShowtimeDateTime = showtime.Showtime,
-        SeatNumbers = string.Join(", ", booking.Tickets.Select(t => t.Seat.Seatnumber)),
-        ComboItems = booking.Bookingcombos.Select(bc => new ComboItemDTO 
-        { 
-            Name = bc.Combo.Name, 
-            Quantity = bc.Quantity 
-        }).ToList(),
-        TotalAmount = payment.Amount,
-        DiscountAmount = originalAmount - payment.Amount,
-        VoucherCode = booking.Voucher?.Code,
-        TransactionCode = payment.Transactioncode,
-        PaymentTime = payment.Paymenttime
-    });
-}
-```
+5. **Combo Section** 🍿 (if applicable)
+   - **Combo Đồ Ăn**:
+     - Combo item name × quantity (price formatted: 50.000 VND)
+     - Total combo price
+   - Only shown if booking has combos
+
+6. **Payment Summary** 💰
+   - **Thông Tin Thanh Toán**:
+     - Giá Vé: [ticketPrice] VND
+     - Tổng Combo: [comboPrice] VND (if applicable)
+     - Giảm Giá: -[discountAmount] VND (if voucher applied, shown in red)
+     - **Tổng Thanh Toán**: [totalAmount] VND (bold, large font)
+     - Phương Thức: VNPay
+     - Mã Giao Dịch: [PAY_YYYYMMDDHHMMSS_123]
+     - Thời Gian Thanh Toán: [dd/MM/yyyy HH:mm:ss]
+   - Currency formatted with thousand separators
+
+7. **Important Information** ⚠️
+   - **Lưu Ý Quan Trọng** (gold color):
+     - ⏰ Vui lòng đến rạp trước 15 phút
+     - 🎫 Xuất trình mã QR hoặc Booking Code tại quầy
+     - 🎬 Không hoàn tiền sau 24 giờ trước giờ chiếu
+     - 📞 Liên hệ: support@movie88.com
+   - Warning style with gold accent
+
+8. **Footer Section** 🎭
+   - "Cảm ơn bạn đã chọn Movie88!" (Thank you message)
+   - Movie88 branding (red logo)
+   - "Email tự động, vui lòng không trả lời"
+   - Social media links (optional)
+   - Dark footer with subtle border
+
+### Business Logic Flow
+
+**Step-by-Step Execution**:
+
+1. **VNPay Callback Received** (GET /api/payments/vnpay/callback)
+   - Validate secure hash ✅
+   - Check ResponseCode = "00" (success)
+   - Update Payment.Status = "Completed"
+   - Update Booking.Status = "Confirmed"
+   - Generate BookingCode: `M88-{BookingId:D8}`
+   - Save to database
+
+2. **Start Background Email Task** (Non-blocking)
+   ```csharp
+   if (responseCode == "00" && !string.IsNullOrEmpty(bookingCode))
+   {
+       _ = Task.Run(async () =>
+       {
+           // ✅ Create new DI scope to get fresh DbContext
+           using var scope = _serviceProvider.CreateScope();
+           var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+           var qrCodeService = scope.ServiceProvider.GetRequiredService<IQRCodeService>();
+           var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+           
+           await SendBookingConfirmationEmailAsync(...);
+       });
+   }
+   ```
+
+3. **Fetch Booking Details** (with fresh DbContext)
+   ```csharp
+   var booking = await bookingRepository.GetByIdWithDetailsAsync(bookingId);
+   // Includes:
+   // - Customer.User (for email and fullname)
+   // - Showtime.Movie (for title)
+   // - Showtime.Auditorium.Cinema (for name and address)
+   // - BookingSeats.Seat (for seat numbers)
+   // - BookingCombos.Combo (for combo items)
+   // - Voucher (for discount info)
+   // - Payments (for transaction details)
+   ```
+
+4. **Extract Customer Email**
+   ```csharp
+   var customerEmail = booking.Customer?.User?.Email ?? booking.Customer?.Email ?? "";
+   var customerName = booking.Customer?.User?.Fullname ?? booking.Customer?.Fullname ?? "Khách Hàng";
+   
+   if (string.IsNullOrEmpty(customerEmail))
+   {
+       _logger.LogError("Customer email not found, skipping email");
+       return; // Skip if no email
+   }
+   ```
+
+5. **Generate QR Code**
+   ```csharp
+   var qrCodeBase64 = await qrCodeService.GenerateQRCodeBase64Async(bookingCode);
+   // Returns: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+   ```
+
+6. **Calculate Discount** (if voucher applied)
+   ```csharp
+   decimal discountAmount = 0;
+   if (booking.Voucherid.HasValue && booking.Voucher != null)
+   {
+       if (booking.Voucher.Discounttype == "percentage")
+       {
+           var totalAmount = booking.Totalamount ?? 0;
+           var originalAmount = totalAmount / (1 - booking.Voucher.Discountvalue.Value / 100);
+           discountAmount = originalAmount - totalAmount;
+       }
+       else // fixed
+       {
+           discountAmount = booking.Voucher.Discountvalue.Value;
+       }
+   }
+   ```
+
+7. **Build Email DTO**
+   ```csharp
+   var emailDto = new BookingConfirmationEmailDTO
+   {
+       CustomerEmail = customerEmail,
+       CustomerName = customerName,
+       BookingCode = bookingCode, // M88-00000123
+       QRCodeBase64 = qrCodeBase64,
+       MovieTitle = booking.Showtime?.Movie?.Title ?? "Movie",
+       CinemaName = booking.Showtime?.Auditorium?.Cinema?.Name ?? "Cinema",
+       CinemaAddress = booking.Showtime?.Auditorium?.Cinema?.Address ?? "",
+       ShowtimeDateTime = booking.Showtime?.Starttime ?? DateTime.Now,
+       SeatNumbers = "A5, A6, B3", // Extracted from BookingSeats
+       ComboItems = comboItemsList, // List<ComboItemDTO>
+       TotalAmount = booking.Totalamount ?? 0,
+       DiscountAmount = discountAmount,
+       VoucherCode = booking.Voucher?.Code,
+       TransactionCode = transactionCode, // PAY_20251105154500_123
+       PaymentTime = DateTime.Now
+   };
+   ```
+
+8. **Send Email via Resend API**
+   ```csharp
+   var emailSent = await emailService.SendBookingConfirmationAsync(emailDto);
+   // POST https://api.resend.com/emails
+   // Authorization: Bearer {API_KEY}
+   // Body: { from, to, subject, html, attachments }
+   ```
+
+9. **Log Results**
+   ```csharp
+   if (emailSent)
+   {
+       _logger.LogInformation("✅ Email sent to {Email} for {BookingCode}", 
+           customerEmail, bookingCode);
+   }
+   else
+   {
+       _logger.LogError("❌ Failed to send email to {Email}", customerEmail);
+   }
+   ```
 
 ### Email Template Example
 
@@ -822,104 +969,286 @@ if (vnp_ResponseCode == "00" && booking.Status == "Confirmed")
 
 ### 🎯 10. QR Code Generation Service
 
+**Status**: ✅ **DONE**  
 **Purpose**: Generate QR code from BookingCode for easy cinema check-in  
-**Library**: QRCoder (NuGet package)  
-**Format**: PNG image, Base64 encoded for email embedding
+**Library**: QRCoder (NuGet package) v1.4.3  
+**Format**: PNG image, Base64 encoded for email embedding  
+**Used In**: Email confirmation, mobile app booking details
 
 ### QR Code Specifications
 
-- **Content**: BookingCode only (e.g., "BK-20251105-0156")
-- **Size**: 300x300 pixels (high resolution for printing)
-- **Error Correction**: Level Q (25% - good balance)
-- **Format**: PNG with transparent background
-- **Encoding**: Base64 for email embedding or binary for API response
+- **Content**: BookingCode in format `M88-{BookingId:D8}` (e.g., "M88-00000123")
+- **Size**: 300x300 pixels (20 pixels per module, high resolution for scanning)
+- **Error Correction**: Level Q (25% - good balance between size and error correction)
+- **Format**: PNG image with white background
+- **Encoding**: Base64 string with data URI scheme for inline embedding in HTML emails
+- **Color**: Black modules on white background (standard for best scanner compatibility)
 
 ### Implementation
 
-#### 1. QR Code Service Interface
+#### 1. QR Code Service Interface ✅ IMPLEMENTED
 
 ```csharp
 // Movie88.Application/Interfaces/IQRCodeService.cs
 public interface IQRCodeService
 {
     /// <summary>
-    /// Generate QR code as Base64 string for email embedding
+    /// Generate QR code as Base64 data URI string for email embedding
+    /// Returns: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
     /// </summary>
     Task<string> GenerateQRCodeBase64Async(string bookingCode);
     
     /// <summary>
-    /// Generate QR code as byte array for API response
+    /// Generate QR code as raw byte array for API response
+    /// Used by mobile app to download QR image directly
     /// </summary>
     Task<byte[]> GenerateQRCodeBytesAsync(string bookingCode);
-    
-    /// <summary>
-    /// Generate QR code and save to file (optional, for debugging)
-    /// </summary>
-    Task<string> GenerateQRCodeFileAsync(string bookingCode, string filePath);
 }
 ```
 
-#### 2. QR Code Service Implementation
+#### 2. QR Code Service Implementation ✅ DONE
 
 ```csharp
 // Movie88.Application/Services/QRCodeService.cs
 using QRCoder;
-using System.Drawing;
-using System.Drawing.Imaging;
 
 public class QRCodeService : IQRCodeService
 {
+    private readonly ILogger<QRCodeService> _logger;
+    
+    public QRCodeService(ILogger<QRCodeService> logger)
+    {
+        _logger = logger;
+    }
+    
     public async Task<string> GenerateQRCodeBase64Async(string bookingCode)
     {
-        return await Task.Run(() =>
+        try
         {
-            using var qrGenerator = new QRCodeGenerator();
-            using var qrCodeData = qrGenerator.CreateQrCode(
-                bookingCode, 
-                QRCodeGenerator.ECCLevel.Q
-            );
-            using var qrCode = new PngByteQRCode(qrCodeData);
-            
-            var qrCodeBytes = qrCode.GetGraphic(20); // 20 pixels per module
-            return Convert.ToBase64String(qrCodeBytes);
-        });
+            return await Task.Run(() =>
+            {
+                // 1. Create QR generator
+                using var qrGenerator = new QRCodeGenerator();
+                
+                // 2. Generate QR data with error correction level Q (25%)
+                using var qrCodeData = qrGenerator.CreateQrCode(
+                    bookingCode, 
+                    QRCodeGenerator.ECCLevel.Q
+                );
+                
+                // 3. Create PNG byte array QR code
+                using var qrCode = new PngByteQRCode(qrCodeData);
+                
+                // 4. Get graphic with 20 pixels per module (300x300px for 15x15 modules)
+                var qrCodeBytes = qrCode.GetGraphic(20);
+                
+                // 5. Convert to Base64 with data URI scheme for HTML embedding
+                var base64String = Convert.ToBase64String(qrCodeBytes);
+                return $"data:image/png;base64,{base64String}";
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate QR code for booking {BookingCode}", bookingCode);
+            throw;
+        }
     }
     
     public async Task<byte[]> GenerateQRCodeBytesAsync(string bookingCode)
     {
-        return await Task.Run(() =>
+        try
         {
-            using var qrGenerator = new QRCodeGenerator();
-            using var qrCodeData = qrGenerator.CreateQrCode(
-                bookingCode, 
-                QRCodeGenerator.ECCLevel.Q
-            );
-            using var qrCode = new PngByteQRCode(qrCodeData);
-            
-            return qrCode.GetGraphic(20);
-        });
-    }
-    
-    public async Task<string> GenerateQRCodeFileAsync(string bookingCode, string filePath)
-    {
-        return await Task.Run(() =>
+            return await Task.Run(() =>
+            {
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrCodeData = qrGenerator.CreateQrCode(
+                    bookingCode, 
+                    QRCodeGenerator.ECCLevel.Q
+                );
+                using var qrCode = new PngByteQRCode(qrCodeData);
+                
+                return qrCode.GetGraphic(20);
+            });
+        }
+        catch (Exception ex)
         {
-            using var qrGenerator = new QRCodeGenerator();
-            using var qrCodeData = qrGenerator.CreateQrCode(
-                bookingCode, 
-                QRCodeGenerator.ECCLevel.Q
-            );
-            using var qrCode = new QRCode(qrCodeData);
-            using var qrCodeImage = qrCode.GetGraphic(20);
-            
-            qrCodeImage.Save(filePath, ImageFormat.Png);
-            return filePath;
-        });
+            _logger.LogError(ex, "Failed to generate QR code bytes for booking {BookingCode}", bookingCode);
+            throw;
+        }
     }
 }
 ```
 
-#### 3. Email Service Extension
+**Why `Task.Run()`?**
+- QRCoder library is synchronous
+- Wrap in `Task.Run()` to avoid blocking async pipeline
+- Maintains async/await pattern consistency
+
+**Error Correction Level Q (25%)**:
+- Balances QR code size vs damage tolerance
+- Can recover if 25% of QR code is damaged/dirty
+- Level Q is recommended for printing and email
+
+#### 3. Service Registration ✅ DONE
+
+```csharp
+// Movie88.Application/Configuration/ServiceExtensions.cs
+services.AddScoped<IQRCodeService, QRCodeService>();
+services.AddScoped<IEmailService, ResendEmailService>();
+services.AddScoped<IBookingCodeGenerator, BookingCodeGenerator>();
+```
+
+#### 4. Email Service with QR Code Attachment ✅ IMPLEMENTED
+
+```csharp
+// Movie88.Application/Services/ResendEmailService.cs
+public async Task<bool> SendBookingConfirmationAsync(BookingConfirmationEmailDTO dto)
+{
+    try
+    {
+        // 1. Generate Vietnamese email HTML from template
+        var emailHtml = GenerateBookingConfirmationHtml(dto);
+        
+        // 2. Extract Base64 string from data URI (remove "data:image/png;base64," prefix)
+        var base64Data = dto.QRCodeBase64;
+        if (base64Data.StartsWith("data:image/png;base64,"))
+        {
+            base64Data = base64Data.Substring("data:image/png;base64,".Length);
+        }
+        
+        // 3. Create Resend email request with inline QR code attachment
+        var emailRequest = new
+        {
+            from = "Movie88 <movie88@ezyfix.site>",
+            to = new[] { dto.CustomerEmail },
+            subject = $"🎬 Xác Nhận Đặt Vé - {dto.MovieTitle} - Movie88",
+            html = emailHtml,
+            attachments = new[]
+            {
+                new
+                {
+                    content = base64Data, // Base64 string WITHOUT data URI prefix
+                    filename = $"booking-qr-{dto.BookingCode}.png",
+                    content_id = "qrcode" // For inline embedding with <img src="cid:qrcode">
+                }
+            }
+        };
+        
+        // 4. Serialize and send via Resend API
+        var jsonContent = JsonSerializer.Serialize(emailRequest, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        
+        var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+        var response = await _httpClient.PostAsync("emails", httpContent);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation(
+                "✅ Booking confirmation email sent successfully to {Email} for {BookingCode}. Response: {Response}", 
+                dto.CustomerEmail, 
+                dto.BookingCode,
+                responseBody
+            );
+            return true;
+        }
+        
+        var errorContent = await response.Content.ReadAsStringAsync();
+        _logger.LogError(
+            "❌ Failed to send booking confirmation email: {StatusCode} - {Error}", 
+            response.StatusCode, 
+            errorContent
+        );
+        return false;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "❌ Exception sending booking confirmation email to {Email}", dto.CustomerEmail);
+        return false;
+    }
+}
+```
+
+**Key Points**:
+- **QR Code Attachment**: Sent as inline image with `content_id: "qrcode"`
+- **HTML Embedding**: Use `<img src="cid:qrcode">` in email HTML to display QR inline
+- **Base64 Encoding**: Strip `data:image/png;base64,` prefix before sending to Resend
+- **Filename**: `booking-qr-M88-00000123.png` for easy identification
+- **Non-blocking**: Runs in background Task.Run() to avoid blocking callback response
+
+#### 5. Resend API Configuration ✅ SETUP
+
+```json
+// appsettings.json
+{
+  "Resend": {
+    "ApiKey": "re_asyNFWRg_efTChvbEtP58HdCb7wfppYfP",
+    "Endpoint": "https://api.resend.com"
+  }
+}
+```
+
+**Resend Email API Request**:
+```http
+POST https://api.resend.com/emails
+Authorization: Bearer re_asyNFWRg_efTChvbEtP58HdCb7wfppYfP
+Content-Type: application/json
+
+{
+  "from": "Movie88 <movie88@ezyfix.site>",
+  "to": ["ngoctrungtsn111@gmail.com"],
+  "subject": "🎬 Xác Nhận Đặt Vé - Avengers: Endgame - Movie88",
+  "html": "<html>...</html>",
+  "attachments": [
+    {
+      "content": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "filename": "booking-qr-M88-00000123.png",
+      "content_id": "qrcode"
+    }
+  ]
+}
+```
+
+**Resend Response (Success)**:
+```json
+{
+  "id": "49a3999c-0ce1-4ea6-ab68-afcd6dc2e794",
+  "from": "Movie88 <movie88@ezyfix.site>",
+  "to": ["ngoctrungtsn111@gmail.com"],
+  "created_at": "2025-11-05T10:30:45.123Z"
+}
+```
+
+#### 6. Email HTML Template with Inline QR Code
+
+```html
+<!-- In email body -->
+<div style="text-align: center; margin: 30px 0;">
+    <h2 style="color: #E50914; margin-bottom: 20px;">Mã QR Của Bạn</h2>
+    
+    <!-- Inline QR Code using content_id -->
+    <img src="cid:qrcode" 
+         alt="QR Code" 
+         style="width: 300px; height: 300px; border: 4px solid #E50914; border-radius: 8px; background: white; padding: 10px;" />
+    
+    <p style="color: #B3B3B3; margin-top: 15px; font-size: 14px;">
+        📱 Vui lòng xuất trình mã này tại rạp
+    </p>
+    <p style="color: #FFB800; font-size: 13px; font-weight: bold;">
+        💡 Chụp màn hình để sử dụng offline
+    </p>
+</div>
+```
+
+**Why `cid:qrcode`?**
+- `cid` = Content-ID (inline attachment reference)
+- Matches `content_id` in attachments array
+- QR code embedded directly in email (not external link)
+- Works in all email clients (Gmail, Outlook, Apple Mail)
+
+#### 7. DTO for Email Data ✅ DONE
 
 ```csharp
 // Movie88.Application/DTOs/Email/BookingConfirmationEmailDTO.cs

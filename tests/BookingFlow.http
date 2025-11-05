@@ -1,7 +1,7 @@
 ### 🎫 Booking Flow API Testing
 ### Complete booking journey from cinema selection to combo addition
 
-@baseUrl = https://localhost:7238/api
+@baseUrl = https://movie88aspnet-app.up.railway.app/api
 # @baseUrl = https://localhost:7238/api
 
 ### Variables
@@ -15,14 +15,14 @@ Content-Type: application/json
   "password": "123321"
 }
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiMDM0NDE3ZjItYjU0MC00YWM2LTk3NzYtNGZiNjc0MzBmZTk5IiwibmJmIjoxNzYyMjg5ODY0LCJleHAiOjE3NjIyOTM0NjQsImlhdCI6MTc2MjI4OTg2NCwiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.81IDq6RLUgPKHA4AzE2p9VKdUn1Ib6mrBlMoSVizlRg
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6ImRmM2Q0YWE4LTYyZDQtNDMzNy1hMGQ4LWYxYzUyYjJmMWM3OCIsIm5iZiI6MTc2MjMzOTAyMCwiZXhwIjoxNzYyMzQyNjIwLCJpYXQiOjE3NjIzMzkwMjAsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.fSU67-u-qjhlX1R1J0OYZvDGvGZr0KYeM8_B1vZwRl4
 @movieId = 1
 @cinemaId = 1
 @showtimeId = 1
 @auditoriumId = 1
-@bookingId = 17
-@seatId1 = 19
-@seatId2 = 20
+@bookingId = 18
+@seatId1 = 24
+@seatId2 = 25
 
 ###############################################
 # 🎬 PHASE 1: CINEMA & SHOWTIME SELECTION
