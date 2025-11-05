@@ -158,7 +158,7 @@ public class BookingRepository : IBookingRepository
                 _context.Bookings.Add(bookingEntity);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                // Create bookingseat entities AND mark seats as unavailable
+                // Create bookingseat entities
                 foreach (var (seatid, seatprice) in seats)
                 {
                     var bookingSeat = new Bookingseat
@@ -170,13 +170,11 @@ public class BookingRepository : IBookingRepository
                     };
                     _context.Bookingseats.Add(bookingSeat);
                     
-                    // 🔒 CRITICAL: Mark seat as unavailable
-                    var seat = await _context.Seats.FindAsync(new object[] { seatid }, cancellationToken);
-                    if (seat != null)
-                    {
-                        seat.Isavailable = false;
-                        _context.Seats.Update(seat);
-                    }
+                    // ✅ KHÔNG CẦN update seat.Isavailable
+                    // Lý do:
+                    // - seat.Isavailable CHỈ dùng để đánh dấu ghế HƯ/BẢO TRÌ (vĩnh viễn)
+                    // - Trạng thái "ghế đã đặt" được quản lý qua bảng bookingseats + showtimeid
+                    // - API sẽ tính toán isAvailableForShowtime = !bookedSeatIds.Contains(seatid)
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
@@ -352,19 +350,20 @@ public class BookingRepository : IBookingRepository
                 booking.Status = nameof(BookingStatus.Cancelled);
                 _context.Bookings.Update(booking);
 
-                // Release all seats (set Isavailable = true)
+                // Collect seat IDs for response
                 var seatIds = new List<int>();
                 foreach (var bookingSeat in booking.Bookingseats)
                 {
-                    if (bookingSeat.Seat != null)
-                    {
-                        bookingSeat.Seat.Isavailable = true;
-                        _context.Seats.Update(bookingSeat.Seat);
-                        seatIds.Add(bookingSeat.Seatid);
-                    }
+                    seatIds.Add(bookingSeat.Seatid);
                 }
 
-                // 🔥 CRITICAL FIX: Hard delete bookingseat and bookingcombo records
+                // ✅ KHÔNG CẦN update seat.Isavailable = true
+                // Lý do:
+                // - seat.Isavailable CHỈ dùng để đánh dấu ghế HƯ/BẢO TRÌ (vĩnh viễn)
+                // - Khi cancel booking, chỉ cần XÓA records trong bookingseats
+                // - API tự động tính lại isAvailableForShowtime khi query
+
+                // 🔥 CRITICAL: Hard delete bookingseat and bookingcombo records
                 // This allows the same seats to be rebooked without constraint violations
                 // The booking record is preserved with Status='Cancelled' for audit purposes
                 _context.Bookingseats.RemoveRange(booking.Bookingseats);

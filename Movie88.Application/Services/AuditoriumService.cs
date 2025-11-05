@@ -42,7 +42,8 @@ public class AuditoriumService : IAuditoriumService
                 Row = s.Row ?? "",
                 Number = s.Number ?? 0,
                 Seattype = s.Type ?? "standard",
-                IsAvailable = !bookedSeatIds.Contains(s.Seatid)
+                // COMPUTED: Check if seat is booked for THIS specific showtime
+                IsAvailableForShowtime = !bookedSeatIds.Contains(s.Seatid)
             }).ToList()
         };
     }

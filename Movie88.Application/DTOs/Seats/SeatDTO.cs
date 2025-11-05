@@ -10,7 +10,13 @@ public class SeatDTO
     public string Row { get; set; } = null!;
     public int Number { get; set; }
     public string? Seattype { get; set; }
-    public bool IsAvailable { get; set; } // True if not booked for specific showtime
+    
+    /// <summary>
+    /// COMPUTED FIELD: Indicates if seat is available for the SPECIFIC SHOWTIME requested.
+    /// This is NOT from database seats.isavailable field!
+    /// Calculated dynamically: !bookedSeatIds.Contains(seatId)
+    /// </summary>
+    public bool IsAvailableForShowtime { get; set; }
 }
 
 /// <summary>
