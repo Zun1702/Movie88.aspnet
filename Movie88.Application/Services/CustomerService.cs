@@ -53,7 +53,14 @@ public class CustomerService : ICustomerService
         {
             try
             {
-                customer.Dateofbirth = DateOnly.Parse(request.DateOfBirth);
+                var dateOfBirth = DateOnly.Parse(request.DateOfBirth);
+                
+                if (dateOfBirth > DateOnly.FromDateTime(DateTime.UtcNow))
+                {
+                    return Result<CustomerProfileResponseDto>.BadRequest("Date of birth cannot be in the future");
+                }
+                
+                customer.Dateofbirth = dateOfBirth;
             }
             catch (FormatException)
             {
