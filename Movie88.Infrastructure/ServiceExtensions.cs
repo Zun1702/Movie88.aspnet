@@ -69,8 +69,11 @@ namespace Movie88.Infrastructure
             services.AddScoped<Domain.Interfaces.IPaymentRepository, PaymentRepository>();
             services.AddScoped<Domain.Interfaces.IPaymentmethodRepository, PaymentmethodRepository>();
 
-            // Admin Repository
+            // Admin Service
             services.AddScoped<IAdminService, AdminService>();
+            
+            // Staff Booking Verification Service
+            services.AddScoped<IBookingVerificationService, BookingVerificationService>();
         }
     }
 }

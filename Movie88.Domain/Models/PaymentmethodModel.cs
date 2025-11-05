@@ -8,4 +8,9 @@ public class PaymentmethodModel
     public int Methodid { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
+    
+    /// <summary>
+    /// Alias for Name - used for consistency in DTOs
+    /// </summary>
+    public string? Methodname => Name;
 }

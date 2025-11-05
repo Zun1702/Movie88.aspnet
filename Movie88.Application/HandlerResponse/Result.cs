@@ -73,4 +73,14 @@ public class Result<T>
             StatusCode = 400
         };
     }
+
+    public static Result<T> InternalServerError(string message = "Internal server error")
+    {
+        return new Result<T>
+        {
+            IsSuccess = false,
+            Message = message,
+            StatusCode = 500
+        };
+    }
 }

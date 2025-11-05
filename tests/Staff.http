@@ -1,0 +1,518 @@
+### Staff Booking Verification Testing
+### File này chứa các test case cho Staff Booking Verification endpoints
+### Yêu cầu: Phải có Staff hoặc Admin token để test các API này
+
+@baseUrl = https://localhost:7238/api
+@staffToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIzMSIsImVtYWlsIjoic3RhZmYwMUBtb3ZpZTg4LmNvbSIsInVuaXF1ZV9uYW1lIjoiTmd1eWVuIFZhbiBTdGFmZiIsInJvbGUiOiJTdGFmZiIsImp0aSI6IjBlM2E5MDk4LWExMjItNGMwMi1hNWNiLWEwM2QzNDY1MzBmYiIsIm5iZiI6MTc2MjMyMDg1NywiZXhwIjoxNzYyMzI0NDU3LCJpYXQiOjE3NjIzMjA4NTcsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.cSRSL9Odo-3U9O3nH8oC8LdWGzBwI3DeYaCNRA7cR_w
+
+
+###############################################
+# SETUP - LẤY STAFF TOKEN
+###############################################
+
+### 0.1 Login với tài khoản Staff để lấy token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "staff01@movie88.com",
+  "password": "Movie88@1"
+}
+
+# Copy "token" từ response và paste vào @staffToken ở trên
+
+### 0.2 Login với tài khoản Admin để lấy token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@movie88.com",
+  "password": "Admin@123"
+}
+
+# Copy "token" từ response và paste vào @adminToken ở trên
+
+###############################################
+# 1. VERIFY BOOKING CODE - XÁC THỰC MÃ ĐẶT VÉ
+###############################################
+
+### 1.1 Verify booking code hợp lệ (Success case)
+# Thay BK20251104001 bằng booking code thực tế từ database
+GET {{baseUrl}}/bookings/verify/BK20251104001
+Authorization: Bearer {{staffToken}}
+
+### 1.2 Verify booking code không tồn tại (should return 404)
+GET {{baseUrl}}/bookings/verify/BK99999999
+Authorization: Bearer {{staffToken}}
+
+### 1.3 Verify booking code đã check-in (should show checked-in info)
+GET {{baseUrl}}/bookings/verify/BK20251104002
+Authorization: Bearer {{staffToken}}
+
+### 1.4 Verify booking chưa thanh toán
+# Response sẽ show Payment.Status = "Pending"
+# canCheckIn = false
+GET {{baseUrl}}/bookings/verify/BK20251104003
+Authorization: Bearer {{staffToken}}
+
+### 1.5 Verify booking đã bị cancelled (should return 400)
+GET {{baseUrl}}/bookings/verify/BK20251104004
+Authorization: Bearer {{staffToken}}
+
+
+
+### 1.7 Verify không có Authorization header (should return 401)
+GET {{baseUrl}}/bookings/verify/BK20251104001
+
+### 1.8 Verify với invalid token (should return 401)
+GET {{baseUrl}}/bookings/verify/BK20251104001
+Authorization: Bearer invalid_token_here
+
+### 1.9 Verify với Customer token (should return 403 Forbidden)
+# Lấy Customer token từ login trước
+GET {{baseUrl}}/bookings/verify/BK20251104001
+Authorization: Bearer CUSTOMER_TOKEN_HERE
+
+###############################################
+# 2. CHECK-IN CUSTOMER - CHECK-IN KHÁCH HÀNG
+###############################################
+
+### 2.1 Check-in booking hợp lệ (Success case)
+# Thay 123 bằng booking ID thực tế
+PUT {{baseUrl}}/bookings/123/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00",
+  "notes": "Checked in at counter"
+}
+
+### 2.2 Check-in với current timestamp
+PUT {{baseUrl}}/bookings/123/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T{{$datetime iso8601}}",
+  "notes": "On-time arrival"
+}
+
+### 2.3 Check-in late arrival (after showtime started)
+PUT {{baseUrl}}/bookings/124/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:45:00",
+  "notes": "Late arrival - 15 minutes after showtime"
+}
+
+### 2.4 Check-in booking đã check-in rồi (should fail with 400)
+PUT {{baseUrl}}/bookings/123/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:50:00",
+  "notes": "Duplicate check-in attempt"
+}
+
+### 2.5 Check-in booking không tồn tại (should return 404)
+PUT {{baseUrl}}/bookings/99999/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00",
+  "notes": "Test"
+}
+
+### 2.6 Check-in booking chưa thanh toán (should fail with 400)
+# Payment.Status != "Completed"
+PUT {{baseUrl}}/bookings/125/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00",
+  "notes": "Payment not completed"
+}
+
+### 2.7 Check-in booking đã cancelled (should fail with 400)
+PUT {{baseUrl}}/bookings/126/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00",
+  "notes": "Cancelled booking"
+}
+
+### 2.8 Check-in thiếu checkinTime (should fail validation)
+PUT {{baseUrl}}/bookings/123/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "notes": "Missing checkinTime"
+}
+
+
+### 2.10 Check-in không có Authorization header (should return 401)
+PUT {{baseUrl}}/bookings/123/check-in
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00",
+  "notes": "No auth"
+}
+
+### 2.11 Check-in với Customer token (should return 403)
+PUT {{baseUrl}}/bookings/123/check-in
+Authorization: Bearer CUSTOMER_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00",
+  "notes": "Customer token"
+}
+
+###############################################
+# 3. TODAY'S BOOKINGS - DANH SÁCH BOOKING HÔM NAY
+###############################################
+
+### 3.1 Get all today's bookings (default: page=1, pageSize=50)
+GET {{baseUrl}}/bookings/today
+Authorization: Bearer {{staffToken}}
+
+### 3.2 Get today's bookings with pagination
+GET {{baseUrl}}/bookings/today?page=1&pageSize=10
+Authorization: Bearer {{staffToken}}
+
+### 3.3 Get page 2 of today's bookings
+GET {{baseUrl}}/bookings/today?page=2&pageSize=10
+Authorization: Bearer {{staffToken}}
+
+### 3.4 Filter by cinema ID
+GET {{baseUrl}}/bookings/today?cinemaId=1
+Authorization: Bearer {{staffToken}}
+
+### 3.5 Filter by cinema ID with pagination
+GET {{baseUrl}}/bookings/today?cinemaId=1&page=1&pageSize=20
+Authorization: Bearer {{staffToken}}
+
+### 3.6 Filter by status = confirmed
+GET {{baseUrl}}/bookings/today?status=confirmed
+Authorization: Bearer {{staffToken}}
+
+### 3.7 Filter by status = pending
+GET {{baseUrl}}/bookings/today?status=pending
+Authorization: Bearer {{staffToken}}
+
+### 3.8 Filter by status = checkedin
+GET {{baseUrl}}/bookings/today?status=checkedin
+Authorization: Bearer {{staffToken}}
+
+### 3.9 Filter by status = cancelled
+GET {{baseUrl}}/bookings/today?status=cancelled
+Authorization: Bearer {{staffToken}}
+
+### 3.10 Filter by status = all (show all statuses)
+GET {{baseUrl}}/bookings/today?status=all
+Authorization: Bearer {{staffToken}}
+
+### 3.11 Filter only bookings with completed payment
+GET {{baseUrl}}/bookings/today?hasPayment=true
+Authorization: Bearer {{staffToken}}
+
+### 3.12 Filter bookings without completed payment
+GET {{baseUrl}}/bookings/today?hasPayment=false
+Authorization: Bearer {{staffToken}}
+
+### 3.13 Combine filters: cinema + status + hasPayment
+GET {{baseUrl}}/bookings/today?cinemaId=1&status=confirmed&hasPayment=true
+Authorization: Bearer {{staffToken}}
+
+### 3.14 Combine filters with pagination
+GET {{baseUrl}}/bookings/today?cinemaId=1&status=confirmed&hasPayment=true&page=1&pageSize=15
+Authorization: Bearer {{staffToken}}
+
+### 3.15 Get today's bookings với page size lớn
+GET {{baseUrl}}/bookings/today?pageSize=100
+Authorization: Bearer {{staffToken}}
+
+### 3.16 Get today's bookings với page number lớn (có thể empty)
+GET {{baseUrl}}/bookings/today?page=999&pageSize=10
+Authorization: Bearer {{staffToken}}
+
+
+### 3.18 Today's bookings không có Authorization (should return 401)
+GET {{baseUrl}}/bookings/today
+
+### 3.19 Today's bookings với Customer token (should return 403)
+GET {{baseUrl}}/bookings/today
+Authorization: Bearer CUSTOMER_TOKEN_HERE
+
+###############################################
+# 4. INTEGRATION TESTS - KẾT HỢP CÁC CHỨC NĂNG
+###############################################
+
+### 4.1 Complete Flow: Verify → Check-in → Verify again
+# Step 1: Verify booking trước khi check-in
+GET {{baseUrl}}/bookings/verify/BK20251105001
+Authorization: Bearer {{staffToken}}
+
+# Response should show:
+# - canCheckIn: true
+# - checkIn.isCheckedIn: false
+# - payment.status: "Completed"
+
+# Step 2: Check-in booking
+PUT {{baseUrl}}/bookings/BOOKING_ID_FROM_STEP1/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00",
+  "notes": "Integration test check-in"
+}
+
+# Response should show:
+# - status: "CheckedIn"
+# - checkedInBy.staffName: "Your Staff Name"
+
+# Step 3: Verify lại sau khi check-in
+GET {{baseUrl}}/bookings/verify/BK20251105001
+Authorization: Bearer {{staffToken}}
+
+# Response should show:
+# - canCheckIn: false
+# - checkIn.isCheckedIn: true
+# - checkIn.checkedInTime: timestamp from step 2
+# - checkIn.checkedInByStaffName: staff name
+
+### 4.2 Complete Flow: Search in today's bookings → Verify → Check-in
+# Step 1: Get today's bookings
+GET {{baseUrl}}/bookings/today?status=confirmed&hasPayment=true&page=1&pageSize=5
+Authorization: Bearer {{staffToken}}
+
+# Pick một booking từ response (canCheckIn: true)
+
+# Step 2: Verify booking code
+GET {{baseUrl}}/bookings/verify/BOOKING_CODE_FROM_STEP1
+Authorization: Bearer {{staffToken}}
+
+# Step 3: Check-in
+PUT {{baseUrl}}/bookings/BOOKING_ID_FROM_STEP1/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:20:00",
+  "notes": "Found in today's list"
+}
+
+# Step 4: Verify booking đã được check-in trong today's list
+GET {{baseUrl}}/bookings/today?status=checkedin
+Authorization: Bearer {{staffToken}}
+
+# Booking vừa check-in phải xuất hiện trong list này
+
+###############################################
+# 5. ERROR SCENARIOS - CÁC TRƯỜNG HỢP LỖI
+###############################################
+
+### 5.1 Verify với booking code format sai
+GET {{baseUrl}}/bookings/verify/INVALID-FORMAT
+Authorization: Bearer {{staffToken}}
+
+### 5.2 Verify với booking code empty
+GET {{baseUrl}}/bookings/verify/
+Authorization: Bearer {{staffToken}}
+
+### 5.3 Check-in với invalid booking ID format
+PUT {{baseUrl}}/bookings/abc/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00"
+}
+
+### 5.4 Check-in với booking ID = 0
+PUT {{baseUrl}}/bookings/0/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00"
+}
+
+### 5.5 Check-in với booking ID âm
+PUT {{baseUrl}}/bookings/-1/check-in
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "checkinTime": "2025-11-05T19:15:00"
+}
+
+### 5.6 Today's bookings với invalid query params
+GET {{baseUrl}}/bookings/today?page=0&pageSize=-1
+Authorization: Bearer {{staffToken}}
+
+### 5.7 Today's bookings với invalid status
+GET {{baseUrl}}/bookings/today?status=invalid-status
+Authorization: Bearer {{staffToken}}
+
+### 5.8 Today's bookings với invalid cinema ID
+GET {{baseUrl}}/bookings/today?cinemaId=99999
+Authorization: Bearer {{staffToken}}
+
+###############################################
+# 6. PERFORMANCE & EDGE CASES
+###############################################
+
+### 6.1 Get today's bookings với page size = 1 (minimum)
+GET {{baseUrl}}/bookings/today?pageSize=1
+Authorization: Bearer {{staffToken}}
+
+### 6.2 Get today's bookings với page size = 500 (very large)
+GET {{baseUrl}}/bookings/today?pageSize=500
+Authorization: Bearer {{staffToken}}
+
+### 6.3 Verify multiple bookings nhanh liên tiếp
+GET {{baseUrl}}/bookings/verify/BK20251105001
+Authorization: Bearer {{staffToken}}
+
+###
+GET {{baseUrl}}/bookings/verify/BK20251105002
+Authorization: Bearer {{staffToken}}
+
+###
+GET {{baseUrl}}/bookings/verify/BK20251105003
+Authorization: Bearer {{staffToken}}
+
+###############################################
+# NOTES VÀ HƯỚNG DẪN TEST
+###############################################
+
+# 1. SETUP TRƯỚC KHI TEST:
+#    - Chạy test 0.1 hoặc 0.2 để login Staff/Admin và lấy token
+#    - Copy token từ response và paste vào @staffToken hoặc @adminToken
+#    - Đảm bảo database có sẵn data test
+
+# 2. CÁC API ENDPOINTS:
+#    GET  /api/bookings/verify/{bookingCode}  - Verify booking code/QR
+#    PUT  /api/bookings/{id}/check-in         - Check-in customer
+#    GET  /api/bookings/today                 - Get today's bookings
+
+# 3. AUTHORIZATION:
+#    - Tất cả endpoints yêu cầu JWT token
+#    - Chỉ Staff và Admin role có quyền truy cập
+#    - Customer sẽ nhận 403 Forbidden
+
+# 4. VERIFY BOOKING RESPONSE:
+#    {
+#      "bookingCode": "BK20251105001",
+#      "status": "Confirmed",
+#      "customer": { ... },
+#      "movie": { ... },
+#      "showtime": { ... },
+#      "seats": [ ... ],
+#      "payment": {
+#        "status": "Completed"  ← From Payment entity via Payments collection
+#      },
+#      "checkIn": {
+#        "isCheckedIn": false,
+#        "checkedInTime": null,
+#        "checkedInBy": null,
+#        "checkedInByStaffName": null
+#      },
+#      "canCheckIn": true
+#    }
+
+# 5. CHECK-IN REQUEST:
+#    {
+#      "checkinTime": "2025-11-05T19:15:00",  ← Required
+#      "notes": "Optional notes"              ← Optional
+#    }
+
+# 6. CHECK-IN RESPONSE:
+#    {
+#      "bookingId": 123,
+#      "bookingCode": "BK20251105001",
+#      "status": "CheckedIn",
+#      "checkedInAt": "2025-11-05T19:15:00",
+#      "checkedInBy": {
+#        "staffId": 42,
+#        "staffName": "Staff Name"
+#      }
+#    }
+
+# 7. TODAY'S BOOKINGS QUERY PARAMS:
+#    - cinemaId: Filter by cinema (optional)
+#    - page: Page number (default: 1)
+#    - pageSize: Items per page (default: 50)
+#    - status: Filter by status (optional)
+#    - hasPayment: Only completed payments (optional)
+
+# 8. BUSINESS RULES:
+#    - BookingCode chỉ tồn tại sau khi thanh toán thành công
+#    - Payment status lấy từ Payment.Status (via Booking.Payments collection)
+#    - Check-in tracking dùng Booking.Checkedintime và Booking.Checkedinby
+#    - Booking.Status = "CheckedIn" sau khi check-in
+#    - Không cho check-in 2 lần (Booking.Checkedintime != null)
+#    - Chỉ booking có Payment.Status = "Completed" mới được check-in
+
+# 9. EXPECTED STATUS CODES:
+#    200 OK - Success (GET, PUT)
+#    400 Bad Request - Validation error, business rule violation
+#    401 Unauthorized - No token / Invalid token
+#    403 Forbidden - Not Staff/Admin role
+#    404 Not Found - Booking not found
+#    500 Internal Server Error - Server error
+
+# 10. COMMON ERRORS:
+#     - 401: Token hết hạn → Login lại
+#     - 403: Không có quyền Staff → Dùng Staff/Admin account
+#     - 404: Booking không tồn tại → Check database
+#     - 400: Already checked in → Booking đã được check-in rồi
+#     - 400: Payment not completed → Payment.Status != "Completed"
+
+# 11. DATABASE QUERIES (Để debug):
+#     -- Get all bookings today
+#     SELECT * FROM bookings WHERE DATE(bookingtime) = CURRENT_DATE;
+#     
+#     -- Get booking by code với payment status
+#     SELECT b.*, p.status as payment_status 
+#     FROM bookings b 
+#     LEFT JOIN payments p ON b.bookingid = p.bookingid 
+#     WHERE b.bookingcode = 'BK20251105001';
+#     
+#     -- Get check-in info
+#     SELECT b.bookingcode, b.checkedintime, b.checkedinby, u.fullname as staff_name
+#     FROM bookings b
+#     LEFT JOIN "User" u ON b.checkedinby = u.userid
+#     WHERE b.checkedintime IS NOT NULL;
+
+# 12. TIPS:
+#     - Thay BOOKING_ID, BOOKING_CODE bằng giá trị thực từ database
+#     - Copy token mới nếu test lâu (token có thể expire)
+#     - Check console logs để debug
+#     - Dùng VS Code REST Client hoặc Postman để test
+#     - Test theo thứ tự: Verify → Check-in → Verify again
+
+# 13. TEST SEQUENCE SUGGESTIONS:
+#     Basic Flow:
+#     1.1 → 2.1 → 1.1 (Verify → Check-in → Verify again)
+#     
+#     Complete Integration:
+#     Section 4.1 hoặc 4.2 (all steps)
+#     
+#     Error Testing:
+#     1.2 → 2.4 → 2.6 (Not found → Already checked in → Payment not completed)
+#     
+#     Authorization Testing:
+#     1.7 → 1.8 → 1.9 (No token → Invalid token → Customer token)

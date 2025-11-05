@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Movie88.Application.DTOs.Bookings;
 using Movie88.Application.DTOs.Combos;
+using Movie88.Application.DTOs.Staff;
 using Movie88.Application.DTOs.Vouchers;
 using Movie88.Application.Interfaces;
 using System.Security.Claims;
@@ -15,11 +16,16 @@ public class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookingService;
     private readonly ICustomerService _customerService;
+    private readonly IBookingVerificationService _bookingVerificationService;
 
-    public BookingsController(IBookingService bookingService, ICustomerService customerService)
+    public BookingsController(
+        IBookingService bookingService, 
+        ICustomerService customerService,
+        IBookingVerificationService bookingVerificationService)
     {
         _bookingService = bookingService;
         _customerService = customerService;
+        _bookingVerificationService = bookingVerificationService;
     }
 
     /// <summary>
@@ -322,4 +328,99 @@ public class BookingsController : ControllerBase
             });
         }
     }
+
+    #region Staff Booking Verification Endpoints
+
+    /// <summary>
+    /// STAFF ONLY: Verify booking code/QR at counter
+    /// GET /api/bookings/verify/{bookingCode}
+    /// </summary>
+    /// <param name="bookingCode">Booking code (e.g., BK20251104001)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Full booking details with payment status</returns>
+    [HttpGet("verify/{bookingCode}")]
+    [Authorize(Roles = "Staff")]
+    public async Task<IActionResult> VerifyBookingCode(
+        string bookingCode,
+        CancellationToken cancellationToken)
+    {
+        var result = await _bookingVerificationService.VerifyBookingCodeAsync(bookingCode, cancellationToken);
+
+        return StatusCode(result.StatusCode, new
+        {
+            success = result.IsSuccess,
+            statusCode = result.StatusCode,
+            message = result.Message,
+            data = result.Data,
+            errors = result.Errors
+        });
+    }
+
+    /// <summary>
+    /// STAFF ONLY: Check-in customer at counter
+    /// PUT /api/bookings/{id}/check-in
+    /// </summary>
+    /// <param name="id">Booking ID</param>
+    /// <param name="command">Check-in command with timestamp and optional notes</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Check-in confirmation</returns>
+    [HttpPut("{id}/check-in")]
+    [Authorize(Roles = "Staff")]
+    public async Task<IActionResult> CheckIn(
+        int id,
+        [FromBody] CheckInCommand command,
+        CancellationToken cancellationToken)
+    {
+        // Extract staff user ID from JWT token
+        var staffUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (staffUserIdClaim == null || !int.TryParse(staffUserIdClaim.Value, out int staffUserId))
+        {
+            return Unauthorized(new
+            {
+                success = false,
+                statusCode = 401,
+                message = "Invalid user token",
+                errors = new[] { "Could not extract user ID from token" }
+            });
+        }
+
+        var result = await _bookingVerificationService.CheckInAsync(id, command, staffUserId, cancellationToken);
+
+        return StatusCode(result.StatusCode, new
+        {
+            success = result.IsSuccess,
+            statusCode = result.StatusCode,
+            message = result.Message,
+            data = result.Data,
+            errors = result.Errors
+        });
+    }
+
+    /// <summary>
+    /// STAFF ONLY: Get today's bookings with filters
+    /// GET /api/bookings/today
+    /// </summary>
+    /// <param name="query">Query parameters for filtering and pagination</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of today's bookings</returns>
+    [HttpGet("today")]
+    [Authorize(Roles = "Staff")]
+    public async Task<IActionResult> GetTodayBookings(
+        [FromQuery] TodayBookingsQuery query,
+        CancellationToken cancellationToken)
+    {
+        var result = await _bookingVerificationService.GetTodayBookingsAsync(query, cancellationToken);
+
+        return StatusCode(result.StatusCode, new
+        {
+            success = result.IsSuccess,
+            statusCode = result.StatusCode,
+            message = result.Message,
+            data = result.Data,
+            errors = result.Errors
+        });
+    }
+
+    #endregion
 }
+

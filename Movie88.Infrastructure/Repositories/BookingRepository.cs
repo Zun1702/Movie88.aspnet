@@ -275,4 +275,126 @@ public class BookingRepository : IBookingRepository
             }
         });
     }
+
+    // Staff booking verification methods
+    public async Task<BookingModel?> GetByBookingCodeAsync(string bookingCode, CancellationToken cancellationToken = default)
+    {
+        var booking = await _context.Bookings
+            .Include(b => b.Payments)                    // IMPORTANT: Check payment status via Payments collection
+                .ThenInclude(p => p.Method)
+            .Include(b => b.CheckedInByUser)             // IMPORTANT: Get staff who checked in
+            .Include(b => b.Customer)
+            .Include(b => b.Showtime)
+                .ThenInclude(s => s!.Movie)
+            .Include(b => b.Showtime)
+                .ThenInclude(s => s!.Auditorium)
+                    .ThenInclude(a => a!.Cinema)
+            .Include(b => b.Bookingseats)
+                .ThenInclude(bs => bs.Seat)
+            .Include(b => b.Bookingcombos)
+                .ThenInclude(bc => bc.Combo)
+            .Include(b => b.Voucher)
+            .FirstOrDefaultAsync(b => b.Bookingcode == bookingCode, cancellationToken);
+
+        return booking == null ? null : _mapper.Map<BookingModel>(booking);
+    }
+
+    public async Task<(IEnumerable<BookingModel> bookings, int totalCount)> GetTodayBookingsAsync(
+        int page, 
+        int pageSize, 
+        int? cinemaId = null, 
+        string? status = null, 
+        bool? hasPayment = null,
+        CancellationToken cancellationToken = default)
+    {
+        var today = DateTime.Today;
+        var tomorrow = today.AddDays(1);
+
+        var query = _context.Bookings
+            .Include(b => b.Payments)                    // IMPORTANT: For payment status
+                .ThenInclude(p => p.Method)
+            .Include(b => b.CheckedInByUser)             // IMPORTANT: For staff name
+            .Include(b => b.Customer)
+            .Include(b => b.Showtime)
+                .ThenInclude(s => s!.Movie)
+            .Include(b => b.Showtime)
+                .ThenInclude(s => s!.Auditorium)
+                    .ThenInclude(a => a!.Cinema)
+            .Where(b => b.Bookingtime >= today && b.Bookingtime < tomorrow);
+
+        // Filter by cinema
+        if (cinemaId.HasValue)
+        {
+            query = query.Where(b => b.Showtime!.Auditorium!.Cinemaid == cinemaId.Value);
+        }
+
+        // Filter by status
+        if (!string.IsNullOrEmpty(status) && status.ToLower() != "all")
+        {
+            query = query.Where(b => b.Status != null && b.Status.ToLower() == status.ToLower());
+        }
+
+        // Filter by payment status (check via Payments collection)
+        if (hasPayment.HasValue)
+        {
+            if (hasPayment.Value)
+            {
+                // hasPayment = true: Only bookings with completed payment
+                query = query.Where(b => b.Payments.Any(p => p.Status == "Completed"));
+            }
+            else
+            {
+                // hasPayment = false: Only bookings WITHOUT completed payment
+                // (no payments OR all payments are not completed)
+                query = query.Where(b => !b.Payments.Any(p => p.Status == "Completed"));
+            }
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var bookings = await query
+            .OrderByDescending(b => b.Bookingtime)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (_mapper.Map<IEnumerable<BookingModel>>(bookings), totalCount);
+    }
+
+    public async Task<bool> UpdateCheckInStatusAsync(
+        int bookingId, 
+        DateTime checkinTime, 
+        int staffUserId, 
+        CancellationToken cancellationToken = default)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var booking = await _context.Bookings.FindAsync(new object[] { bookingId }, cancellationToken);
+                if (booking == null)
+                    return false;
+
+                // Update 3 fields for check-in tracking
+                booking.Status = nameof(BookingStatus.CheckedIn);
+                // PostgreSQL 'timestamp without time zone' requires DateTime.Kind = Unspecified
+                booking.Checkedintime = DateTime.SpecifyKind(checkinTime, DateTimeKind.Unspecified);
+                booking.Checkedinby = staffUserId;
+
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
 }

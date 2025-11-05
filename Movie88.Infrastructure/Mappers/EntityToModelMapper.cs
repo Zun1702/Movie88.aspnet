@@ -30,7 +30,15 @@ public class EntityToModelMapper : Profile
             .ForMember(dest => dest.Reviews, opt => opt.Ignore());
 
         // Booking related mappings
-        CreateMap<Booking, BookingModel>();
+        CreateMap<Booking, BookingModel>()
+            .ForMember(dest => dest.Checkedintime, opt => opt.MapFrom(src => src.Checkedintime))
+            .ForMember(dest => dest.Checkedinby, opt => opt.MapFrom(src => src.Checkedinby))
+            .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer))
+            .ForMember(dest => dest.Payments, opt => opt.MapFrom(src => src.Payments))
+            .ForMember(dest => dest.CheckedInByUser, opt => opt.MapFrom(src => src.CheckedInByUser));
+            
+        CreateMap<Payment, PaymentModel>();
+        CreateMap<Paymentmethod, PaymentmethodModel>();
         CreateMap<Showtime, ShowtimeModel>();
         CreateMap<Auditorium, AuditoriumModel>();
         CreateMap<Cinema, CinemaModel>();
@@ -39,6 +47,11 @@ public class EntityToModelMapper : Profile
         CreateMap<Combo, ComboModel>();
         CreateMap<Bookingcombo, BookingComboModel>();
         CreateMap<Voucher, VoucherModel>();
+        CreateMap<User, UserModel>()
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Userid))
+            .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(src => src.Isverified))
+            .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.Isactive))
+            .ForMember(dest => dest.VerifiedAt, opt => opt.MapFrom(src => src.Verifiedat));
         
         // Review mappings
         CreateMap<Review, ReviewModel>();

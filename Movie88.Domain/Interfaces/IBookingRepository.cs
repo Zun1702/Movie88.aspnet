@@ -20,4 +20,26 @@ public interface IBookingRepository
     // Voucher methods
     Task<BookingModel?> GetByIdAsync(int bookingId, CancellationToken cancellationToken = default);
     Task ApplyVoucherAsync(int bookingId, int voucherId, decimal newTotalAmount, CancellationToken cancellationToken = default);
+    
+    // Staff booking verification methods
+    /// <summary>
+    /// Get booking by booking code with full details including Payments, CheckedInByUser
+    /// </summary>
+    Task<BookingModel?> GetByBookingCodeAsync(string bookingCode, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Get today's bookings with filters and pagination
+    /// </summary>
+    Task<(IEnumerable<BookingModel> bookings, int totalCount)> GetTodayBookingsAsync(
+        int page, 
+        int pageSize, 
+        int? cinemaId = null, 
+        string? status = null, 
+        bool? hasPayment = null,
+        CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Update check-in status: Status, Checkedintime, Checkedinby
+    /// </summary>
+    Task<bool> UpdateCheckInStatusAsync(int bookingId, DateTime checkinTime, int staffUserId, CancellationToken cancellationToken = default);
 }
