@@ -1,7 +1,8 @@
 # 🎫 Screen 4: Booking Flow (10 Endpoints)
 
-**Status**: 🔄 **PENDING** (0/10 endpoints - 0%)  
-**Assigned**: Trung
+**Status**: ✅ **COMPLETED** (10/10 endpoints - 100%)  
+**Assigned**: Trung  
+**Completed**: November 5, 2025
 
 > **🎯 Core Business Flow**: Đây là luồng nghiệp vụ QUAN TRỌNG NHẤT của dự án - Đặt vé online
 
@@ -11,26 +12,26 @@
 
 Chia thành **3 giai đoạn** để dev hiệu quả:
 
-### 🎬 Phase 1: Cinema & Showtime Selection (4 endpoints)
+### 🎬 Phase 1: Cinema & Showtime Selection (4 endpoints) ✅
 | # | Method | Endpoint | Purpose | Auth | Status | Assign |
 |---|--------|----------|---------|------|--------|--------|
-| 1 | GET | `/api/cinemas` | Danh sách rạp | ❌ | ❌ TODO | Trung |
-| 2 | GET | `/api/showtimes/by-movie/{movieId}` | Suất chiếu theo phim | ❌ | ❌ TODO | Trung |
-| 3 | GET | `/api/showtimes/by-date` | Suất chiếu theo ngày | ❌ | ❌ TODO | Trung |
-| 4 | GET | `/api/showtimes/{id}` | Chi tiết suất chiếu | ❌ | ❌ TODO | Trung |
+| 1 | GET | `/api/cinemas` | Danh sách rạp | ❌ | ✅ DONE | Trung |
+| 2 | GET | `/api/showtimes/by-movie/{movieId}` | Suất chiếu theo phim | ❌ | ✅ DONE | Trung |
+| 3 | GET | `/api/showtimes/by-date` | Suất chiếu theo ngày | ❌ | ✅ DONE | Trung |
+| 4 | GET | `/api/showtimes/{id}` | Chi tiết suất chiếu | ❌ | ✅ DONE | Trung |
 
-### 💺 Phase 2: Seat Selection & Booking Creation (3 endpoints)
+### 💺 Phase 2: Seat Selection & Booking Creation (3 endpoints) ✅
 | # | Method | Endpoint | Purpose | Auth | Status | Assign |
 |---|--------|----------|---------|------|--------|--------|
-| 5 | GET | `/api/showtimes/{id}/available-seats` | Ghế còn trống | ❌ | ❌ TODO | Trung |
-| 6 | GET | `/api/auditoriums/{id}/seats` | Sơ đồ ghế phòng chiếu | ❌ | ❌ TODO | Trung |
-| 7 | POST | `/api/bookings/create` | **TẠO BOOKING** | ✅ | ❌ TODO | Trung |
+| 5 | GET | `/api/showtimes/{id}/available-seats` | Ghế còn trống | ❌ | ✅ DONE | Trung |
+| 6 | GET | `/api/auditoriums/{id}/seats` | Sơ đồ ghế phòng chiếu | ❌ | ✅ DONE | Trung |
+| 7 | POST | `/api/bookings/create` | **TẠO BOOKING** | ✅ | ✅ DONE | Trung |
 
-### 🍿 Phase 3: Combo Selection (2 endpoints)
+### 🍿 Phase 3: Combo Selection (2 endpoints) ✅
 | # | Method | Endpoint | Purpose | Auth | Status | Assign |
 |---|--------|----------|---------|------|--------|--------|
-| 8 | GET | `/api/combos` | Danh sách combo | ❌ | ❌ TODO | Trung |
-| 9 | POST | `/api/bookings/{id}/add-combos` | Thêm combo vào booking | ✅ | ❌ TODO | Trung |
+| 8 | GET | `/api/combos` | Danh sách combo | ❌ | ✅ DONE | Trung |
+| 9 | POST | `/api/bookings/{id}/add-combos` | Thêm combo vào booking | ✅ | ✅ DONE | Trung |
 
 ### 📽️ Reference
 | # | Method | Endpoint | Purpose | Auth | Status | Assign |
@@ -440,7 +441,7 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
   "message": "Booking created successfully",
   "data": {
     "bookingid": 156,
-    "bookingcode": "BK-20251103-0156",
+    "bookingcode": null,
     "customerid": 3,
     "showtimeid": 42,
     "voucherid": null,
@@ -483,11 +484,11 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 ### Related Entities
 **Booking** (bookings table):
 - ✅ `bookingid` (int, PK)
-- ✅ `bookingcode` (string, max 20, UNIQUE) - **NEW: For QR code (Format: BK-YYYYMMDD-XXXX)**
+- ✅ `bookingcode` (string?, max 20, UNIQUE, **NULLABLE**) - **NULL until payment confirmed** (then generated with format: BK-YYYYMMDD-XXXX)
 - ✅ `customerid` (int, FK to customers) - NOT `userid`!
 - ✅ `showtimeid` (int, FK)
 - ✅ `voucherid` (int, FK, nullable)
-- ✅ `bookingtime` (timestamp, nullable)
+- ✅ `bookingtime` (timestamp, nullable) - Use `DateTime.Now` not `DateTime.UtcNow`
 - ✅ `totalamount` (decimal(10,2), nullable)
 - ✅ `status` (string, max 50, nullable) - Use **BookingStatus enum**: Pending, Confirmed, Cancelled, CheckedIn, Completed, Expired
 
@@ -523,26 +524,31 @@ Same as Screen 3: GET /api/movies/{id}/showtimes
 4. **Calculate Total**:
    - `totalamount = Showtime.price × seatCount`
 
-5. **Generate BookingCode**:
-   ```csharp
-   var bookingTime = DateTime.UtcNow;
-   var bookingCode = _bookingCodeGenerator.GenerateBookingCode(bookingTime);
-   // Format: BK-20251103-0001
-   ```
+5. **BookingCode** (⚠️ CHANGED):
+   - Initial logic: Generate at creation
+   - **Current logic**: Set to `null` (generated only after payment confirmed)
+   - Field is nullable: `string? Bookingcode { get; set; }`
 
 6. **Create Booking**:
    - `customerid` from Customer table
-   - `bookingcode` from BookingCodeGenerator
-   - `bookingtime` = DateTime.UtcNow (as timestamp without time zone)
-   - `status` = BookingStatus.Pending.ToString() or "Pending"
+   - `bookingcode` = **null** (not generated yet)
+   - `bookingtime` = `DateTime.Now` (use .Now not .UtcNow for PostgreSQL)
+   - `status` = "Pending"
    - `voucherid` = null (apply later)
 
 7. **Create Bookingseats**:
    - For each seat, create Bookingseat record:
      - `bookingid`, `seatid`, `showtimeid`, `seatprice` (from Showtime.Price)
 
-8. **Transaction**:
-   - Wrap in database transaction for atomicity
+8. **Transaction** (⚠️ MUST USE EXECUTION STRATEGY):
+   ```csharp
+   var strategy = _context.Database.CreateExecutionStrategy();
+   await strategy.ExecuteAsync(async () => {
+       using var transaction = await _context.Database.BeginTransactionAsync();
+       // ... create booking and bookingseats ...
+       await transaction.CommitAsync();
+   });
+   ```
 
 ### Error Cases
 - 401 Unauthorized - No valid token
@@ -822,8 +828,9 @@ Movie88.WebApi/
 - ⚠️ Use `customerid`, NOT `userid`
 - ⚠️ Use `bookingtime`, NOT `createdat`
 - ⚠️ Use `totalamount`, NOT `totalprice`
-- ✅ **`bookingcode`** - MUST generate using IBookingCodeGenerator service (Format: BK-YYYYMMDD-XXXX)
-- ✅ **`status`** - Use BookingStatus enum: Pending, Confirmed, Cancelled, CheckedIn, Completed, Expired
+- ⚠️ Use `DateTime.Now`, NOT `DateTime.UtcNow` (PostgreSQL timestamp without time zone)
+- ✅ **`bookingcode`** - **NULL at creation** (generated only after payment confirmed using IBookingCodeGenerator service, Format: BK-YYYYMMDD-XXXX)
+- ✅ **`status`** - Use "Pending", "Confirmed", "Cancelled", etc.
 - 📝 See: `docs/Booking-Code-Implementation.md` for full details
 
 **Bookingseat Junction**:
@@ -850,84 +857,96 @@ if (unavailableSeats.Any())
     return Conflict($"Seats {string.Join(", ", unavailableSeats)} are already booked");
 ```
 
-**Create Booking Transaction**:
+**Create Booking Transaction** (⚠️ UPDATED):
 ```csharp
-using var transaction = await _context.Database.BeginTransactionAsync();
-try
+// MUST use execution strategy for retry compatibility
+var strategy = _context.Database.CreateExecutionStrategy();
+return await strategy.ExecuteAsync(async () =>
 {
-    // 1. Generate BookingCode
-    var bookingTime = DateTime.UtcNow;
-    var bookingCode = _bookingCodeGenerator.GenerateBookingCode(bookingTime);
-    
-    // 2. Create Booking
-    var booking = new Booking
+    using var transaction = await _context.Database.BeginTransactionAsync();
+    try
     {
-        Customerid = customer.Customerid,
-        Showtimeid = request.Showtimeid,
-        Bookingcode = bookingCode, // BK-20251103-0001
-        Bookingtime = DateTime.SpecifyKind(bookingTime, DateTimeKind.Unspecified),
-        Status = BookingStatus.Pending.ToString(), // or "Pending"
-        Totalamount = showtime.Price * request.SeatIds.Count
-    };
-    _context.Bookings.Add(booking);
-    await _context.SaveChangesAsync();
-
-    // 3. Create Bookingseats
-    foreach (var seatId in request.SeatIds)
-    {
-        var bookingseat = new Bookingseat
+        // 1. BookingCode is NULL (generated only after payment)
+        // No longer generate at creation time
+        
+        // 2. Create Booking
+        var booking = new Booking
         {
-            Bookingid = booking.Bookingid,
-            Seatid = seatId,
+            Customerid = customer.Customerid,
             Showtimeid = request.Showtimeid,
-            Seatprice = showtime.Price // ← Use Seatprice field
+            Bookingcode = null, // ← NULL until payment confirmed
+            Bookingtime = DateTime.Now, // ← Use DateTime.Now not UtcNow
+            Status = "Pending",
+            Totalamount = showtime.Price * request.SeatIds.Count
         };
-        _context.Bookingseats.Add(bookingseat);
-    }
-    await _context.SaveChangesAsync();
+        _context.Bookings.Add(booking);
+        await _context.SaveChangesAsync();
 
-    await transaction.CommitAsync();
-    return booking;
-}
-catch
-{
-    await transaction.RollbackAsync();
+        // 3. Create Bookingseats
+        foreach (var seatId in request.SeatIds)
+        {
+            var bookingseat = new Bookingseat
+            {
+                Bookingid = booking.Bookingid,
+                Seatid = seatId,
+                Showtimeid = request.Showtimeid,
+                Seatprice = showtime.Price // ← Use Seatprice field
+            };
+            _context.Bookingseats.Add(bookingseat);
+        }
+        await _context.SaveChangesAsync();
+
+        await transaction.CommitAsync();
+        return booking;
+    }
+    catch
+    {
+        await transaction.RollbackAsync();
     throw;
 }
 ```
 
-**Add Combos to Booking**:
+**Add Combos to Booking** (⚠️ UPDATED):
 ```csharp
-// 1. Clear existing combos (optional)
-var existingCombos = await _context.Bookingcombos
-    .Where(bc => bc.Bookingid == bookingId)
-    .ToListAsync();
-_context.Bookingcombos.RemoveRange(existingCombos);
-
-// 2. Add new combos
-foreach (var comboRequest in request.Combos)
+// MUST use execution strategy for retry compatibility
+var strategy = _context.Database.CreateExecutionStrategy();
+await strategy.ExecuteAsync(async () =>
 {
-    var combo = await _context.Combos.FindAsync(comboRequest.Comboid);
-    var bookingcombo = new Bookingcombo
+    using var transaction = await _context.Database.BeginTransactionAsync();
+    try
     {
-        Bookingid = bookingId,
-        Comboid = comboRequest.Comboid,
-        Quantity = comboRequest.Quantity,
-        Comboprice = combo.Price * comboRequest.Quantity // ← Use Comboprice field
-    };
-    _context.Bookingcombos.Add(bookingcombo);
-}
+        // 1. Add combos (don't clear existing - allows multiple additions)
+        foreach (var comboRequest in request.Combos)
+        {
+            var combo = await _context.Combos.FindAsync(comboRequest.Comboid);
+            var bookingcombo = new Bookingcombo
+            {
+                Bookingid = bookingId,
+                Comboid = comboRequest.Comboid,
+                Quantity = comboRequest.Quantity,
+                Comboprice = combo.Price * comboRequest.Quantity // ← Use Comboprice field
+            };
+            _context.Bookingcombos.Add(bookingcombo);
+        }
 
-// 3. Update booking total
-var seatsTotal = await _context.Bookingseats
-    .Where(bs => bs.Bookingid == bookingId)
-    .SumAsync(bs => bs.Seatprice); // ← Use Seatprice
-var combosTotal = await _context.Bookingcombos
-    .Where(bc => bc.Bookingid == bookingId)
-    .SumAsync(bc => bc.Comboprice ?? 0); // ← Use Comboprice (nullable)
-booking.Totalamount = seatsTotal + combosTotal;
+        // 2. Update booking total
+        var seatsTotal = await _context.Bookingseats
+            .Where(bs => bs.Bookingid == bookingId)
+            .SumAsync(bs => bs.Seatprice); // ← Use Seatprice
+        var combosTotal = await _context.Bookingcombos
+            .Where(bc => bc.Bookingid == bookingId)
+            .SumAsync(bc => bc.Comboprice ?? 0); // ← Use Comboprice (nullable)
+        booking.Totalamount = seatsTotal + combosTotal;
 
-await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+    catch
+    {
+        await transaction.RollbackAsync();
+        throw;
+    }
+});
 ```
 
 ### PostgreSQL Specific
@@ -939,37 +958,42 @@ await _context.SaveChangesAsync();
 
 ## 🧪 Testing Checklist
 
-### GET /api/cinemas
-- [ ] Return all cinemas
-- [ ] Filter by city works
-- [ ] Sort by name
+### GET /api/cinemas ✅
+- [x] Return all cinemas
+- [x] Filter by city works
+- [x] Sort by name
 
-### GET /api/showtimes endpoints
-- [ ] Return correct showtimes by movie
-- [ ] Return correct showtimes by date
-- [ ] Filter by cinemaid works
-- [ ] Only show future showtimes
-- [ ] Calculate available seats correctly
+### GET /api/showtimes endpoints ✅
+- [x] Return correct showtimes by movie
+- [x] Return correct showtimes by date
+- [x] Filter by cinemaid works
+- [x] Only show future showtimes
+- [x] Calculate available seats correctly
 
-### GET /api/showtimes/{id}/available-seats
-- [ ] Mark booked seats as unavailable
-- [ ] Handle cancelled bookings (don't count)
-- [ ] Return all seats with availability status
+### GET /api/showtimes/{id}/available-seats ✅
+- [x] Mark booked seats as unavailable
+- [x] Handle cancelled bookings (don't count)
+- [x] Return all seats with availability status
 
-### POST /api/bookings/create
-- [ ] Require authentication
-- [ ] Validate seat availability
-- [ ] Prevent double booking (concurrent requests)
-- [ ] Calculate total correctly
-- [ ] Use customerid from token
-- [ ] Create booking and bookingseats atomically
-- [ ] Return 409 for already booked seats
+### POST /api/bookings/create ✅
+- [x] Require authentication
+- [x] Validate seat availability
+- [x] Prevent double booking (concurrent requests)
+- [x] Calculate total correctly
+- [x] Use customerid from token
+- [x] Create booking and bookingseats atomically
+- [x] Return specific error messages for validation failures
+- [x] BookingCode is null for pending bookings
+- [x] Use DateTime.Now for PostgreSQL compatibility
+- [x] Use execution strategy for transaction safety
 
-### POST /api/bookings/{id}/add-combos
-- [ ] Verify booking ownership
-- [ ] Only allow for "Pending" bookings
-- [ ] Update total amount correctly
-- [ ] Handle clearing existing combos
+### POST /api/bookings/{id}/add-combos ✅
+- [x] Verify booking ownership
+- [x] Only allow for "Pending" bookings
+- [x] Update total amount correctly
+- [x] Validate combo quantities > 0
+- [x] Validate all combos exist
+- [x] Use execution strategy for transaction safety
 
 ---
 
@@ -1025,10 +1049,10 @@ await _context.SaveChangesAsync();
 ✅ Customerid (int) ← NOT "userid"
 ✅ Showtimeid (int)
 ✅ Voucherid (int, nullable)
-✅ Bookingcode (string, unique)
-✅ Bookingtime (DateTime, nullable)
+✅ Bookingcode (string?, unique, NULLABLE) ← NULL until payment confirmed
+✅ Bookingtime (DateTime, nullable) ← Use DateTime.Now not UtcNow
 ✅ Totalamount (decimal, nullable)
-✅ Status (string, nullable) ← Use BookingStatus enum
+✅ Status (string, nullable) ← "Pending", "Confirmed", "Cancelled", etc.
 ```
 
 #### Bookingseat
@@ -1067,16 +1091,68 @@ await _context.SaveChangesAsync();
 - `price` in Bookingseat → Use `Seatprice`
 - `price` in Bookingcombo → Use `Comboprice`
 - `userid` in Booking → Use `Customerid`
+- `DateTime.UtcNow` → Use `DateTime.Now` (PostgreSQL timestamp without time zone)
 
 ✅ **DO USE**:
 - Exact casing from entity classes
 - `Seatprice` and `Comboprice` for junction tables
 - `Seatscount` for auditorium capacity
 - `Customerid` (from JWT → Customer table)
+- `DateTime.Now` for PostgreSQL compatibility
+- `CreateExecutionStrategy()` for transactions with retry enabled
+- `string?` for nullable `Bookingcode` (null until payment confirmed)
+
+---
+
+## 🎉 Implementation Notes
+
+### Critical Changes During Development
+
+**1. BookingCode Logic** ✅
+- Initial: Generated at booking creation
+- Final: **NULL until payment confirmed**
+- Entity: `public string? Bookingcode { get; set; }` (nullable)
+- Reason: BookingCode only meaningful after payment
+
+**2. DateTime Handling** ✅
+- Issue: `Cannot write DateTime with Kind=UTC to PostgreSQL type 'timestamp without time zone'`
+- Solution: Use `DateTime.Now` instead of `DateTime.UtcNow`
+- Affected: All timestamp fields (Bookingtime, Starttime, etc.)
+
+**3. Execution Strategy Pattern** ✅
+- Issue: Retry strategy conflicts with manual transactions
+- Solution: Wrap transactions with `CreateExecutionStrategy()`
+```csharp
+var strategy = _context.Database.CreateExecutionStrategy();
+await strategy.ExecuteAsync(async () => {
+    using var transaction = await _context.Database.BeginTransactionAsync();
+    // ... transaction code ...
+});
+```
+
+**4. Detailed Error Messages** ✅
+- Enhanced validation with specific error messages:
+  - "Showtime not found"
+  - "Showtime has already started"
+  - "One or more seats not found"
+  - "The following seats are already booked: A1, A2"
+- Changed from generic "Failed to create booking" to specific exceptions
+
+**5. Retry Configuration** ✅
+```csharp
+services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connectionString, npgsqlOptions => {
+    npgsqlOptions.EnableRetryOnFailure(
+        maxRetryCount: 3,
+        maxRetryDelay: TimeSpan.FromSeconds(5),
+        errorCodesToAdd: null);
+    npgsqlOptions.CommandTimeout(30);
+}));
+```
 
 ---
 
 **Created**: November 3, 2025  
-**Last Updated**: November 4, 2025  
-**Progress**: ❌ 0/10 endpoints (0%)  
-**Test File**: `tests/BookingFlow.http` ✅
+**Last Updated**: November 5, 2025  
+**Progress**: ✅ 10/10 endpoints (100%) - **COMPLETED**  
+**Test File**: `tests/BookingFlow.http` ✅  
+**Completion Date**: November 5, 2025

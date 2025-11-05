@@ -24,7 +24,7 @@ public partial class Booking
 
     [Column("bookingcode")]
     [StringLength(20)]
-    public string Bookingcode { get; set; } = null!;
+    public string? Bookingcode { get; set; }
 
     [Column("bookingtime", TypeName = "timestamp without time zone")]
     public DateTime? Bookingtime { get; set; }
@@ -36,6 +36,12 @@ public partial class Booking
     [Column("status")]
     [StringLength(50)]
     public string? Status { get; set; }
+
+    [Column("checkedintime", TypeName = "timestamp without time zone")]
+    public DateTime? Checkedintime { get; set; }
+
+    [Column("checkedinby")]
+    public int? Checkedinby { get; set; }
 
     [InverseProperty("Booking")]
     public virtual ICollection<Bookingcombo> Bookingcombos { get; set; } = new List<Bookingcombo>();
@@ -60,4 +66,8 @@ public partial class Booking
     [ForeignKey("Voucherid")]
     [InverseProperty("Bookings")]
     public virtual Voucher? Voucher { get; set; }
+
+    [ForeignKey("Checkedinby")]
+    [InverseProperty("BookingsCheckedInBy")]
+    public virtual User? CheckedInByUser { get; set; }
 }

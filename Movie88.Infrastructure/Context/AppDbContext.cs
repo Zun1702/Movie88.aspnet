@@ -109,6 +109,11 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("bookings_showtimeid_fkey");
 
             entity.HasOne(d => d.Voucher).WithMany(p => p.Bookings).HasConstraintName("bookings_voucherid_fkey");
+
+            entity.HasOne(d => d.CheckedInByUser).WithMany(p => p.BookingsCheckedInBy)
+                .HasForeignKey(d => d.Checkedinby)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_bookings_checkedinby_users");
         });
 
         modelBuilder.Entity<Bookingcombo>(entity =>

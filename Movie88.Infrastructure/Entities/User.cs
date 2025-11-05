@@ -54,6 +54,9 @@ public partial class User
     [InverseProperty("User")]
     public virtual ICollection<OtpToken> OtpTokens { get; set; } = new List<OtpToken>();
 
+    [InverseProperty("CheckedInByUser")]
+    public virtual ICollection<Booking> BookingsCheckedInBy { get; set; } = new List<Booking>();
+
     [ForeignKey("Roleid")]
     [InverseProperty("Users")]
     public virtual Role Role { get; set; } = null!;
