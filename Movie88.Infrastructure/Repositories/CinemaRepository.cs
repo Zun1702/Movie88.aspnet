@@ -40,6 +40,8 @@ public class CinemaRepository : ICinemaRepository
                 Address = c.Address,
                 Phone = c.Phone,
                 City = c.City,
+                Latitude = c.Latitude,
+                Longitude = c.Longitude,
                 Createdat = c.Createdat
             })
             .ToListAsync(cancellationToken);
