@@ -9,10 +9,10 @@
 
 | # | Method | Endpoint | Screen | Auth | Status | Assign |
 |---|--------|----------|--------|------|--------|--------|
-| 1 | GET | `/api/users/me` | ProfileFragment, EditProfileActivity | ✅ | ❌ TODO | Tri |
+| 1 | GET | `/api/users/me` | ProfileFragment, EditProfileActivity | ✅ | ✅ DONE | Tri |
 | 2 | GET | `/api/customers/profile` | ProfileFragment | ✅ | ✅ DONE | Trung |
-| 3 | PUT | `/api/users/{id}` | EditProfileActivity | ✅ | ❌ TODO | Tri |
-| 4 | PUT | `/api/customers/profile` | EditProfileActivity | ✅ | ❌ TODO | Tri |
+| 3 | PUT | `/api/users/{id}` | EditProfileActivity | ✅ | ✅ DONE | Tri |
+| 4 | PUT | `/api/customers/profile` | EditProfileActivity | ✅ | ✅ DONE | Tri |
 | 5 | GET | `/api/bookings/my-bookings` | BookingsFragment | ✅ | ✅ DONE | Trung |
 | 6 | POST | `/api/auth/change-password` | ProfileFragment | ✅ | ✅ DONE | Trung |
 | 7 | POST | `/api/auth/logout` | ProfileFragment | ✅ | ✅ DONE | Trung |
