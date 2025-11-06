@@ -37,6 +37,7 @@ public class ShowtimeDTO
     public string? Starttime { get; set; }
     public string? Format { get; set; }
     public string? Languagetype { get; set; }
+    public string? Auditoriumname { get; set; }
 }
 
 public class ComboItemDTO

@@ -70,7 +70,8 @@ public class BookingService : IBookingService
             {
                 Starttime = b.Showtime.Starttime?.ToString("yyyy-MM-ddTHH:mm:ss"),
                 Format = b.Showtime.Format,
-                Languagetype = b.Showtime.Languagetype
+                Languagetype = b.Showtime.Languagetype,
+                Auditoriumname = b.Showtime.Auditorium?.Name
             } : null,
             Seats = b.BookingSeats?
                 .Select(bs => $"{bs.Seat?.Row}{bs.Seat?.Number}")

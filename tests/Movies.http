@@ -6,7 +6,7 @@
 
 ### Variables
 @movieId = 1
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuWnVuIiwicm9sZSI6IkN1c3RvbWVyIiwianRpIjoiM2NmNzhlODktY2QyOS00OTZkLWIyYzctZjUxZGUxMTlkNzJiIiwibmJmIjoxNzYyMjQwNjU3LCJleHAiOjE3NjIyNDQyNTcsImlhdCI6MTc2MjI0MDY1NywiaXNzIjoiTW92aWU4OEFQSSIsImF1ZCI6Ik1vdmllODhDbGllbnQifQ.6knKEfUZ6JY-sER8q3fsHmBCpX4mrrMFqHKQl1ANck0
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyOCIsImVtYWlsIjoic3dpZnR5azE4QGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiYWtvYSIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6Ijg5ZTkzZWU1LTk0MjQtNDQ1Zi1hYTk5LWIxYzQ4ZTY3ZjMwMyIsIm5iZiI6MTc2MjQyNDcwMiwiZXhwIjoxNzYyNDI4MzAyLCJpYXQiOjE3NjI0MjQ3MDIsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.616rlCJU-8BGktnBsa1wpUwkx35nD2ZuRyPTfa1oGA8
 
 ###############################################
 # 0. AUTHENTICATION - Login & Register
@@ -17,8 +17,8 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "ngoctrungtsn111@gmail.com",
-  "password": "123321"
+  "email": "swiftyk18@gmail.com",
+  "password": "123123"
 }
 
 ### Test 0.3: Extract token from login response (manual copy)
@@ -285,6 +285,63 @@ Accept: application/json
 ### Test 8.7: Unauthorized request (no token)
 GET {{baseUrl}}/bookings/my-bookings
 Accept: application/json
+
+###############################################
+# Expected Response Format for My Bookings
+###############################################
+
+### My Bookings Response Format:
+# {
+#   "isSuccess": true,
+#   "message": "Bookings retrieved successfully",
+#   "statusCode": 200,
+#   "data": {
+#     "items": [
+#       {
+#         "bookingid": 13,
+#         "customerid": 22,
+#         "showtimeid": 623,
+#         "movie": {
+#           "movieid": 51,
+#           "title": "Oppenheimer",
+#           "posterurl": "https://image.tmdb.org/t/p/original/..."
+#         },
+#         "cinema": {
+#           "cinemaid": 2,
+#           "name": "Movie 88 - Sư Vạn Hạnh",
+#           "address": "10 Sư Vạn Hạnh, P. 12, Quận 10",
+#           "city": "TP.HCM"
+#         },
+#         "showtime": {
+#           "starttime": "2025-11-06T21:30:00",
+#           "format": "2D",
+#           "languagetype": "Phụ đề",
+#           "auditoriumname": "Phòng 1"
+#         },
+#         "seats": ["D 7", "D 8"],
+#         "combos": [
+#           {
+#             "name": "Combo 1",
+#             "quantity": 2,
+#             "price": 70000.00
+#           }
+#         ],
+#         "voucherCode": null,
+#         "bookingcode": "M88-20251106-QSJHA",
+#         "totalamount": 220000.00,
+#         "status": "Confirmed",
+#         "bookingtime": "2025-11-06T09:39:55"
+#       }
+#     ],
+#     "currentPage": 1,
+#     "pageSize": 10,
+#     "totalPages": 1,
+#     "totalItems": 1,
+#     "hasNextPage": false,
+#     "hasPreviousPage": false
+#   },
+#   "errors": []
+# }
 
 ###############################################
 # Notes
