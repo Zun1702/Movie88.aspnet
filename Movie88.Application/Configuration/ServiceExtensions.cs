@@ -30,6 +30,7 @@ namespace Movie88.Application.Configuration
             
             // Movie Service
             services.AddScoped<IMovieService, MovieService>();
+            services.AddScoped<IAdminMovieService, AdminMovieService>();
             
             // Promotion Service
             services.AddScoped<IPromotionService, PromotionService>();
@@ -46,9 +47,11 @@ namespace Movie88.Application.Configuration
             
             // Showtime Service
             services.AddScoped<IShowtimeService, ShowtimeService>();
+            services.AddScoped<IAdminShowtimeService, AdminShowtimeService>();
             
             // Cinema Service
             services.AddScoped<ICinemaService, CinemaService>();
+            services.AddScoped<IAdminCinemaService, AdminCinemaService>();
             
             // Combo Service
             services.AddScoped<IComboService, ComboService>();

@@ -14,4 +14,12 @@ public interface ICinemaRepository
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of cinema models</returns>
     Task<List<CinemaModel>> GetCinemasAsync(string? city = null, CancellationToken cancellationToken = default);
+    
+    // Admin operations
+    Task<CinemaModel?> GetByIdAsync(int id);
+    Task<CinemaModel> AddAsync(CinemaModel model);
+    Task<CinemaModel> UpdateAsync(CinemaModel model);
+    Task<bool> DeleteAsync(int id);
+    Task<bool> HasActiveShowtimesAsync(int cinemaId);
+    Task<int> GetAuditoriumCountAsync(int cinemaId);
 }

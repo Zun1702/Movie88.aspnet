@@ -175,4 +175,59 @@ public class MovieRepository : IMovieRepository
 
         return (models, totalCount);
     }
+
+    public async Task<bool> HasBookingsAsync(int movieId)
+    {
+        return await _context.Showtimes
+            .Where(s => s.Movieid == movieId)
+            .AnyAsync(s => _context.Bookings.Any(b => b.Showtimeid == s.Showtimeid));
+    }
+
+    public async Task<(List<MovieModel> Movies, Dictionary<int, MovieStatistics> Stats, int TotalCount)> GetMoviesForAdminAsync(int page, int pageSize)
+    {
+        // Get all movies with aggregated data
+        var query = from movie in _context.Movies
+                    select new
+                    {
+                        Movie = movie,
+                        TotalShowtimes = _context.Showtimes.Count(s => s.Movieid == movie.Movieid),
+                        TotalBookings = _context.Showtimes
+                            .Where(s => s.Movieid == movie.Movieid)
+                            .SelectMany(s => _context.Bookings.Where(b => b.Showtimeid == s.Showtimeid))
+                            .Count(),
+                        Revenue = _context.Showtimes
+                            .Where(s => s.Movieid == movie.Movieid)
+                            .SelectMany(s => _context.Bookings.Where(b => b.Showtimeid == s.Showtimeid))
+                            .Where(b => _context.Payments.Any(p => p.Bookingid == b.Bookingid && p.Status == "Completed"))
+                            .Sum(b => (decimal?)b.Totalamount) ?? 0,
+                        TotalReviews = _context.Reviews.Count(r => r.Movieid == movie.Movieid),
+                        AverageRating = _context.Reviews
+                            .Where(r => r.Movieid == movie.Movieid)
+                            .Average(r => (double?)r.Rating) ?? 0
+                    };
+
+        var totalCount = await query.CountAsync();
+
+        var results = await query
+            .OrderByDescending(x => x.Movie.Releasedate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        // Separate movies and statistics
+        var movies = results.Select(x => _mapper.Map<MovieModel>(x.Movie)).ToList();
+        
+        var stats = results.ToDictionary(
+            x => x.Movie.Movieid,
+            x => new MovieStatistics
+            {
+                TotalShowtimes = x.TotalShowtimes,
+                TotalBookings = x.TotalBookings,
+                Revenue = x.Revenue,
+                AverageRating = x.AverageRating,
+                TotalReviews = x.TotalReviews
+            });
+
+        return (movies, stats, totalCount);
+    }
 }

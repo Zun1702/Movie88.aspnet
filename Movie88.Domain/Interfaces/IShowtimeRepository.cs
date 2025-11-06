@@ -9,4 +9,8 @@ public interface IShowtimeRepository
     Task<List<ShowtimeModel>> GetByDateAsync(DateTime date, int? cinemaId = null, int? movieId = null, CancellationToken cancellationToken = default);
     Task<int> GetAvailableSeatsCountAsync(int showtimeId, CancellationToken cancellationToken = default);
     Task<int> GetActiveShowtimesCountByMovieIdAsync(int movieId, CancellationToken cancellationToken = default);
+    
+    // Admin operations
+    Task<ShowtimeModel> AddAsync(ShowtimeModel model);
+    Task<List<ShowtimeModel>> AddRangeAsync(List<ShowtimeModel> models);
 }

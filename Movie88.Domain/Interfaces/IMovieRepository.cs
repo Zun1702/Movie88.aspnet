@@ -26,4 +26,21 @@ public interface IMovieRepository
     Task<(List<MovieModel> Movies, int TotalCount)> GetComingSoonMoviesAsync(int page, int pageSize);
     
     Task<(List<MovieModel> Movies, int TotalCount)> SearchMoviesAsync(string query, int page, int pageSize);
+    
+    // Admin operations
+    Task<bool> HasBookingsAsync(int movieId);
+    
+    Task<(List<MovieModel> Movies, Dictionary<int, MovieStatistics> Stats, int TotalCount)> GetMoviesForAdminAsync(int page, int pageSize);
+}
+
+/// <summary>
+/// Movie statistics for admin view
+/// </summary>
+public class MovieStatistics
+{
+    public int TotalShowtimes { get; set; }
+    public int TotalBookings { get; set; }
+    public decimal Revenue { get; set; }
+    public double AverageRating { get; set; }
+    public int TotalReviews { get; set; }
 }

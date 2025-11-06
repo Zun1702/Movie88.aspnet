@@ -1,0 +1,411 @@
+### Movie Management API Tests (Admin Only)
+### Based on specifications - All 4 endpoints
+
+@baseUrl = http://localhost:5148
+# @baseUrl = https://movie88-production.up.railway.app
+
+### Variables
+@adminToken = 
+@movieId = 
+
+###############################################
+### 1. AUTHENTICATION (Get Admin Token)
+###############################################
+
+### 1.1 Login as Admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+###############################################
+### 2. POST /api/movies - Create Movie
+###############################################
+
+### 2.1 Create Movie - Success (All Fields)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Avatar: The Way of Water",
+  "description": "Set more than a decade after the events of the first film, Avatar: The Way of Water begins to tell the story of the Sully family.",
+  "durationMinutes": 192,
+  "director": "James Cameron",
+  "releaseDate": "2022-12-16",
+  "country": "USA",
+  "rating": "PG-13",
+  "genre": "Sci-Fi, Adventure, Action",
+  "posterUrl": "https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg",
+  "trailerUrl": "https://www.youtube.com/watch?v=d9MyW72ELq0"
+}
+
+### 2.2 Create Movie - Success (Required Fields Only)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Test Movie - Minimal",
+  "durationMinutes": 120,
+  "rating": "PG-13"
+}
+
+### 2.3 Create Movie - Validation Error (Missing Title)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "durationMinutes": 120,
+  "rating": "PG-13"
+}
+
+### 2.4 Create Movie - Validation Error (Missing Duration)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Test Movie",
+  "rating": "PG-13"
+}
+
+### 2.5 Create Movie - Validation Error (Missing Rating)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Test Movie",
+  "durationMinutes": 120
+}
+
+### 2.6 Create Movie - Validation Error (Duration Out of Range - Too Low)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Invalid Duration Movie",
+  "durationMinutes": 0,
+  "rating": "PG-13"
+}
+
+### 2.7 Create Movie - Validation Error (Duration Out of Range - Too High)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Invalid Duration Movie",
+  "durationMinutes": 600,
+  "rating": "PG-13"
+}
+
+### 2.8 Create Movie - Validation Error (Title Too Long)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "This is an extremely long title that exceeds the maximum allowed length of 200 characters which should trigger a validation error when attempting to create a new movie in the system because the database schema has a constraint",
+  "durationMinutes": 120,
+  "rating": "PG-13"
+}
+
+### 2.9 Create Movie - Unauthorized (No Token)
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+
+{
+  "title": "Unauthorized Movie",
+  "durationMinutes": 120,
+  "rating": "PG-13"
+}
+
+###############################################
+### 3. PUT /api/movies/{id} - Update Movie
+###############################################
+
+### 3.1 Update Movie - Success (Full Update)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Avatar 2 - Updated Title",
+  "description": "Updated description for Avatar 2",
+  "durationMinutes": 195,
+  "director": "James Cameron",
+  "releaseDate": "2022-12-16",
+  "country": "USA",
+  "rating": "PG-13",
+  "genre": "Sci-Fi, Action, Adventure, Fantasy",
+  "posterUrl": "https://updated-poster.jpg",
+  "trailerUrl": "https://updated-trailer.com"
+}
+
+### 3.2 Update Movie - Success (Partial Update - Title Only)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Avatar 2 - Title Only Update"
+}
+
+### 3.3 Update Movie - Success (Partial Update - Multiple Fields)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "durationMinutes": 190,
+  "rating": "R",
+  "genre": "Sci-Fi, Thriller"
+}
+
+### 3.4 Update Movie - Success (Clear Description)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "description": ""
+}
+
+### 3.5 Update Movie - Not Found (Invalid ID)
+PUT {{baseUrl}}/api/movies/99999
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Update Non-existent Movie"
+}
+
+### 3.6 Update Movie - Validation Error (Duration Out of Range)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "durationMinutes": 700
+}
+
+### 3.7 Update Movie - Validation Error (Title Too Long)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "This is another extremely long title that exceeds the maximum allowed length of 200 characters which should trigger a validation error when attempting to update the movie information in the database system constraints"
+}
+
+### 3.8 Update Movie - Unauthorized (No Token)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+
+{
+  "title": "Unauthorized Update"
+}
+
+###############################################
+### 4. DELETE /api/movies/{id} - Delete Movie
+###############################################
+
+### 4.1 Delete Movie - Success (Movie Without Bookings)
+# First create a movie to delete
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Movie To Be Deleted",
+  "durationMinutes": 90,
+  "rating": "PG"
+}
+
+# Then delete it (replace {id} with movieId from above response)
+DELETE {{baseUrl}}/api/movies/{{movieId}}
+Authorization: Bearer {{adminToken}}
+
+### 4.2 Delete Movie - Conflict (Movie Has Bookings)
+# Try to delete a movie that has existing bookings (e.g., movieId: 1)
+DELETE {{baseUrl}}/api/movies/1
+Authorization: Bearer {{adminToken}}
+
+### 4.3 Delete Movie - Not Found (Invalid ID)
+DELETE {{baseUrl}}/api/movies/99999
+Authorization: Bearer {{adminToken}}
+
+### 4.4 Delete Movie - Unauthorized (No Token)
+DELETE {{baseUrl}}/api/movies/{{movieId}}
+
+###############################################
+### 5. GET /api/admin/movies - Get Movies with Stats
+###############################################
+
+### 5.1 Get Admin Movies - Success (Default Pagination)
+GET {{baseUrl}}/api/admin/movies
+Authorization: Bearer {{adminToken}}
+
+### 5.2 Get Admin Movies - Success (Page 1, 5 items)
+GET {{baseUrl}}/api/admin/movies?page=1&pageSize=5
+Authorization: Bearer {{adminToken}}
+
+### 5.3 Get Admin Movies - Success (Page 2, 10 items)
+GET {{baseUrl}}/api/admin/movies?page=2&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### 5.4 Get Admin Movies - Success (Large Page Size)
+GET {{baseUrl}}/api/admin/movies?page=1&pageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 5.5 Get Admin Movies - Validation Error (Invalid Page - Zero)
+GET {{baseUrl}}/api/admin/movies?page=0&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### 5.6 Get Admin Movies - Validation Error (Invalid Page - Negative)
+GET {{baseUrl}}/api/admin/movies?page=-1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### 5.7 Get Admin Movies - Validation Error (Invalid PageSize - Zero)
+GET {{baseUrl}}/api/admin/movies?page=1&pageSize=0
+Authorization: Bearer {{adminToken}}
+
+### 5.8 Get Admin Movies - Validation Error (Invalid PageSize - Negative)
+GET {{baseUrl}}/api/admin/movies?page=1&pageSize=-5
+Authorization: Bearer {{adminToken}}
+
+### 5.9 Get Admin Movies - Unauthorized (No Token)
+GET {{baseUrl}}/api/admin/movies
+
+###############################################
+### 6. INTEGRATION WORKFLOW TESTS
+###############################################
+
+### 6.1 Full CRUD Workflow
+# Step 1: Create a movie
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Integration Test Movie",
+  "description": "A movie for testing the complete CRUD workflow",
+  "durationMinutes": 125,
+  "director": "Test Director",
+  "releaseDate": "2024-06-15",
+  "country": "USA",
+  "rating": "PG-13",
+  "genre": "Drama, Thriller"
+}
+
+# Step 2: Verify creation in admin list
+GET {{baseUrl}}/api/admin/movies?page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+# Step 3: Update the movie (use movieId from Step 1)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Integration Test Movie - UPDATED",
+  "description": "Updated description after creation"
+}
+
+# Step 4: Verify update in admin list
+GET {{baseUrl}}/api/admin/movies?page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+# Step 5: Delete the movie
+DELETE {{baseUrl}}/api/movies/{{movieId}}
+Authorization: Bearer {{adminToken}}
+
+# Step 6: Verify deletion (should return 404)
+GET {{baseUrl}}/api/movies/{{movieId}}
+
+###############################################
+### 7. EDGE CASES & SPECIAL SCENARIOS
+###############################################
+
+### 7.1 Create Movie with Special Characters
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "The Movie: Part 1 & Part 2 (2024)",
+  "durationMinutes": 120,
+  "rating": "PG-13",
+  "genre": "Action & Adventure"
+}
+
+### 7.2 Create Movie with Unicode Characters
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "电影测试 Movie Tiếng Việt",
+  "durationMinutes": 110,
+  "rating": "PG-13"
+}
+
+### 7.3 Create Movie with Future Release Date
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Future Movie",
+  "durationMinutes": 130,
+  "rating": "PG-13",
+  "releaseDate": "2026-12-31"
+}
+
+### 7.4 Create Movie with Past Release Date
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Classic Movie",
+  "durationMinutes": 95,
+  "rating": "G",
+  "releaseDate": "1950-01-01"
+}
+
+### 7.5 Update with Empty Body (No Changes)
+PUT {{baseUrl}}/api/movies/{{movieId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{}
+
+### 7.6 Verify Admin Response Structure
+# Should include aggregated statistics:
+# - totalShowtimes, totalBookings, revenue, averageRating, totalReviews
+GET {{baseUrl}}/api/admin/movies?page=1&pageSize=1
+Authorization: Bearer {{adminToken}}
+
+###############################################
+### 8. CLEANUP
+###############################################
+
+### 8.1 Delete Test Movies
+# List all movies first
+GET {{baseUrl}}/api/admin/movies?page=1&pageSize=50
+Authorization: Bearer {{adminToken}}
+
+# Delete individual test movies (replace with actual IDs)
+DELETE {{baseUrl}}/api/movies/<test-movie-id-1>
+Authorization: Bearer {{adminToken}}
+
+DELETE {{baseUrl}}/api/movies/<test-movie-id-2>
+Authorization: Bearer {{adminToken}}

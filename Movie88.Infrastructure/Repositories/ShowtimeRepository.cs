@@ -223,4 +223,57 @@ public class ShowtimeRepository : IShowtimeRepository
             .Where(s => s.Movieid == movieId && s.Starttime >= currentDateTime)
             .CountAsync(cancellationToken);
     }
+
+    public async Task<ShowtimeModel> AddAsync(ShowtimeModel model)
+    {
+        var showtime = new Entities.Showtime
+        {
+            Movieid = model.Movieid,
+            Auditoriumid = model.Auditoriumid,
+            Starttime = model.Starttime.HasValue 
+                ? DateTime.SpecifyKind(model.Starttime.Value, DateTimeKind.Unspecified) 
+                : DateTime.UtcNow,
+            Endtime = model.Endtime.HasValue 
+                ? DateTime.SpecifyKind(model.Endtime.Value, DateTimeKind.Unspecified) 
+                : null,
+            Price = model.Price ?? 0m,
+            Format = model.Format,
+            Languagetype = model.Languagetype
+        };
+
+        _context.Showtimes.Add(showtime);
+        await _context.SaveChangesAsync();
+
+        model.Showtimeid = showtime.Showtimeid;
+        return model;
+    }
+
+    public async Task<List<ShowtimeModel>> AddRangeAsync(List<ShowtimeModel> models)
+    {
+        var showtimes = models.Select(m => new Entities.Showtime
+        {
+            Movieid = m.Movieid,
+            Auditoriumid = m.Auditoriumid,
+            Starttime = m.Starttime.HasValue 
+                ? DateTime.SpecifyKind(m.Starttime.Value, DateTimeKind.Unspecified) 
+                : DateTime.UtcNow,
+            Endtime = m.Endtime.HasValue 
+                ? DateTime.SpecifyKind(m.Endtime.Value, DateTimeKind.Unspecified) 
+                : null,
+            Price = m.Price ?? 0m,
+            Format = m.Format,
+            Languagetype = m.Languagetype
+        }).ToList();
+
+        await _context.Showtimes.AddRangeAsync(showtimes);
+        await _context.SaveChangesAsync();
+
+        // Update model IDs
+        for (int i = 0; i < models.Count; i++)
+        {
+            models[i].Showtimeid = showtimes[i].Showtimeid;
+        }
+
+        return models;
+    }
 }
