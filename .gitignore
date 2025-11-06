@@ -76,10 +76,13 @@ _ReSharper*/
 docker-compose.override.yml
 
 # Sensitive configuration files - IMPORTANT!
+# Ignore all appsettings files to prevent leaking secrets
+**/appsettings.json
 **/appsettings.Development.json
 **/appsettings.Local.json
 **/appsettings.*.json
-!**/appsettings.json
+# Allow example template files
+!**/appsettings.Example.json
 !**/appsettings.Production.json
 
 # Connection strings and secrets

@@ -16,6 +16,7 @@ namespace Movie88.Application.Services
         private readonly IPasswordHashingService _passwordHashingService;
         private readonly IOtpService _otpService;
         private readonly IEmailService _emailService;
+        private readonly IGoogleAuthService _googleAuthService;
 
         public AuthService(
             IUserRepository userRepository,
@@ -25,7 +26,8 @@ namespace Movie88.Application.Services
             IJwtService jwtService,
             IPasswordHashingService passwordHashingService,
             IOtpService otpService,
-            IEmailService emailService)
+            IEmailService emailService,
+            IGoogleAuthService googleAuthService)
         {
             _userRepository = userRepository;
             _refreshTokenRepository = refreshTokenRepository;
@@ -35,6 +37,7 @@ namespace Movie88.Application.Services
             _passwordHashingService = passwordHashingService;
             _otpService = otpService;
             _emailService = emailService;
+            _googleAuthService = googleAuthService;
         }
 
         private static DateTime GetCurrentTimestamp()
@@ -387,6 +390,127 @@ namespace Movie88.Application.Services
             }
 
             return true;
+        }
+
+        public async Task<LoginResponseDTO> GoogleLoginAsync(GoogleLoginRequestDTO request, CancellationToken cancellationToken = default)
+        {
+            // 1. Verify Google token and get user info
+            var googleUser = await _googleAuthService.VerifyGoogleTokenAsync(request.IdToken);
+
+            // 2. Check if user exists by email
+            var existingUser = await _userRepository.GetByEmailAsync(googleUser.Email, cancellationToken);
+
+            UserModel user;
+            bool isNewUser = false;
+
+            if (existingUser == null)
+            {
+                // 3. Create new user if doesn't exist
+                user = new UserModel
+                {
+                    Email = googleUser.Email,
+                    Fullname = googleUser.Name,
+                    Phone = googleUser.PhoneNumber, // Use phone from Google if available
+                    Passwordhash = _passwordHashingService.HashPassword(Guid.NewGuid().ToString()), // Random password
+                    Roleid = 3, // Customer role
+                    IsActive = true,
+                    IsVerified = true, // Google users are auto-verified (no need email OTP)
+                    Createdat = GetCurrentTimestamp()
+                };
+
+                await _userRepository.AddAsync(user, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                // Query back to get generated UserId
+                var savedUser = await _userRepository.GetByEmailAsync(user.Email, cancellationToken);
+                if (savedUser == null)
+                {
+                    throw new InvalidOperationException("Failed to create user");
+                }
+
+                // 4. Create customer profile (same structure as Register)
+                var customer = new CustomerModel
+                {
+                    Userid = savedUser.UserId,
+                    Address = null, // Google doesn't provide address
+                    Dateofbirth = googleUser.Birthdate.HasValue 
+                        ? DateOnly.FromDateTime(googleUser.Birthdate.Value) 
+                        : null, // Convert DateTime? to DateOnly? if available
+                    Gender = googleUser.Gender, // Use from Google if available, otherwise null
+                    Fullname = savedUser.Fullname,
+                    Email = savedUser.Email,
+                    Phone = savedUser.Phone, // Use from Google if available (via User.Phone), otherwise null
+                    Createdat = savedUser.Createdat ?? GetCurrentTimestamp()
+                    // Note: User can update profile later with additional information
+                };
+
+                await _customerRepository.AddAsync(customer);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                user = savedUser;
+                isNewUser = true;
+            }
+            else
+            {
+                user = existingUser;
+
+                // Check if account is active
+                if (!user.IsActive)
+                {
+                    throw new UnauthorizedAccessException("Your account has been deactivated. Please contact support.");
+                }
+            }
+
+            // 5. Generate tokens
+            var accessToken = _jwtService.GenerateAccessToken(
+                user.UserId,
+                user.Email,
+                user.Fullname,
+                user.Role?.Rolename ?? "Customer"
+            );
+            var refreshToken = _jwtService.GenerateRefreshToken();
+            var expiresAt = _jwtService.GetTokenExpiration(accessToken);
+
+            // 6. Save refresh token
+            var refreshTokenModel = new RefreshTokenModel
+            {
+                UserId = user.UserId.ToString(),
+                Token = refreshToken,
+                CreatedAt = GetCurrentTimestampUtc(),
+                UpdatedAt = GetCurrentTimestampUtc(),
+                Revoked = false
+            };
+
+            await _refreshTokenRepository.AddAsync(refreshTokenModel, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // 7. Return response
+            return new LoginResponseDTO
+            {
+                Token = accessToken,
+                RefreshToken = refreshToken,
+                ExpiresAt = expiresAt,
+                User = new UserDTO
+                {
+                    UserId = user.UserId,
+                    FullName = user.Fullname,
+                    Email = user.Email,
+                    PhoneNumber = user.Phone,
+                    RoleId = user.Roleid,
+                    RoleName = user.Role?.Rolename ?? "Customer"
+                }
+            };
+        }
+
+        private static string GenerateUsernameFromEmail(string email)
+        {
+            // Extract username part from email (before @)
+            var username = email.Split('@')[0];
+            
+            // Add random suffix to ensure uniqueness
+            var suffix = new Random().Next(1000, 9999);
+            
+            return $"{username}{suffix}";
         }
     }
 }

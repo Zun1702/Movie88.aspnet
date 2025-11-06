@@ -26,6 +26,7 @@ namespace Movie88.Application.Configuration
             services.AddScoped<IOtpService, OtpService>();
             services.AddScoped<IEmailService, ResendEmailService>();
             services.AddScoped<IQRCodeService, QRCodeService>();
+            services.AddScoped<IGoogleAuthService, GoogleAuthService>();
             services.AddSingleton<IBookingCodeGenerator, BookingCodeGenerator>();
             
             // Movie Service
