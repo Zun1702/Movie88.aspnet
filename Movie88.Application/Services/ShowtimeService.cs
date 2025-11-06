@@ -44,13 +44,17 @@ public class ShowtimeService : IShowtimeService
                     {
                         s.Auditorium!.Cinema!.Cinemaid,
                         s.Auditorium.Cinema.Name,
-                        s.Auditorium.Cinema.Address
+                        s.Auditorium.Cinema.Address,
+                        s.Auditorium.Cinema.Latitude,
+                        s.Auditorium.Cinema.Longitude
                     })
                     .Select(cinemaGroup => new ShowtimesByCinemaGroupDTO
                     {
                         Cinemaid = cinemaGroup.Key.Cinemaid,
                         Name = cinemaGroup.Key.Name ?? "",
                         Address = cinemaGroup.Key.Address ?? "",
+                        Latitude = cinemaGroup.Key.Latitude,
+                        Longitude = cinemaGroup.Key.Longitude,
                         Showtimes = cinemaGroup.Select(s => new ShowtimeItemDTO
                         {
                             Showtimeid = s.Showtimeid,
