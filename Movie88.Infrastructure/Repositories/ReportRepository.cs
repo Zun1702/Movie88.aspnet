@@ -92,7 +92,7 @@ public class ReportRepository : IReportRepository
         return result.Select(r => (r.MovieId, r.Title, r.PosterUrl, r.TotalBookings, r.Revenue)).ToList();
     }
 
-    public async Task<List<(int ShowtimeId, string MovieTitle, string CinemaName, string AuditoriumName, DateTime StartTime, decimal Price, string Format, int TotalSeats, int BookedSeats)>> GetUpcomingShowtimesAsync(CancellationToken cancellationToken = default)
+    public async Task<List<(int ShowtimeId, string MovieTitle, string? MoviePosterUrl, string CinemaName, string AuditoriumName, DateTime StartTime, decimal Price, string Format, int TotalSeats, int BookedSeats)>> GetUpcomingShowtimesAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
         var next24Hours = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(24), DateTimeKind.Unspecified);
@@ -109,6 +109,7 @@ public class ReportRepository : IReportRepository
             {
                 s.Showtimeid,
                 MovieTitle = s.Movie.Title,
+                MoviePosterUrl = s.Movie.Posterurl,
                 CinemaName = s.Auditorium.Cinema.Name,
                 AuditoriumName = s.Auditorium.Name,
                 s.Starttime,
@@ -119,7 +120,7 @@ public class ReportRepository : IReportRepository
             })
             .ToListAsync(cancellationToken);
 
-        return result.Select(r => (r.Showtimeid, r.MovieTitle, r.CinemaName, r.AuditoriumName, r.Starttime, r.Price, r.Format, r.TotalSeats, r.BookedSeats)).ToList();
+        return result.Select(r => (r.Showtimeid, r.MovieTitle, r.MoviePosterUrl, r.CinemaName, r.AuditoriumName, r.Starttime, r.Price, r.Format, r.TotalSeats, r.BookedSeats)).ToList();
     }
 
     #endregion

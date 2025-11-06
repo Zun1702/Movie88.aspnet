@@ -29,6 +29,7 @@ public class UpcomingShowtimeDTO
 {
     public int ShowtimeId { get; set; }
     public string MovieTitle { get; set; } = string.Empty;
+    public string? MoviePosterUrl { get; set; } // Movie poster image
     public string CinemaName { get; set; } = string.Empty;
     public string AuditoriumName { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }

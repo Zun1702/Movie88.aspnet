@@ -14,7 +14,7 @@ public interface IReportRepository
     Task<int> GetActiveMoviesCountAsync(CancellationToken cancellationToken = default);
     Task<int> GetActiveCustomersCountAsync(CancellationToken cancellationToken = default);
     Task<List<(int MovieId, string Title, string? PosterUrl, int TotalBookings, decimal Revenue)>> GetPopularMoviesForDashboardAsync(CancellationToken cancellationToken = default);
-    Task<List<(int ShowtimeId, string MovieTitle, string CinemaName, string AuditoriumName, DateTime StartTime, decimal Price, string Format, int TotalSeats, int BookedSeats)>> GetUpcomingShowtimesAsync(CancellationToken cancellationToken = default);
+    Task<List<(int ShowtimeId, string MovieTitle, string? MoviePosterUrl, string CinemaName, string AuditoriumName, DateTime StartTime, decimal Price, string Format, int TotalSeats, int BookedSeats)>> GetUpcomingShowtimesAsync(CancellationToken cancellationToken = default);
     
     // Daily/Monthly Revenue
     Task<decimal> GetTotalRevenueAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);

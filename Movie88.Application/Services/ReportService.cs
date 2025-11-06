@@ -55,6 +55,7 @@ public class ReportService : IReportService
             {
                 ShowtimeId = s.ShowtimeId,
                 MovieTitle = s.MovieTitle,
+                MoviePosterUrl = s.MoviePosterUrl,
                 CinemaName = s.CinemaName,
                 AuditoriumName = s.AuditoriumName,
                 StartTime = s.StartTime,
