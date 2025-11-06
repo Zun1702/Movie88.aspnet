@@ -30,6 +30,8 @@ public class CinemaService : ICinemaService
             Address = c.Address,
             Phone = c.Phone,
             City = c.City,
+            Latitude = c.Latitude,
+            Longitude = c.Longitude,
             Createdat = c.Createdat
         }).ToList();
     }
