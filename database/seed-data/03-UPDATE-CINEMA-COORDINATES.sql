@@ -1,47 +1,31 @@
--- Update Cinema Coordinates for TP.HCM locations
--- Date: 2025-11-06
--- Description: Update existing cinema records with actual GPS coordinates
+-- Update Cinema Coordinates for TP.HCM locations (CORRECTED)
+-- Date: 2025-11-07
+-- Description: Update existing cinema records with actual GPS coordinates based on real addresses
 -- Source: Google Maps
 
--- Cinema 1: Movie 88 - Nguyễn Trãi
--- Location: 123 Nguyễn Trãi, P. Nguyễn Cư Trinh, Quận 1
+-- Cinema 1: Movie 88 - Nguyễn Du
+-- Address: 116 Nguyễn Du, Phường Bến Thành, Quận 1
 UPDATE cinemas 
 SET 
-    latitude = 10.7626,
-    longitude = 106.6827
-WHERE cinemaid = 1 AND name LIKE '%Nguyễn Trãi%';
+    latitude = 10.77280000,
+    longitude = 106.69570000
+WHERE cinemaid = 1;
 
--- Cinema 2: Movie 88 - Sư Vạn Hạnh  
--- Location: 10 Sư Vạn Hạnh, P. 12, Quận 10
+-- Cinema 2: Movie 88 - Kinh Dương Vương
+-- Address: 718bis Đ. Kinh Dương Vương, Phường 13, Quận 6
 UPDATE cinemas 
 SET 
-    latitude = 10.7717,
-    longitude = 106.6657
-WHERE cinemaid = 2 AND name LIKE '%Sư Vạn Hạnh%';
+    latitude = 10.74850000,
+    longitude = 106.63450000
+WHERE cinemaid = 2;
 
--- Cinema 3: Movie 88 - Lý Chính Thắng
--- Location: 45 Lý Chính Thắng, P. Võ Thị Sáu, Quận 3
+-- Cinema 3: Movie 88 - Quang Trung
+-- Address: 304A Đ. Quang Trung, Phường 11, Gò Vấp
 UPDATE cinemas 
 SET 
-    latitude = 10.7823,
-    longitude = 106.6917
-WHERE cinemaid = 3 AND name LIKE '%Lý Chính Thắng%';
-
--- Cinema 4: Movie 88 - Trần Hưng Đạo
--- Location: 89 Trần Hưng Đạo, P. Nguyễn Thái Bình, Quận 1  
-UPDATE cinemas 
-SET 
-    latitude = 10.7688,
-    longitude = 106.6954
-WHERE cinemaid = 4 AND name LIKE '%Trần Hưng Đạo%';
-
--- Cinema 5: Movie 88 - Nam Kỳ Khởi Nghĩa
--- Location: 234 Nam Kỳ Khởi Nghĩa, P. 8, Quận 3
-UPDATE cinemas 
-SET 
-    latitude = 10.7809,
-    longitude = 106.6905
-WHERE cinemaid = 5 AND name LIKE '%Nam Kỳ Khởi Nghĩa%';
+    latitude = 10.83920000,
+    longitude = 106.66230000
+WHERE cinemaid = 3;
 
 -- Verify all cinemas have coordinates
 SELECT 
