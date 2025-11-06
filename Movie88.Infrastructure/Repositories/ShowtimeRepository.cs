@@ -65,6 +65,8 @@ public class ShowtimeRepository : IShowtimeRepository
                     Address = e.Auditorium.Cinema.Address,
                     Phone = e.Auditorium.Cinema.Phone,
                     City = e.Auditorium.Cinema.City,
+                    Latitude = e.Auditorium.Cinema.Latitude,
+                    Longitude = e.Auditorium.Cinema.Longitude,
                     Createdat = e.Auditorium.Cinema.Createdat
                 } : null
             } : null
@@ -189,6 +191,8 @@ public class ShowtimeRepository : IShowtimeRepository
                     Address = e.Auditorium.Cinema.Address,
                     Phone = e.Auditorium.Cinema.Phone,
                     City = e.Auditorium.Cinema.City,
+                    Latitude = e.Auditorium.Cinema.Latitude,
+                    Longitude = e.Auditorium.Cinema.Longitude,
                     Createdat = e.Auditorium.Cinema.Createdat
                 } : null
             } : null
