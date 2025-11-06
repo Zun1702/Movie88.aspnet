@@ -10,5 +10,7 @@ public class CinemaDTO
     public string Address { get; set; } = null!;
     public string? Phone { get; set; }
     public string? City { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
     public DateTime? Createdat { get; set; }
 }
