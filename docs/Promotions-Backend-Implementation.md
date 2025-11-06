@@ -143,12 +143,12 @@ CREATE TABLE bookingpromotions (
 
 ---
 
-## 3. API Endpoints Cần Phát Triển
+## 3. API Endpoints
 
-### 3.1 Endpoints Hiện Có
+### 3.1 Endpoints Hiện Có (Không đổi)
 
 #### ✅ GET /api/promotions/active
-**Status**: ✅ ĐÃ CÓ  
+**Status**: ✅ ĐÃ CÓ - KHÔNG CẦN THAY ĐỔI  
 **Purpose**: Lấy danh sách promotions đang active (cho banner)  
 **Auth**: ❌ Public
 
@@ -172,136 +172,11 @@ CREATE TABLE bookingpromotions (
 }
 ```
 
-**✅ KHÔNG CẦN THAY ĐỔI** - Endpoint này hoạt động tốt cho mục đích hiển thị banner
+**✅ KHÔNG CẦN THAY ĐỔI** - Endpoint này hoạt động tốt, promotions được đổ trực tiếp vào database
 
 ---
 
-### 3.2 Endpoints Cần Tạo Mới
-
-#### 🆕 POST /api/admin/promotions
-**Status**: ⚠️ CẦN TẠO MỚI  
-**Purpose**: Admin tạo promotion mới  
-**Auth**: ✅ Admin/Manager only
-
-**Request Body:**
-```json
-{
-  "name": "Khuyến Mãi Tháng 11",
-  "description": "Giảm 20% cho tất cả vé trong tháng 11",
-  "startdate": "2025-11-01",
-  "enddate": "2025-11-30",
-  "discounttype": "percentage",
-  "discountvalue": 20
-}
-```
-
-**Response 201 Created:**
-```json
-{
-  "success": true,
-  "statusCode": 201,
-  "message": "Promotion created successfully",
-  "data": {
-    "promotionid": 5,
-    "name": "Khuyến Mãi Tháng 11",
-    "description": "Giảm 20% cho tất cả vé trong tháng 11",
-    "startdate": "2025-11-01",
-    "enddate": "2025-11-30",
-    "discounttype": "percentage",
-    "discountvalue": 20.00,
-    "isactive": true,
-    "createdat": "2025-11-06T10:00:00Z"
-  }
-}
-```
-
-**Validation Rules:**
-```csharp
-- name: Required, MaxLength(100)
-- description: Optional, MaxLength(255)
-- startdate: Required, must be valid date
-- enddate: Required, must be >= startdate
-- discounttype: Required, must be "percentage" or "fixed"
-- discountvalue: Required, > 0
-  - If percentage: must be 1-100
-  - If fixed: must be reasonable (5000-500000)
-```
-
----
-
-#### 🆕 GET /api/admin/promotions
-**Status**: ⚠️ CẦN TẠO MỚI  
-**Purpose**: Admin xem tất cả promotions (kể cả expired)  
-**Auth**: ✅ Admin/Manager only
-
-**Query Parameters:**
-```
-?page=1&pageSize=10&status=active
-```
-
-**Response 200 OK:**
-```json
-{
-  "success": true,
-  "statusCode": 200,
-  "message": "Promotions retrieved successfully",
-  "data": {
-    "items": [
-      {
-        "promotionid": 1,
-        "name": "Khuyến Mãi Tháng 11",
-        "description": "Giảm 20% cho tất cả vé",
-        "startdate": "2025-11-01",
-        "enddate": "2025-11-30",
-        "discounttype": "percentage",
-        "discountvalue": 20.00,
-        "isactive": true,
-        "usagecount": 150,
-        "usagelimit": null,
-        "createdat": "2025-10-25T10:00:00Z"
-      }
-    ],
-    "currentPage": 1,
-    "pageSize": 10,
-    "totalPages": 3,
-    "totalItems": 25
-  }
-}
-```
-
----
-
-#### 🆕 PUT /api/admin/promotions/{id}
-**Status**: ⚠️ CẦN TẠO MỚI  
-**Purpose**: Admin cập nhật promotion  
-**Auth**: ✅ Admin/Manager only
-
-**Request Body:**
-```json
-{
-  "name": "Khuyến Mãi Tháng 11 - EXTENDED",
-  "description": "Giảm 25% cho tất cả vé (tăng từ 20%)",
-  "enddate": "2025-12-15",
-  "discountvalue": 25,
-  "isactive": true
-}
-```
-
----
-
-#### 🆕 DELETE /api/admin/promotions/{id}
-**Status**: ⚠️ CẦN TẠO MỚI  
-**Purpose**: Admin xóa/vô hiệu hóa promotion  
-**Auth**: ✅ Admin/Manager only
-
-**Soft Delete** (recommended):
-```sql
-UPDATE promotions SET is_active = FALSE WHERE promotionid = :id
-```
-
----
-
-### 3.3 Endpoints Cần Cập Nhật
+### 3.2 Endpoints Cần Cập Nhật
 
 #### 🔄 POST /api/bookings (CẬP NHẬT)
 **Status**: ⚠️ CẦN CẬP NHẬT LOGIC  
@@ -385,74 +260,27 @@ Movie88.Domain/
 ├── Models/
 │   └── PromotionModel.cs (✅ ĐÃ CÓ)
 ├── Interfaces/
-│   └── IPromotionRepository.cs (✅ ĐÃ CÓ - Cần thêm methods)
+│   └── IPromotionRepository.cs (✅ ĐÃ CÓ - GIỮ NGUYÊN)
 ```
 
-**Cần thêm vào `IPromotionRepository.cs`:**
+**✅ `IPromotionRepository.cs` - KHÔNG CẦN THAY ĐỔI:**
 ```csharp
 public interface IPromotionRepository
 {
-    // ✅ Existing
+    // ✅ Existing - ĐỦ DÙNG
     Task<List<PromotionModel>> GetActivePromotionsAsync();
-    
-    // 🆕 New methods needed
-    Task<PromotionModel?> GetByIdAsync(int promotionId, CancellationToken cancellationToken = default);
-    Task<PromotionModel> CreateAsync(PromotionModel promotion, CancellationToken cancellationToken = default);
-    Task<PromotionModel> UpdateAsync(PromotionModel promotion, CancellationToken cancellationToken = default);
-    Task<bool> DeleteAsync(int promotionId, CancellationToken cancellationToken = default);
-    Task<PagedResult<PromotionModel>> GetAllAsync(int page, int pageSize, string? status, CancellationToken cancellationToken = default);
-    Task IncrementUsageCountAsync(int promotionId, CancellationToken cancellationToken = default);
 }
 ```
+
+> **Note**: Không cần admin CRUD methods vì promotions sẽ được đổ trực tiếp vào database
 
 ---
 
 #### Layer 2: Application Layer
 
-**DTOs cần tạo:**
+**DTO cần tạo (CHỈ 1 DTO):**
 
 ```csharp
-// Movie88.Application/DTOs/Promotions/CreatePromotionDTO.cs
-public class CreatePromotionDTO
-{
-    [Required]
-    [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
-    
-    [MaxLength(255)]
-    public string? Description { get; set; }
-    
-    [Required]
-    public DateOnly Startdate { get; set; }
-    
-    [Required]
-    public DateOnly Enddate { get; set; }
-    
-    [Required]
-    [RegularExpression("^(percentage|fixed)$")]
-    public string Discounttype { get; set; } = string.Empty;
-    
-    [Required]
-    [Range(0.01, double.MaxValue)]
-    public decimal Discountvalue { get; set; }
-}
-
-// Movie88.Application/DTOs/Promotions/UpdatePromotionDTO.cs
-public class UpdatePromotionDTO
-{
-    [MaxLength(100)]
-    public string? Name { get; set; }
-    
-    [MaxLength(255)]
-    public string? Description { get; set; }
-    
-    public DateOnly? Enddate { get; set; }
-    
-    public decimal? Discountvalue { get; set; }
-    
-    public bool? IsActive { get; set; }
-}
-
 // Movie88.Application/DTOs/Promotions/AppliedPromotionDTO.cs
 public class AppliedPromotionDTO
 {
@@ -469,16 +297,10 @@ public class AppliedPromotionDTO
 // Movie88.Application/Interfaces/IPromotionService.cs
 public interface IPromotionService
 {
-    // ✅ Existing
+    // ✅ Existing - GIỮ NGUYÊN
     Task<Result<List<PromotionDTO>>> GetActivePromotionsAsync();
     
-    // 🆕 New methods needed
-    Task<Result<PromotionDTO>> CreatePromotionAsync(CreatePromotionDTO dto, CancellationToken cancellationToken = default);
-    Task<Result<PromotionDTO>> UpdatePromotionAsync(int id, UpdatePromotionDTO dto, CancellationToken cancellationToken = default);
-    Task<Result<bool>> DeletePromotionAsync(int id, CancellationToken cancellationToken = default);
-    Task<Result<PagedResult<PromotionDTO>>> GetAllPromotionsAsync(int page, int pageSize, string? status, CancellationToken cancellationToken = default);
-    
-    // 🔥 CRITICAL: Auto-apply logic
+    // 🔥 NEW: Auto-apply logic (CHỈ CẦN METHOD NÀY)
     Task<List<AppliedPromotionDTO>> ApplyEligiblePromotionsAsync(
         int bookingId, 
         decimal totalAmount, 
@@ -490,7 +312,7 @@ public interface IPromotionService
 
 #### Layer 3: Infrastructure Layer
 
-**BookingPromotionRepository (MỚI):**
+**BookingPromotionRepository (MỚI - QUAN TRỌNG):**
 
 ```csharp
 // Movie88.Infrastructure/Repositories/BookingPromotionRepository.cs
@@ -543,67 +365,7 @@ public class BookingPromotionRepository : IBookingPromotionRepository
 }
 ```
 
----
-
-#### Layer 4: WebApi Layer
-
-**Controller mới:**
-
-```csharp
-// Movie88.WebApi/Controllers/Admin/AdminPromotionsController.cs
-[ApiController]
-[Route("api/admin/promotions")]
-[Authorize(Roles = "Admin,Manager")]
-public class AdminPromotionsController : ControllerBase
-{
-    private readonly IPromotionService _promotionService;
-
-    public AdminPromotionsController(IPromotionService promotionService)
-    {
-        _promotionService = promotionService;
-    }
-
-    /// <summary>
-    /// Get all promotions (including expired) - Admin only
-    /// </summary>
-    [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? status = null)
-    {
-        var result = await _promotionService.GetAllPromotionsAsync(page, pageSize, status);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>
-    /// Create new promotion - Admin only
-    /// </summary>
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreatePromotionDTO dto)
-    {
-        var result = await _promotionService.CreatePromotionAsync(dto);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>
-    /// Update existing promotion - Admin only
-    /// </summary>
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdatePromotionDTO dto)
-    {
-        var result = await _promotionService.UpdatePromotionAsync(id, dto);
-        return StatusCode(result.StatusCode, result);
-    }
-
-    /// <summary>
-    /// Delete/Deactivate promotion - Admin only
-    /// </summary>
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var result = await _promotionService.DeletePromotionAsync(id);
-        return StatusCode(result.StatusCode, result);
-    }
-}
-```
+> **✅ ĐÃ BỎ**: AdminPromotionsController - không cần vì promotions đổ database trực tiếp
 
 ---
 
@@ -703,10 +465,7 @@ public async Task<List<AppliedPromotionDTO>> ApplyEligiblePromotionsAsync(
                 discount, 
                 cancellationToken);
             
-            // 4. Increment usage count (if tracking)
-            await _promotionRepository.IncrementUsageCountAsync(promotion.Promotionid, cancellationToken);
-            
-            // 5. Add to result list
+            // 4. Add to result list
             appliedPromotions.Add(new AppliedPromotionDTO
             {
                 Promotionid = promotion.Promotionid,
@@ -750,26 +509,27 @@ private decimal CalculateDiscount(PromotionModel promotion, decimal totalAmount)
 
 ### 5.1 Test Cases
 
-#### Test Case 1: Tạo Promotion (Admin)
-```http
-POST {{baseUrl}}/admin/promotions
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
+#### Test Case 1: Đổ Data Vào Database (Manual)
+```sql
+-- Insert sample promotions trực tiếp vào database
+INSERT INTO promotions (name, description, startdate, enddate, discounttype, discountvalue)
+VALUES 
+    ('Khuyến Mãi Tháng 11', 'Giảm 20% cho tất cả vé trong tháng 11', '2025-11-01', '2025-11-30', 'percentage', 20),
+    ('Thứ 3 Vui Vẻ', 'Giảm 50,000đ mỗi thứ 3', '2025-11-01', '2025-12-31', 'fixed', 50000);
 
-{
-  "name": "Khuyến Mãi Tháng 11",
-  "description": "Giảm 20% cho tất cả vé",
-  "startdate": "2025-11-01",
-  "enddate": "2025-11-30",
-  "discounttype": "percentage",
-  "discountvalue": 20
-}
-
-### Expected: 201 Created
-### Verify: Check promotions table
+-- Verify
+SELECT * FROM promotions WHERE startdate <= CURRENT_DATE AND enddate >= CURRENT_DATE;
 ```
 
-#### Test Case 2: Booking Tự Động Áp Promotion
+#### Test Case 2: GET Active Promotions (Public)
+```http
+GET {{baseUrl}}/promotions/active
+
+### Expected: 200 OK
+### Should return promotions with startdate <= today <= enddate
+```
+
+#### Test Case 3: Booking Tự Động Áp Promotion
 ```http
 POST {{baseUrl}}/bookings
 Authorization: Bearer {{customerToken}}
@@ -788,7 +548,7 @@ Content-Type: application/json
   "totalamount": 160000,  // 200k - 20% = 160k
   "appliedPromotions": [
     {
-      "promotionid": 5,
+      "promotionid": 1,
       "name": "Khuyến Mãi Tháng 11",
       "discountapplied": 40000
     }
@@ -800,14 +560,6 @@ Content-Type: application/json
 - booking.totalamount = 160000
 ```
 
-#### Test Case 3: GET Active Promotions (Public)
-```http
-GET {{baseUrl}}/promotions/active
-
-### Expected: 200 OK
-### Should return promotions with startdate <= today <= enddate
-```
-
 ---
 
 ### 5.2 Test File
@@ -816,57 +568,20 @@ GET {{baseUrl}}/promotions/active
 # File: tests/Promotions.http
 
 @baseUrl = https://localhost:7001/api
-@adminToken = eyJhbG...
 @customerToken = eyJhbG...
-
-###############################################
-# ADMIN: PROMOTION MANAGEMENT
-###############################################
-
-### 1. Create Promotion - Khuyến Mãi Tháng 11
-POST {{baseUrl}}/admin/promotions
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
-
-{
-  "name": "Khuyến Mãi Tháng 11",
-  "description": "Giảm 20% cho tất cả vé trong tháng 11",
-  "startdate": "2025-11-01",
-  "enddate": "2025-11-30",
-  "discounttype": "percentage",
-  "discountvalue": 20
-}
-
-### 2. Get All Promotions (Admin)
-GET {{baseUrl}}/admin/promotions?page=1&pageSize=10
-Authorization: Bearer {{adminToken}}
-
-### 3. Update Promotion
-PUT {{baseUrl}}/admin/promotions/1
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
-
-{
-  "discountvalue": 25,
-  "description": "Tăng lên 25%!"
-}
-
-### 4. Delete Promotion
-DELETE {{baseUrl}}/admin/promotions/1
-Authorization: Bearer {{adminToken}}
 
 ###############################################
 # PUBLIC: ACTIVE PROMOTIONS
 ###############################################
 
-### 5. Get Active Promotions (Public)
+### 1. Get Active Promotions (Public)
 GET {{baseUrl}}/promotions/active
 
 ###############################################
 # CUSTOMER: BOOKING WITH AUTO-APPLY PROMOTION
 ###############################################
 
-### 6. Create Booking (Auto-apply promotion)
+### 2. Create Booking (Auto-apply promotion)
 POST {{baseUrl}}/bookings
 Authorization: Bearer {{customerToken}}
 Content-Type: application/json
@@ -877,32 +592,82 @@ Content-Type: application/json
   "comboIds": []
 }
 
-### 7. Get Booking Detail (Check applied promotions)
+### 3. Get Booking Detail (Check applied promotions)
 GET {{baseUrl}}/bookings/123
 Authorization: Bearer {{customerToken}}
 ```
 
 ---
 
+### 5.3 Sample SQL Data
+
+```sql
+-- File: database/seed-data/02-SEED-PROMOTIONS.sql
+
+-- Promotions for November 2025
+INSERT INTO promotions (name, description, startdate, enddate, discounttype, discountvalue)
+VALUES 
+    (
+        'Khuyến Mãi Tháng 11', 
+        'Giảm 20% cho tất cả vé trong tháng 11', 
+        '2025-11-01', 
+        '2025-11-30', 
+        'percentage', 
+        20
+    ),
+    (
+        'Black Friday Cinema', 
+        'Giảm 30% cho tất cả vé ngày Black Friday', 
+        '2025-11-29', 
+        '2025-11-29', 
+        'percentage', 
+        30
+    ),
+    (
+        'Opening Week Special', 
+        'Giảm 50,000đ cho tuần đầu tháng', 
+        '2025-11-01', 
+        '2025-11-07', 
+        'fixed', 
+        50000
+    );
+
+-- Verify
+SELECT 
+    promotionid,
+    name,
+    description,
+    TO_CHAR(startdate, 'DD/MM/YYYY') as startdate,
+    TO_CHAR(enddate, 'DD/MM/YYYY') as enddate,
+    discounttype,
+    discountvalue
+FROM promotions
+ORDER BY startdate DESC;
+
+---
+
 ## 6. Deployment Checklist
 
 ### 6.1 Pre-Deployment
-- [ ] Run database migration script
+- [ ] ✅ Chuẩn bị SQL seed data (02-SEED-PROMOTIONS.sql)
+- [ ] ✅ Run migration nếu cần thêm fields (optional: is_active, priority, usage_count)
 - [ ] Update Entity Framework entities
-- [ ] Implement all new endpoints
+- [ ] Implement `BookingPromotionRepository`
+- [ ] Implement `ApplyEligiblePromotionsAsync` trong `PromotionService`
+- [ ] Update `CreateBookingAsync` trong `BookingService`
 - [ ] Add unit tests for PromotionService
 - [ ] Add integration tests for BookingService with promotions
 - [ ] Update Swagger documentation
 
 ### 6.2 Deployment
-- [ ] Deploy database changes to Supabase
+- [ ] ✅ Đổ promotions data vào Supabase database
 - [ ] Deploy backend API to Railway
 - [ ] Test in staging environment
 - [ ] Verify promotion auto-apply works
 - [ ] Check performance with multiple promotions
 
 ### 6.3 Post-Deployment
-- [ ] Create sample promotions via admin panel
+- [ ] Verify data đã đổ thành công (query promotions table)
 - [ ] Test end-to-end booking flow
 - [ ] Monitor logs for errors
 - [ ] Document API changes for frontend team
@@ -911,28 +676,38 @@ Authorization: Bearer {{customerToken}}
 
 ## 7. Tóm Tắt
 
-### ✅ Endpoints Cần Tạo
-1. **POST** `/api/admin/promotions` - Tạo promotion
-2. **GET** `/api/admin/promotions` - List promotions (admin)
-3. **PUT** `/api/admin/promotions/{id}` - Update promotion
-4. **DELETE** `/api/admin/promotions/{id}` - Delete promotion
+### ✅ Endpoints Không Đổi
+1. **GET** `/api/promotions/active` - Lấy promotions đang active (GIỮ NGUYÊN)
 
 ### 🔄 Endpoints Cần Cập Nhật
 1. **POST** `/api/bookings` - Thêm logic auto-apply promotions
 2. **GET** `/api/bookings/{id}` - Thêm field `appliedPromotions`
 
-### ✅ Endpoints Không Đổi
-1. **GET** `/api/promotions/active` - Giữ nguyên
+### ❌ Endpoints Không Cần Tạo
+- ~~POST /api/admin/promotions~~ - Đổ database trực tiếp
+- ~~GET /api/admin/promotions~~ - Không cần admin panel
+- ~~PUT /api/admin/promotions/{id}~~ - Không cần admin panel
+- ~~DELETE /api/admin/promotions/{id}~~ - Không cần admin panel
 
 ### 🗄️ Database
 - ✅ `promotions` table đã có đủ fields cơ bản
-- ⚠️ Cần thêm `is_active`, `priority`, `usage_count` (optional)
 - ✅ `bookingpromotions` table đã sẵn sàng
+- ✅ Chuẩn bị SQL seed file để đổ data
 
 ### 🔥 Core Logic
-- Implement `ApplyEligiblePromotionsAsync()` trong `PromotionService`
-- Update `CreateBookingAsync()` trong `BookingService`
-- Create `BookingPromotionRepository` mới
+- ✅ Implement `ApplyEligiblePromotionsAsync()` trong `PromotionService`
+- ✅ Update `CreateBookingAsync()` trong `BookingService`
+- ✅ Create `BookingPromotionRepository` mới
+
+### 📝 SQL Seed File
+```sql
+-- Create file: database/seed-data/02-SEED-PROMOTIONS.sql
+INSERT INTO promotions (name, description, startdate, enddate, discounttype, discountvalue)
+VALUES 
+    ('Khuyến Mãi Tháng 11', 'Giảm 20% cho tất cả vé', '2025-11-01', '2025-11-30', 'percentage', 20),
+    ('Black Friday Cinema', 'Giảm 30%', '2025-11-29', '2025-11-29', 'percentage', 30),
+    ('Opening Week', 'Giảm 50k', '2025-11-01', '2025-11-07', 'fixed', 50000);
+```
 
 ---
 

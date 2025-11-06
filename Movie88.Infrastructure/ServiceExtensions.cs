@@ -39,6 +39,7 @@ namespace Movie88.Infrastructure
             
             // Promotion Repository
             services.AddScoped<Domain.Interfaces.IPromotionRepository, PromotionRepository>();
+            services.AddScoped<Domain.Interfaces.IBookingPromotionRepository, BookingPromotionRepository>();
             
             // Customer Repository
             services.AddScoped<Domain.Interfaces.ICustomerRepository, CustomerRepository>();

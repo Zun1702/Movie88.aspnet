@@ -5,6 +5,8 @@
 **Platform**: Android (Java)  
 **Purpose**: Hiển thị promotions và xử lý discount tự động
 
+> **Note**: Admin panel KHÔNG CẦN - Promotions được đổ trực tiếp vào database
+
 ---
 
 ## 📋 Mục Lục
@@ -25,6 +27,7 @@
 - ✅ Show discount đã áp dụng khi booking
 - ✅ Hiển thị tiết kiệm được bao nhiêu
 - ✅ User-friendly UX
+- ❌ KHÔNG CẦN: Admin panel cho quản lý promotions
 
 ### 1.2 User Journey
 ```
@@ -1039,13 +1042,17 @@ try {
 - Savings highlight
 
 ### 🔗 API Integration
-- GET `/api/promotions/active`
+- GET `/api/promotions/active` (PUBLIC - hiển thị banner)
 - Updated BookingResponse with `appliedPromotions`
+
+### ❌ Không Cần Làm
+- ~~Admin panel~~ - Promotions đổ database trực tiếp
+- ~~CRUD screens~~ - Không cần quản lý promotions từ app
 
 ---
 
 **Status**: 📋 **Ready for Development**  
-**Estimated Effort**: 2-3 days  
+**Estimated Effort**: 1-2 days (giảm từ 2-3 days vì không có admin panel)  
 **Priority**: HIGH 🔥  
 **Dependencies**: Backend implementation must be done first
 

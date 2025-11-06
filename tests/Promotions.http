@@ -1,0 +1,373 @@
+### 🎁 Promotions Feature API Testing
+### Test auto-apply promotions during booking flow
+
+@baseUrl = https://movie88aspnet-app.up.railway.app/api
+# @baseUrl = https://localhost:7238/api
+
+### Variables
+@customerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjJlYmE4MDljLWRkZWUtNGI1MS04NWUxLTlhOTc5MGY5Y2E2NyIsIm5iZiI6MTc2MjM3MDMyOCwiZXhwIjoxNzYyMzczOTI4LCJpYXQiOjE3NjIzNzAzMjgsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.uKf3_mGzkC5s5f1m2guX8Y6g_914ubbGuLs9F8w5las
+@showtimeId = 1
+@seatId1 = 1
+@seatId2 = 2
+@bookingId = 1
+
+###############################################
+# 📋 PART 1: VIEW ACTIVE PROMOTIONS
+###############################################
+
+### 1. GET Active Promotions (Public - No Auth Required)
+# Purpose: Display promotion banners on HomeFragment
+# Expected: List of active promotions (startdate <= today <= enddate)
+GET {{baseUrl}}/promotions/active
+Content-Type: application/json
+
+### Expected Response:
+# {
+#   "success": true,
+#   "statusCode": 200,
+#   "message": "Active promotions retrieved successfully",
+#   "data": [
+#     {
+#       "promotionid": 1,
+#       "name": "Khuyến Mãi Tháng 11",
+#       "description": "Giảm 20% cho tất cả vé trong tháng 11/2025",
+#       "startdate": "2025-11-01",
+#       "enddate": "2025-11-30",
+#       "discounttype": "Percent",
+#       "discountvalue": 20.00
+#     },
+#     {
+#       "promotionid": 3,
+#       "name": "Opening Week Special",
+#       "description": "Giảm 50,000đ cho tuần đầu tháng 11",
+#       "startdate": "2025-11-01",
+#       "enddate": "2025-11-07",
+#       "discounttype": "Fixed",
+#       "discountvalue": 50000.00
+#     }
+#   ]
+# }
+
+###
+
+###############################################
+# 🎫 PART 2: BOOKING WITH AUTO-APPLY PROMOTIONS
+###############################################
+
+### 2. Login to get Customer Token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "ngoctrungtsn111@gmail.com",
+  "password": "123321"
+}
+
+### Copy the accessToken from response and update @customerToken variable above
+
+###
+
+### 3. CREATE Booking (Auto-apply promotions)
+# Purpose: Test auto-apply promotion during booking creation
+# Expected: 
+#   - Booking created successfully
+#   - Active promotions automatically applied
+#   - Total amount = original total - promotion discounts
+#   - appliedPromotions field populated in response
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [{{seatId1}}, {{seatId2}}]
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "statusCode": 201,
+#   "message": "Booking created successfully",
+#   "data": {
+#     "bookingid": 123,
+#     "customerid": 11,
+#     "showtimeid": 1,
+#     "totalamount": 160000,        // Original: 200,000 - 20% = 160,000
+#     "status": "Pending",
+#     "bookingtime": "2025-11-06T10:30:00Z",
+#     "appliedPromotions": [         // ← NEW FIELD
+#       {
+#         "promotionid": 1,
+#         "name": "Khuyến Mãi Tháng 11",
+#         "description": "Giảm 20% cho tất cả vé",
+#         "discountapplied": 40000   // 200,000 * 20% = 40,000
+#       }
+#     ]
+#   }
+# }
+
+###
+
+### 3.1 Add Combos to Booking (Optional)
+# Purpose: Test that promotions apply to seat prices, not combo prices
+# Note: Add combos AFTER booking creation
+POST {{baseUrl}}/bookings/{{bookingId}}/add-combos
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 1,
+      "quantity": 2
+    }
+  ]
+}
+
+### Expected:
+# - Combos added successfully
+# - Total amount updated: (original seats - promotion discount) + combo prices
+# - Promotions remain unchanged (only applied to seats)
+
+###
+
+### 4. GET Booking Detail (Check applied promotions)
+# Purpose: Verify promotions were saved correctly
+# Expected: Booking detail with promotions array populated
+GET {{baseUrl}}/bookings/{{bookingId}}
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+### Expected Response:
+# {
+#   "success": true,
+#   "statusCode": 200,
+#   "message": "Booking retrieved successfully",
+#   "data": {
+#     "bookingid": 123,
+#     "totalamount": 160000,
+#     "status": "Pending",
+#     "promotions": [                // ← NEW FIELD
+#       {
+#         "promotionid": 1,
+#         "name": "Khuyến Mãi Tháng 11",
+#         "description": "Giảm 20% cho tất cả vé trong tháng 11",
+#         "discountapplied": 40000
+#       }
+#     ],
+#     "seats": [
+#       {
+#         "seatid": 1,
+#         "seatnumber": "A1",
+#         "price": 100000
+#       },
+#       {
+#         "seatid": 2,
+#         "seatnumber": "A2",
+#         "price": 100000
+#       }
+#     ]
+#   }
+# }
+
+###
+
+###############################################
+# 📊 PART 3: VERIFY IN DATABASE
+###############################################
+
+### Manual SQL Verification (Run in Supabase/PostgreSQL):
+
+-- 1. Check active promotions
+# SELECT 
+#     promotionid,
+#     name,
+#     description,
+#     TO_CHAR(startdate, 'DD/MM/YYYY') as startdate,
+#     TO_CHAR(enddate, 'DD/MM/YYYY') as enddate,
+#     discounttype,
+#     discountvalue,
+#     CASE 
+#         WHEN CURRENT_DATE BETWEEN startdate AND enddate THEN 'ACTIVE ✅'
+#         WHEN CURRENT_DATE < startdate THEN 'UPCOMING 📅'
+#         ELSE 'EXPIRED ❌'
+#     END as status
+# FROM promotions
+# ORDER BY startdate DESC;
+
+-- 2. Check booking promotions for a specific booking
+# SELECT 
+#     bp.bookingpromotionid,
+#     bp.bookingid,
+#     bp.promotionid,
+#     p.name as promotion_name,
+#     bp.discountapplied,
+#     b.totalamount as final_total
+# FROM bookingpromotions bp
+# JOIN promotions p ON bp.promotionid = p.promotionid
+# JOIN bookings b ON bp.bookingid = b.bookingid
+# WHERE bp.bookingid = 123;
+
+-- 3. Check total discount for a booking
+# SELECT 
+#     b.bookingid,
+#     b.totalamount as final_total,
+#     SUM(bp.discountapplied) as total_promotion_discount,
+#     COUNT(bp.promotionid) as promotions_count
+# FROM bookings b
+# LEFT JOIN bookingpromotions bp ON b.bookingid = bp.bookingid
+# WHERE b.bookingid = 123
+# GROUP BY b.bookingid, b.totalamount;
+
+###############################################
+# 🧪 PART 4: TEST SCENARIOS
+###############################################
+
+### Test Case 1: Booking with Percentage Discount
+# Setup: Ensure "Khuyến Mãi Tháng 11" (20% off) is active
+# Action: 
+#   Step 1: POST /bookings/create with 2 seats @ 100k each = 200k total
+#   Step 2: Backend auto-applies 20% discount = 40k off
+# Expected: Total = 160k (200k - 40k discount)
+# Verify: bookingpromotions table has record with discountapplied = 40000
+
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [{{seatId1}}, {{seatId2}}]
+}
+
+###
+
+### Test Case 2: Booking with Fixed Discount
+# Setup: Ensure "Opening Week Special" (50k off) is active
+# Action: 
+#   POST /bookings/create with seats totaling 200k
+# Expected: Total = 150k (200k - 50k discount)
+# Verify: bookingpromotions table has record with discountapplied = 50000
+
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [1, 2]
+}
+
+###
+
+### Test Case 3: Multiple Promotions Active
+# Setup: 2 promotions active (e.g., "Khuyến Mãi Tháng 11" 20% + "Opening Week" 50k)
+# Action: 
+#   POST /bookings/create with seats totaling 200k
+# Expected: 
+#   - First promotion: 200k * 20% = 40k off
+#   - Second promotion: 50k off
+#   - Total: 110k (200k - 40k - 50k)
+#   - Both records in bookingpromotions table
+# Note: Apply promotions sequentially to original amount, not compound
+
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [1, 2, 3]
+}
+
+###
+
+### Test Case 4: Add Combos After Promotion Applied
+# Setup: Booking created with promotion applied
+# Action:
+#   Step 1: Create booking (promotions auto-applied to seats)
+#   Step 2: Add combos to booking
+# Expected:
+#   - Combo prices added to discounted total
+#   - Final = (seats - promotion) + combos
+#   - Example: (200k - 40k) + 50k combo = 210k
+
+POST {{baseUrl}}/bookings/{{bookingId}}/add-combos
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "combos": [
+    {
+      "comboid": 1,
+      "quantity": 1
+    }
+  ]
+}
+
+###
+
+### Test Case 5: No Active Promotions
+# Setup: Delete all promotions OR ensure no promotions in date range
+# Action: 
+#   POST /bookings/create
+# Expected: 
+#   - Total = original price (no discount)
+#   - appliedPromotions = []
+#   - No records in bookingpromotions table
+
+POST {{baseUrl}}/bookings/create
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "showtimeid": {{showtimeId}},
+  "seatids": [5, 6]
+}
+
+###
+
+### Test Case 6: Expired Promotion (Not Applied)
+# Setup: Promotion with enddate < today
+# Action: 
+#   POST /bookings/create
+# Expected: 
+#   - Promotion NOT applied
+#   - Total = original price
+#   - No records for expired promotion in bookingpromotions
+
+###############################################
+# 📝 NOTES
+###############################################
+
+# 1. Promotions are PUBLIC data - no auth required for GET /promotions/active
+# 2. Promotions are AUTOMATICALLY applied during booking creation
+# 3. User cannot choose which promotions to apply (all eligible promotions applied)
+# 4. Discount calculation:
+#    - Percent: totalAmount * (discountValue / 100)
+#    - Fixed: discountValue
+# 5. Database uses "Percent" and "Fixed" (case-sensitive)
+# 6. Multiple promotions can be applied to same booking
+# 7. Promotions are optional - booking succeeds even if promotion fails
+
+###############################################
+# 🚀 QUICK START
+###############################################
+
+# Step 1: GET /promotions/active (test #1)
+# Step 2: POST /auth/login (test #2) - get token
+# Step 3: POST /bookings (test #3) - verify appliedPromotions in response
+# Step 4: GET /bookings/{id} (test #4) - verify promotions persisted
+# Step 5: Check database to verify bookingpromotions records
+
+###############################################
+# ✅ SUCCESS CRITERIA
+###############################################
+
+# ✓ GET /promotions/active returns active promotions
+# ✓ POST /bookings includes appliedPromotions in response
+# ✓ Total amount is reduced by promotion discounts
+# ✓ bookingpromotions table has correct records
+# ✓ GET /bookings/{id} shows promotions array
+# ✓ Discount calculations are accurate
+# ✓ Logs show "Applied X promotions to booking Y"
