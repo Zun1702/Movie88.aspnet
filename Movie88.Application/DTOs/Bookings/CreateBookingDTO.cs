@@ -1,5 +1,7 @@
 namespace Movie88.Application.DTOs.Bookings;
 
+using Movie88.Application.DTOs.Promotions;
+
 public class CreateBookingRequestDTO
 {
     public int Showtimeid { get; set; }
@@ -15,6 +17,7 @@ public class BookingResponseDTO
     public decimal Totalamount { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime Createdat { get; set; }
+    public List<AppliedPromotionDTO>? AppliedPromotions { get; set; }
 }
 
 public class BookedSeatDTO

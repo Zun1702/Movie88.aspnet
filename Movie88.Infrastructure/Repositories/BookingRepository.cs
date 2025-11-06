@@ -284,6 +284,19 @@ public class BookingRepository : IBookingRepository
         });
     }
 
+    public async Task UpdateBookingTotalAmountAsync(int bookingId, decimal newTotalAmount, CancellationToken cancellationToken = default)
+    {
+        var booking = await _context.Bookings.FindAsync(new object[] { bookingId }, cancellationToken);
+        if (booking == null)
+        {
+            throw new InvalidOperationException($"Booking with ID {bookingId} not found");
+        }
+
+        booking.Totalamount = newTotalAmount;
+        _context.Bookings.Update(booking);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<BookingModel?> GetByBookingCodeWithDetailsAsync(
         string bookingCode, 
         CancellationToken cancellationToken = default)

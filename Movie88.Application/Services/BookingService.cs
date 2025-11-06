@@ -17,6 +17,7 @@ public class BookingService : IBookingService
     private readonly IComboRepository _comboRepository;
     private readonly IVoucherService _voucherService;
     private readonly IVoucherRepository _voucherRepository;
+    private readonly IPromotionService _promotionService;
 
     public BookingService(
         IBookingRepository bookingRepository, 
@@ -24,7 +25,8 @@ public class BookingService : IBookingService
         IBookingCodeGenerator bookingCodeGenerator,
         IComboRepository comboRepository,
         IVoucherService voucherService,
-        IVoucherRepository voucherRepository)
+        IVoucherRepository voucherRepository,
+        IPromotionService promotionService)
     {
         _bookingRepository = bookingRepository;
         _customerRepository = customerRepository;
@@ -32,6 +34,7 @@ public class BookingService : IBookingService
         _comboRepository = comboRepository;
         _voucherService = voucherService;
         _voucherRepository = voucherRepository;
+        _promotionService = promotionService;
     }
 
     public async Task<Result<PagedResultDTO<BookingListDTO>>> GetMyBookingsAsync(int userId, int page, int pageSize, string? status)
@@ -144,17 +147,37 @@ public class BookingService : IBookingService
 
         // Calculate total amount (seat price based on showtime price)
         var seatPrice = showtime.Price ?? 0;
-        var totalAmount = seatPrice * request.Seatids.Count;
+        var originalTotalAmount = seatPrice * request.Seatids.Count;
         var seatsWithPrices = request.Seatids.Select(seatId => (seatId, seatPrice)).ToList();
 
-        // Create booking with null BookingCode (will be generated after payment)
+        // Create booking with original amount first
         var booking = await _bookingRepository.CreateBookingAsync(
             customerid, 
             request.Showtimeid, 
             null, // BookingCode is null until payment confirmed
-            totalAmount, 
+            originalTotalAmount, 
             seatsWithPrices, 
             cancellationToken);
+
+        // Auto-apply eligible promotions
+        var appliedPromotions = await _promotionService.ApplyEligiblePromotionsAsync(
+            booking.Bookingid, 
+            originalTotalAmount, 
+            cancellationToken);
+
+        // Calculate total discount and update booking if promotions were applied
+        var finalTotalAmount = originalTotalAmount;
+        if (appliedPromotions.Any())
+        {
+            var totalDiscount = appliedPromotions.Sum(p => p.Discountapplied);
+            finalTotalAmount = originalTotalAmount - totalDiscount;
+            
+            // Update booking with discounted amount
+            await _bookingRepository.UpdateBookingTotalAmountAsync(
+                booking.Bookingid, 
+                finalTotalAmount, 
+                cancellationToken);
+        }
 
         // Map to response DTO
         return new BookingResponseDTO
@@ -169,9 +192,10 @@ public class BookingService : IBookingService
                 Number = s.Number ?? 0,
                 Seatprice = seatPrice
             }).ToList(),
-            Totalamount = totalAmount,
+            Totalamount = finalTotalAmount,
             Status = booking.Status ?? nameof(BookingStatus.Pending),
-            Createdat = booking.Bookingtime ?? DateTime.Now
+            Createdat = booking.Bookingtime ?? DateTime.Now,
+            AppliedPromotions = appliedPromotions
         };
     }
 

@@ -5,10 +5,10 @@
 # @baseUrl = https://localhost:7238/api
 
 ### Variables
-@customerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjJlYmE4MDljLWRkZWUtNGI1MS04NWUxLTlhOTc5MGY5Y2E2NyIsIm5iZiI6MTc2MjM3MDMyOCwiZXhwIjoxNzYyMzczOTI4LCJpYXQiOjE3NjIzNzAzMjgsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.uKf3_mGzkC5s5f1m2guX8Y6g_914ubbGuLs9F8w5las
-@showtimeId = 1
-@seatId1 = 1
-@seatId2 = 2
+@customerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjE4ZTgyNmQ3LTY0MTctNDE4Ni04OGRhLTJhZjRlMGI3YmIwYSIsIm5iZiI6MTc2MjQyNTM2OCwiZXhwIjoxNzYyNDI4OTY4LCJpYXQiOjE3NjI0MjUzNjgsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.mHaiNOzWpFGtyEho2fdRwbtvb2Vt0G-FQZd6lkadr0w
+@showtimeId = 13
+@seatId1 = 211
+@seatId2 = 212
 @bookingId = 1
 
 ###############################################
