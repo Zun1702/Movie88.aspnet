@@ -93,10 +93,15 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendCors", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "https://localhost:5173") // React (dev)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy
+            .WithOrigins(
+                "http://localhost:5173",       // dev
+                "https://localhost:5173",      // dev
+                "https://movie88.vercel.app"   // production vercel frontend
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
