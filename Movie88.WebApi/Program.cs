@@ -97,7 +97,7 @@ builder.Services.AddCors(options =>
             .WithOrigins(
                 "http://localhost:5173",       // dev
                 "https://localhost:5173",      // dev
-                "https://movie88.vercel.app"   // production vercel frontend
+                "https://movie88-reactvitejs.vercel.app/"   // production vercel frontend
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
