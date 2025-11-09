@@ -28,7 +28,9 @@ public class AdminCinemaService : IAdminCinemaService
                 Name = request.Name,
                 Address = request.Address,
                 City = request.City,
-                Phone = request.Phone
+                Phone = request.Phone,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude
             };
 
             var createdCinema = await _cinemaRepository.AddAsync(cinemaModel);
@@ -41,6 +43,8 @@ public class AdminCinemaService : IAdminCinemaService
                 Address = createdCinema.Address,
                 City = createdCinema.City,
                 Phone = createdCinema.Phone,
+                Latitude = createdCinema.Latitude,
+                Longitude = createdCinema.Longitude,
                 NumberOfAuditoriums = 0,
                 CreatedAt = createdCinema.Createdat
             };
@@ -76,6 +80,12 @@ public class AdminCinemaService : IAdminCinemaService
             if (request.Phone != null)
                 cinema.Phone = request.Phone;
 
+            if (request.Latitude.HasValue)
+                cinema.Latitude = request.Latitude;
+
+            if (request.Longitude.HasValue)
+                cinema.Longitude = request.Longitude;
+
             var updatedCinema = await _cinemaRepository.UpdateAsync(cinema);
             await _unitOfWork.CommitAsync();
 
@@ -88,6 +98,8 @@ public class AdminCinemaService : IAdminCinemaService
                 Address = updatedCinema.Address,
                 City = updatedCinema.City,
                 Phone = updatedCinema.Phone,
+                Latitude = updatedCinema.Latitude,
+                Longitude = updatedCinema.Longitude,
                 NumberOfAuditoriums = auditoriumCount,
                 CreatedAt = updatedCinema.Createdat
             };
@@ -151,6 +163,8 @@ public class AdminCinemaService : IAdminCinemaService
                 Address = cinema.Address,
                 City = cinema.City,
                 Phone = cinema.Phone,
+                Latitude = cinema.Latitude,
+                Longitude = cinema.Longitude,
                 NumberOfAuditoriums = auditoriumCount,
                 CreatedAt = cinema.Createdat
             };

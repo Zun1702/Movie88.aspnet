@@ -61,6 +61,8 @@ public class CinemaRepository : ICinemaRepository
             Address = cinema.Address,
             Phone = cinema.Phone,
             City = cinema.City,
+            Latitude = cinema.Latitude,
+            Longitude = cinema.Longitude,
             Createdat = cinema.Createdat
         };
     }
@@ -73,6 +75,8 @@ public class CinemaRepository : ICinemaRepository
             Address = model.Address,
             Phone = model.Phone,
             City = model.City,
+            Latitude = model.Latitude,
+            Longitude = model.Longitude,
             Createdat = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
         };
 
@@ -94,6 +98,8 @@ public class CinemaRepository : ICinemaRepository
         cinema.Address = model.Address;
         cinema.Phone = model.Phone;
         cinema.City = model.City;
+        cinema.Latitude = model.Latitude;
+        cinema.Longitude = model.Longitude;
 
         await _context.SaveChangesAsync();
         return model;

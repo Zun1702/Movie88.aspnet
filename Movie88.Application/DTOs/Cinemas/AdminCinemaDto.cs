@@ -21,6 +21,12 @@ public class CreateCinemaDto
 
     [MaxLength(20, ErrorMessage = "Phone cannot exceed 20 characters")]
     public string? Phone { get; set; }
+
+    [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
+    public decimal? Latitude { get; set; }
+
+    [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
+    public decimal? Longitude { get; set; }
 }
 
 /// <summary>
@@ -40,6 +46,12 @@ public class UpdateCinemaDto
 
     [MaxLength(20, ErrorMessage = "Phone cannot exceed 20 characters")]
     public string? Phone { get; set; }
+
+    [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
+    public decimal? Latitude { get; set; }
+
+    [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
+    public decimal? Longitude { get; set; }
 }
 
 /// <summary>
@@ -52,6 +64,8 @@ public class CinemaResponseDto
     public string Address { get; set; } = string.Empty;
     public string? City { get; set; }
     public string? Phone { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
     public int NumberOfAuditoriums { get; set; }
     public DateTime? CreatedAt { get; set; }
 }

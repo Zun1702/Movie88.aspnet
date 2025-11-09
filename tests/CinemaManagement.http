@@ -1,0 +1,235 @@
+### Cinema Management API Tests (Admin Only)
+### All CRUD endpoints for Cinema management
+
+# @baseUrl = https://movie88aspnet-app.up.railway.app/api
+@baseUrl = https://localhost:7238/api
+# @baseUrl = http://localhost:5203/api
+
+### Variables
+@adminToken = 
+@cinemaId = 
+
+###############################################
+### 1. AUTHENTICATION (Get Admin Token)
+###############################################
+
+### 1.1 Login as Admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+###############################################
+### 2. POST /api/admin/cinemas - Create Cinema
+###############################################
+
+### 2.1 Create Cinema - Success (All Fields)
+POST {{baseUrl}}/admin/cinemas
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "CGV Vincom Center",
+  "address": "191 Ba Trieu, Hai Ba Trung District",
+  "city": "Hanoi",
+  "phone": "1900-6017",
+  "latitude": 21.0168,
+  "longitude": 105.8492
+}
+
+### 2.2 Create Cinema - Minimal Fields
+POST {{baseUrl}}/admin/cinemas
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Lotte Cinema Diamond Plaza",
+  "address": "34 Le Duan, District 1"
+}
+
+### 2.3 Create Cinema - Validation Error (Missing Required Fields)
+POST {{baseUrl}}/admin/cinemas
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "city": "Ho Chi Minh City"
+}
+
+### 2.4 Create Cinema - Unauthorized (No Token)
+POST {{baseUrl}}/admin/cinemas
+Content-Type: application/json
+
+{
+  "name": "Test Cinema",
+  "address": "Test Address"
+}
+
+###############################################
+### 3. PUT /api/admin/cinemas/{id} - Update Cinema
+###############################################
+
+### 3.1 Update Cinema - Success (All Fields)
+PUT {{baseUrl}}/admin/cinemas/{{cinemaId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "CGV Vincom Center - Updated",
+  "address": "191 Ba Trieu Street, Hai Ba Trung",
+  "city": "Hanoi",
+  "phone": "1900-6017",
+  "latitude": 21.0168,
+  "longitude": 105.8492
+}
+
+### 3.2 Update Cinema - Partial Update (Name Only)
+PUT {{baseUrl}}/admin/cinemas/{{cinemaId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "CGV Vincom Mega Mall"
+}
+
+### 3.3 Update Cinema - Partial Update (Location Only)
+PUT {{baseUrl}}/admin/cinemas/{{cinemaId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "latitude": 21.0278,
+  "longitude": 105.8342
+}
+
+### 3.4 Update Cinema - Not Found
+PUT {{baseUrl}}/admin/cinemas/99999
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Non-existent Cinema"
+}
+
+### 3.5 Update Cinema - Unauthorized
+PUT {{baseUrl}}/admin/cinemas/{{cinemaId}}
+Content-Type: application/json
+
+{
+  "name": "Unauthorized Update"
+}
+
+###############################################
+### 4. GET /api/admin/cinemas/{id} - Get Cinema Details
+###############################################
+
+### 4.1 Get Cinema - Success
+GET {{baseUrl}}/admin/cinemas/{{cinemaId}}
+Authorization: Bearer {{adminToken}}
+
+### 4.2 Get Cinema - Not Found
+GET {{baseUrl}}/admin/cinemas/99999
+Authorization: Bearer {{adminToken}}
+
+### 4.3 Get Cinema - Unauthorized
+GET {{baseUrl}}/admin/cinemas/{{cinemaId}}
+
+###############################################
+### 5. DELETE /api/admin/cinemas/{id} - Delete Cinema
+###############################################
+
+### 5.1 Delete Cinema - Cannot Delete (Has Active Showtimes)
+DELETE {{baseUrl}}/admin/cinemas/1
+Authorization: Bearer {{adminToken}}
+
+### 5.2 Delete Cinema - Success
+DELETE {{baseUrl}}/admin/cinemas/{{cinemaId}}
+Authorization: Bearer {{adminToken}}
+
+### 5.3 Delete Cinema - Not Found
+DELETE {{baseUrl}}/admin/cinemas/99999
+Authorization: Bearer {{adminToken}}
+
+### 5.4 Delete Cinema - Unauthorized
+DELETE {{baseUrl}}/admin/cinemas/{{cinemaId}}
+
+###############################################
+### 6. Integration Tests
+###############################################
+
+### 6.1 Create → Get → Update → Delete Flow
+# Step 1: Create
+POST {{baseUrl}}/admin/cinemas
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Test Cinema for Integration",
+  "address": "123 Test Street",
+  "city": "Test City",
+  "phone": "0123456789",
+  "latitude": 10.8231,
+  "longitude": 106.6297
+}
+
+# Step 2: Get the created cinema (use cinemaId from Step 1 response)
+# GET {{baseUrl}}/admin/cinemas/{{cinemaId}}
+
+# Step 3: Update the cinema
+# PUT {{baseUrl}}/admin/cinemas/{{cinemaId}}
+
+# Step 4: Delete the cinema
+# DELETE {{baseUrl}}/admin/cinemas/{{cinemaId}}
+
+###############################################
+### 7. Edge Cases
+###############################################
+
+### 7.1 Create Cinema - Invalid Latitude (Out of Range)
+POST {{baseUrl}}/admin/cinemas
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Invalid Location Cinema",
+  "address": "Test Address",
+  "latitude": 95.0,
+  "longitude": 105.0
+}
+
+### 7.2 Create Cinema - Invalid Longitude (Out of Range)
+POST {{baseUrl}}/admin/cinemas
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Invalid Location Cinema",
+  "address": "Test Address",
+  "latitude": 21.0,
+  "longitude": 185.0
+}
+
+### 7.3 Create Cinema - Very Long Name (Over 100 chars)
+POST {{baseUrl}}/admin/cinemas
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "This is a very long cinema name that exceeds the maximum allowed length of one hundred characters for testing",
+  "address": "Test Address"
+}
+
+###############################################
+### NOTES
+###############################################
+# 1. Replace {{adminToken}} with actual JWT token from login response
+# 2. Replace {{cinemaId}} with actual cinema ID from create response
+# 3. Ensure you have admin role to access these endpoints
+# 4. All endpoints require "Admin" role authorization
+# 5. Latitude range: -90 to 90
+# 6. Longitude range: -180 to 180
+# 7. Cannot delete cinema if it has active showtimes
+

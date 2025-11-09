@@ -40,10 +40,25 @@ public class MovieRepository : IMovieRepository
 
     public async Task<MovieModel> UpdateAsync(MovieModel model)
     {
-        var entity = _mapper.Map<Movie>(model);
-        _context.Movies.Update(entity);
+        var existing = await _context.Movies.FindAsync(model.Movieid);
+        if (existing == null)
+            throw new InvalidOperationException("Movie not found");
+
+        // Update only the fields that should be updated
+        existing.Title = model.Title;
+        existing.Description = model.Description;
+        existing.Durationminutes = model.Durationminutes;
+        existing.Director = model.Director;
+        existing.Trailerurl = model.Trailerurl;
+        existing.Releasedate = model.Releasedate;
+        existing.Posterurl = model.Posterurl;
+        existing.Country = model.Country;
+        existing.Rating = model.Rating;
+        existing.Genre = model.Genre;
+        // Don't update Movieid or Createdat
+
         await _context.SaveChangesAsync();
-        return _mapper.Map<MovieModel>(entity);
+        return _mapper.Map<MovieModel>(existing);
     }
 
     public async Task<bool> DeleteAsync(int id)

@@ -1,0 +1,441 @@
+### Showtime Management API Tests (Admin Only)
+### Single and Bulk showtime creation endpoints
+
+@baseUrl = https://localhost:7238/api
+# @baseUrl = https://movie88-production.up.railway.app
+
+### Variables
+@adminToken = 
+@movieId = 1
+@auditoriumId = 1
+@showtimeId = 
+
+###############################################
+### 1. AUTHENTICATION (Get Admin Token)
+###############################################
+
+### 1.1 Login as Admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+###############################################
+### 2. POST /api/admin/showtimes - Create Single Showtime
+###############################################
+
+### 2.1 Create Showtime - Success (All Fields)
+POST {{baseUrl}}/admin/showtimes
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startTime": "2025-11-15T10:00:00",
+  "format": "2D",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "basePrice": 75000
+}
+
+### 2.2 Create Showtime - 3D IMAX Evening Show
+POST {{baseUrl}}/admin/showtimes
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startTime": "2025-11-15T19:00:00",
+  "format": "3D IMAX",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "basePrice": 150000
+}
+
+### 2.3 Create Showtime - Only Language (No Subtitle)
+POST {{baseUrl}}/admin/showtimes
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startTime": "2025-11-15T13:00:00",
+  "format": "2D",
+  "language": "Vietnamese",
+  "basePrice": 70000
+}
+
+### 2.4 Create Showtime - Validation Error (Missing Required Fields)
+POST {{baseUrl}}/admin/showtimes
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}}
+}
+
+### 2.5 Create Showtime - Movie Not Found
+POST {{baseUrl}}/admin/showtimes
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": 99999,
+  "auditoriumId": {{auditoriumId}},
+  "startTime": "2025-11-15T10:00:00",
+  "format": "2D",
+  "language": "English",
+  "basePrice": 75000
+}
+
+### 2.6 Create Showtime - Unauthorized
+POST {{baseUrl}}/admin/showtimes
+Content-Type: application/json
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startTime": "2025-11-15T10:00:00",
+  "format": "2D",
+  "basePrice": 75000
+}
+
+###############################################
+### 3. POST /api/admin/showtimes/bulk - Create Bulk Showtimes
+###############################################
+
+### 3.1 Bulk Create - One Week Schedule (Mon-Fri)
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-13",
+  "endDate": "2025-11-19",
+  "timeslots": ["10:00", "13:00", "16:00", "19:00", "22:00"],
+  "skipDays": [0, 6],
+  "format": "2D",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "pricing": {
+    "weekday": 75000,
+    "weekend": 95000
+  }
+}
+
+### 3.2 Bulk Create - Full Week (No Skip Days)
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-20",
+  "endDate": "2025-11-26",
+  "timeslots": ["09:00", "12:00", "15:00", "18:00", "21:00"],
+  "skipDays": [],
+  "format": "3D",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "pricing": {
+    "weekday": 100000,
+    "weekend": 120000
+  }
+}
+
+### 3.3 Bulk Create - Weekend Only (Skip Mon-Fri)
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-13",
+  "endDate": "2025-11-19",
+  "timeslots": ["10:30", "14:30", "18:30", "22:30"],
+  "skipDays": [1, 2, 3, 4, 5],
+  "format": "IMAX",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "pricing": {
+    "weekday": 150000,
+    "weekend": 180000
+  }
+}
+
+### 3.4 Bulk Create - Single Day Multiple Timeslots
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-15",
+  "endDate": "2025-11-15",
+  "timeslots": ["08:00", "11:00", "14:00", "17:00", "20:00", "23:00"],
+  "skipDays": [],
+  "format": "2D",
+  "language": "Vietnamese",
+  "pricing": {
+    "weekday": 60000,
+    "weekend": 80000
+  }
+}
+
+### 3.5 Bulk Create - Two Weeks Schedule
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-12-01",
+  "endDate": "2025-12-14",
+  "timeslots": ["10:00", "15:00", "20:00"],
+  "skipDays": [3],
+  "format": "2D",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "pricing": {
+    "weekday": 70000,
+    "weekend": 90000
+  }
+}
+
+### 3.6 Bulk Create - Validation Error (Missing Required Fields)
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "startDate": "2025-11-13"
+}
+
+### 3.7 Bulk Create - Invalid Date Range (End Before Start)
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-20",
+  "endDate": "2025-11-13",
+  "timeslots": ["10:00"],
+  "skipDays": [],
+  "format": "2D",
+  "language": "English",
+  "pricing": {
+    "weekday": 75000,
+    "weekend": 95000
+  }
+}
+
+### 3.8 Bulk Create - Movie Not Found
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": 99999,
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-13",
+  "endDate": "2025-11-19",
+  "timeslots": ["10:00"],
+  "skipDays": [],
+  "format": "2D",
+  "language": "English",
+  "pricing": {
+    "weekday": 75000,
+    "weekend": 95000
+  }
+}
+
+### 3.9 Bulk Create - Unauthorized
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-13",
+  "endDate": "2025-11-19",
+  "timeslots": ["10:00"],
+  "skipDays": [],
+  "format": "2D",
+  "language": "English",
+  "pricing": {
+    "weekday": 75000,
+    "weekend": 95000
+  }
+}
+
+###############################################
+### 4. Edge Cases
+###############################################
+
+### 4.1 Bulk Create - Empty Timeslots Array
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-13",
+  "endDate": "2025-11-19",
+  "timeslots": [],
+  "skipDays": [],
+  "format": "2D",
+  "language": "English",
+  "pricing": {
+    "weekday": 75000,
+    "weekend": 95000
+  }
+}
+
+### 4.2 Bulk Create - Skip All Days
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-13",
+  "endDate": "2025-11-19",
+  "timeslots": ["10:00"],
+  "skipDays": [0, 1, 2, 3, 4, 5, 6],
+  "format": "2D",
+  "language": "English",
+  "pricing": {
+    "weekday": 75000,
+    "weekend": 95000
+  }
+}
+
+### 4.3 Create Showtime - Invalid Price (Exceeds Maximum)
+POST {{baseUrl}}/admin/showtimes
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startTime": "2025-11-15T10:00:00",
+  "format": "2D",
+  "language": "English",
+  "basePrice": 1500000
+}
+
+### 4.4 Create Showtime - Past Date
+POST {{baseUrl}}/admin/showtimes
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startTime": "2020-01-01T10:00:00",
+  "format": "2D",
+  "language": "English",
+  "basePrice": 75000
+}
+
+###############################################
+### 5. Real-World Scenarios
+###############################################
+
+### 5.1 Holiday Week Premium Pricing
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-12-24",
+  "endDate": "2025-12-31",
+  "timeslots": ["10:00", "13:00", "16:00", "19:00", "22:00"],
+  "skipDays": [],
+  "format": "3D IMAX",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "pricing": {
+    "weekday": 150000,
+    "weekend": 200000
+  }
+}
+
+### 5.2 Matinee Shows (Morning Only)
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-20",
+  "endDate": "2025-11-26",
+  "timeslots": ["09:00", "11:00"],
+  "skipDays": [],
+  "format": "2D",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "pricing": {
+    "weekday": 50000,
+    "weekend": 65000
+  }
+}
+
+### 5.3 Late Night Shows (After 10 PM)
+POST {{baseUrl}}/admin/showtimes/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "movieId": {{movieId}},
+  "auditoriumId": {{auditoriumId}},
+  "startDate": "2025-11-15",
+  "endDate": "2025-11-21",
+  "timeslots": ["22:00", "23:30"],
+  "skipDays": [0, 1, 2, 3, 4],
+  "format": "2D",
+  "language": "English",
+  "subtitle": "Vietnamese",
+  "pricing": {
+    "weekday": 80000,
+    "weekend": 100000
+  }
+}
+
+###############################################
+### NOTES
+###############################################
+# 1. Replace {{adminToken}} with actual JWT token from login response
+# 2. Replace {{movieId}} with actual movie ID
+# 3. Replace {{auditoriumId}} with actual auditorium ID
+# 4. Replace {{showtimeId}} with actual showtime ID from create response
+# 5. All endpoints require "Admin" role authorization
+# 6. Single showtime: Creates one showtime at specific date/time
+# 7. Bulk showtime: Creates multiple showtimes across a date range
+# 8. skipDays: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
+# 9. Endtime is auto-calculated: startTime + movie.durationMinutes
+# 10. Language and Subtitle are combined into "languageType" field
+# 11. Pricing: Weekday (Mon-Fri), Weekend (Sat-Sun)
+# 12. basePrice range: 0 - 1,000,000
+# 13. Format examples: "2D", "3D", "IMAX", "4DX", "3D IMAX"
+

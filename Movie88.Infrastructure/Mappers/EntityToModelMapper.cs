@@ -10,6 +10,12 @@ public class EntityToModelMapper : Profile
     {
         // Entity -> Model mappings
         CreateMap<Movie, MovieModel>();
+        CreateMap<MovieModel, Movie>()
+            .ForMember(dest => dest.Movieid, opt => opt.Ignore()) // Let database generate ID
+            .ForMember(dest => dest.Createdat, opt => opt.Ignore()) // Let database set default timestamp
+            .ForMember(dest => dest.Showtimes, opt => opt.Ignore())
+            .ForMember(dest => dest.Reviews, opt => opt.Ignore());
+        
         CreateMap<Promotion, PromotionModel>();
         
         // ✅ User mapping (needed for Customer.User navigation)

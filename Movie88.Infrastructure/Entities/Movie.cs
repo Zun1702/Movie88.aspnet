@@ -10,6 +10,7 @@ namespace Movie88.Infrastructure.Entities;
 public partial class Movie
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("movieid")]
     public int Movieid { get; set; }
 

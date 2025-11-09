@@ -5,12 +5,19 @@ using Movie88.Application.Configuration;
 using Movie88.Infrastructure;
 using Movie88.WebApi.Extensions;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+    });
 
 // Configure HttpClient for Email Service
 builder.Services.AddHttpClient();
@@ -47,16 +54,26 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Configure JSON serialization
-builder.Services.AddMvc()
-                .AddJsonOptions(x => x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
-
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Movie88 API", Version = "v1" });
     options.CustomSchemaIds(type => type.ToString());
+    
+    // Map DateOnly and TimeOnly to string in Swagger UI
+    options.MapType<DateOnly>(() => new OpenApiSchema
+    {
+        Type = "string",
+        Format = "date",
+        Example = new Microsoft.OpenApi.Any.OpenApiString("2025-11-05")
+    });
+    
+    options.MapType<TimeOnly>(() => new OpenApiSchema
+    {
+        Type = "string",
+        Example = new Microsoft.OpenApi.Any.OpenApiString("10:00")
+    });
     
     // Add JWT Authentication to Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -124,4 +141,35 @@ static void CreateDatabase(WebApplication app)
     //var serviceScope = app.Services.CreateScope();
     //var dataContext = serviceScope.ServiceProvider.GetService<AppDbContext>();
     //dataContext?.Database.EnsureCreated();
+}
+
+// JSON Converters for DateOnly and TimeOnly
+public class DateOnlyJsonConverter : JsonConverter<DateOnly>
+{
+    private const string Format = "yyyy-MM-dd";
+
+    public override DateOnly Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return DateOnly.ParseExact(reader.GetString()!, Format);
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateOnly value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToString(Format));
+    }
+}
+
+public class TimeOnlyJsonConverter : JsonConverter<TimeOnly>
+{
+    private const string Format = "HH:mm";
+
+    public override TimeOnly Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return TimeOnly.ParseExact(reader.GetString()!, Format);
+    }
+
+    public override void Write(Utf8JsonWriter writer, TimeOnly value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToString(Format));
+    }
 }
