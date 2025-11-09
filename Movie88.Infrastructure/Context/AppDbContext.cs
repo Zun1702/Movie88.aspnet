@@ -166,6 +166,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Cinemaid).HasName("cinemas_pkey");
 
             entity.Property(e => e.Createdat).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Latitude).HasPrecision(10, 8);
+            entity.Property(e => e.Longitude).HasPrecision(11, 8);
         });
 
         modelBuilder.Entity<Combo>(entity =>

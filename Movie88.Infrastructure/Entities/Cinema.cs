@@ -30,6 +30,14 @@ public partial class Cinema
     [StringLength(100)]
     public string? City { get; set; }
 
+    [Column("latitude")]
+    [Precision(10, 8)]
+    public decimal? Latitude { get; set; }
+
+    [Column("longitude")]
+    [Precision(11, 8)]
+    public decimal? Longitude { get; set; }
+
     [Column("createdat", TypeName = "timestamp without time zone")]
     public DateTime? Createdat { get; set; }
 

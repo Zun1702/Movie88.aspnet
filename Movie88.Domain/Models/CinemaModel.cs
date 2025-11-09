@@ -7,5 +7,7 @@ public class CinemaModel
     public string? Address { get; set; }
     public string? City { get; set; }
     public string? Phone { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
     public DateTime? Createdat { get; set; }
 }

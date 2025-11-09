@@ -12,5 +12,6 @@ namespace Movie88.Application.Interfaces
         Task<ForgotPasswordResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request, CancellationToken cancellationToken = default);
         Task<ResetPasswordResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default);
         Task<bool> LogoutAsync(string refreshToken, CancellationToken cancellationToken = default);
+        Task<LoginResponseDTO> GoogleLoginAsync(GoogleLoginRequestDTO request, CancellationToken cancellationToken = default);
     }
 }

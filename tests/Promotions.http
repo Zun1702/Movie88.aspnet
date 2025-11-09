@@ -5,11 +5,11 @@
 # @baseUrl = https://localhost:7238/api
 
 ### Variables
-@customerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjE4ZTgyNmQ3LTY0MTctNDE4Ni04OGRhLTJhZjRlMGI3YmIwYSIsIm5iZiI6MTc2MjQyNTM2OCwiZXhwIjoxNzYyNDI4OTY4LCJpYXQiOjE3NjI0MjUzNjgsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.mHaiNOzWpFGtyEho2fdRwbtvb2Vt0G-FQZd6lkadr0w
+@customerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxMSIsImVtYWlsIjoibmdvY3RydW5ndHNuMTExQGdtYWlsLmNvbSIsInVuaXF1ZV9uYW1lIjoiWnVuenVueiIsInJvbGUiOiJDdXN0b21lciIsImp0aSI6IjI2NmVhNTk0LWRmZWYtNDgxMy04MDdmLTA4M2M1ZTIwZDMwZiIsIm5iZiI6MTc2MjQyNjAyNywiZXhwIjoxNzYyNDI5NjI3LCJpYXQiOjE3NjI0MjYwMjcsImlzcyI6Ik1vdmllODhBUEkiLCJhdWQiOiJNb3ZpZTg4Q2xpZW50In0.7dcDksMtTGtrkdSnQtqOmuAtvYSnNnVhBUzx0jgK384
 @showtimeId = 13
-@seatId1 = 211
-@seatId2 = 212
-@bookingId = 1
+@seatId1 = 213
+@seatId2 = 214
+@bookingId = 15
 
 ###############################################
 # 📋 PART 1: VIEW ACTIVE PROMOTIONS

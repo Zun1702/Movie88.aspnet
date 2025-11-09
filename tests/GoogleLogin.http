@@ -1,0 +1,179 @@
+### 🔐 Google Login API Testing
+
+@baseUrl = https://movie88aspnet-app.up.railway.app/api
+# @baseUrl = https://localhost:7238/api
+
+### Variables
+@googleIdToken = YOUR_GOOGLE_ID_TOKEN_HERE
+
+###############################################
+# 📋 GOOGLE LOGIN FLOW
+###############################################
+
+### 1. Login with Google
+# Purpose: Authenticate user with Google ID Token
+# Note: Get ID token from Google Sign-In SDK on Android
+POST {{baseUrl}}/auth/google-login
+Content-Type: application/json
+
+{
+  "idToken": "{{googleIdToken}}"
+}
+
+### Expected Success Response:
+# {
+#   "success": true,
+#   "statusCode": 200,
+#   "message": "Google login successful",
+#   "data": {
+#     "token": "eyJhbGciOiJIUzI1NiIs...",
+#     "refreshToken": "abc123...",
+#     "expiresAt": "2025-11-06T12:00:00Z",
+#     "user": {
+#       "userId": 123,
+#       "fullName": "John Doe",
+#       "email": "john.doe@gmail.com",
+#       "phoneNumber": null,
+#       "roleId": 3,
+#       "roleName": "Customer"
+#     }
+#   }
+# }
+
+### Expected Error Response (Invalid Token):
+# {
+#   "success": false,
+#   "statusCode": 401,
+#   "message": "Invalid Google token"
+# }
+
+###############################################
+# 📝 NOTES
+###############################################
+
+# 1. How to get Google ID Token on Android:
+# ```kotlin
+# val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+#     .requestIdToken("YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com")
+#     .requestEmail()
+#     .build()
+#
+# val googleSignInClient = GoogleSignIn.getClient(context, gso)
+# 
+# // After successful sign-in:
+# val account = GoogleSignIn.getLastSignedInAccount(context)
+# val idToken = account?.idToken // Use this token
+# ```
+
+# 2. Features:
+# - ✅ Auto-create user account if doesn't exist
+# - ✅ Auto-verify email (if Google email is verified)
+# - ✅ Return JWT access token + refresh token
+# - ✅ Create customer profile automatically
+# - ✅ Assign "Customer" role (roleid=3)
+
+# 3. Security:
+# - ID token is verified with Google's servers
+# - Invalid tokens are rejected with 401 Unauthorized
+# - Tokens expire after 60 minutes (configurable)
+
+# 4. User Management:
+# - First login: Creates new user + customer profile
+# - Subsequent logins: Returns existing user info
+# - Password: Auto-generated random password (user can reset if needed)
+
+###############################################
+# 🧪 TEST SCENARIOS
+###############################################
+
+### Test Case 1: New User (First Time Google Login)
+# Expected: 
+# - User account created
+# - Customer profile created
+# - Returns tokens + user info
+POST {{baseUrl}}/auth/google-login
+Content-Type: application/json
+
+{
+  "idToken": "VALID_GOOGLE_ID_TOKEN"
+}
+
+###
+
+### Test Case 2: Existing User (Returning User)
+# Expected:
+# - Returns tokens for existing account
+# - No new user created
+POST {{baseUrl}}/auth/google-login
+Content-Type: application/json
+
+{
+  "idToken": "VALID_GOOGLE_ID_TOKEN"
+}
+
+###
+
+### Test Case 3: Invalid Token
+# Expected: 401 Unauthorized
+POST {{baseUrl}}/auth/google-login
+Content-Type: application/json
+
+{
+  "idToken": "invalid_token_here"
+}
+
+###
+
+### Test Case 4: Empty Token
+# Expected: 400 Bad Request
+POST {{baseUrl}}/auth/google-login
+Content-Type: application/json
+
+{
+  "idToken": ""
+}
+
+###
+
+### Test Case 5: Use Access Token to Get Profile
+# After successful Google login, use the access token
+GET {{baseUrl}}/customers/profile
+Authorization: Bearer YOUR_ACCESS_TOKEN_FROM_STEP_1
+Content-Type: application/json
+
+###############################################
+# 🚀 QUICK START GUIDE
+###############################################
+
+# Step 1: Implement Google Sign-In on Android
+# Step 2: Get ID Token from GoogleSignInAccount
+# Step 3: POST to /api/auth/google-login with idToken
+# Step 4: Store access token + refresh token
+# Step 5: Use access token for authenticated requests
+
+###############################################
+# ⚙️ CONFIGURATION
+###############################################
+
+# Google OAuth Settings (appsettings.json):
+# {
+#   "GoogleOAuth": {
+#     "ClientId": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+#   }
+# }
+
+# Important: 
+# - Get your Client ID from Google Cloud Console
+# - ClientId must match the one used in Android app
+# - ClientSecret is NOT needed for Android apps
+
+###############################################
+# ✅ SUCCESS CRITERIA
+###############################################
+
+# ✓ POST /api/auth/google-login accepts valid Google ID tokens
+# ✓ Invalid tokens return 401 Unauthorized
+# ✓ New users are created automatically
+# ✓ Existing users can login successfully
+# ✓ Access token can be used for authenticated endpoints
+# ✓ User profile is accessible after login

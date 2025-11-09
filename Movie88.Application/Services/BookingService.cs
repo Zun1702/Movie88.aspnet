@@ -67,7 +67,9 @@ public class BookingService : IBookingService
                 Cinemaid = b.Showtime.Auditorium.Cinema.Cinemaid,
                 Name = b.Showtime.Auditorium.Cinema.Name,
                 Address = b.Showtime.Auditorium.Cinema.Address,
-                City = b.Showtime.Auditorium.Cinema.City
+                City = b.Showtime.Auditorium.Cinema.City,
+                Latitude = b.Showtime.Auditorium.Cinema.Latitude,
+                Longitude = b.Showtime.Auditorium.Cinema.Longitude
             } : null,
             Showtime = b.Showtime != null ? new ShowtimeDTO
             {
